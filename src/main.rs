@@ -1,355 +1,231 @@
-#[macro_use]
-extern crate bitflags;
 extern crate glob;
-extern crate memmap;
+extern crate mmap;
+extern crate v4lise;
 
-use std::collections::VecDeque;
-use std::convert::TryInto;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::hash::Hasher;
 use std::os::unix::io::AsRawFd;
-use std::ptr;
-use std::slice;
 use std::rc::Rc;
+use std::slice;
+
+use byteorder::ByteOrder;
+use byteorder::LittleEndian;
+
+use mmap::MapOption;
+use mmap::MemoryMap;
+
+use v4lise::v4l2_buf_type;
+use v4lise::v4l2_buffer;
+use v4lise::v4l2_capability;
+use v4lise::v4l2_dequeue_buffer;
+use v4lise::v4l2_enum_formats;
+use v4lise::v4l2_enum_framesizes;
+use v4lise::v4l2_fmtdesc;
+use v4lise::v4l2_format;
+use v4lise::v4l2_frmsizeenum;
+use v4lise::v4l2_memory;
+use v4lise::v4l2_query_buffer;
+use v4lise::v4l2_query_cap;
+use v4lise::v4l2_queue_buffer;
+use v4lise::v4l2_request_buffers;
+use v4lise::v4l2_requestbuffers;
+use v4lise::v4l2_set_format;
+use v4lise::v4l2_start_streaming;
+use v4lise::CapabilitiesFlags;
+use v4lise::Result;
+use v4lise::Format;
 
 use glob::glob;
-use libc::ioctl;
-use twox_hash::XxHash64;
-
-const VIDIOC_REQBUFS: libc::c_ulong = 0xc0145608;
-const VIDIOC_QUERYBUF: libc::c_ulong = 0xc0585609;
-const VIDIOC_QUERYCAP: libc::c_ulong = 0x80685600;
-const VIDIOC_QBUF: libc::c_ulong = 0xc058560f;
-const VIDIOC_DQBUF: libc::c_ulong = 0xc0585611;
-const VIDIOC_STREAMON: libc::c_ulong = 0x40045612;
-const VIDIOC_STREAMOFF: libc::c_ulong = 0x40045613;
-
-const V4L2_MEMORY_MMAP: u32 = 1;
-
-const V4L2_BUF_TYPE_VIDEO_CAPTURE: u32 = 1;
-
-#[repr(C)]
-#[derive(Debug)]
-struct c_v4l2_capability {
-    pub driver: [u8; 16],
-    pub card: [u8; 32],
-    pub bus_info: [u8; 32],
-    pub version: u32,
-    pub capabilities: u32,
-    pub device_caps: u32,
-    pub reserved: [u32; 3],
-}
-
-impl ::std::default::Default for c_v4l2_capability {
-    fn default() -> Self {
-        unsafe { ::std::mem::zeroed() }
-    }
-}
-
-bitflags! {
-    struct CapabilitiesFlags: u32 {
-	const VIDEO_CAPTURE = 0x00000001;
-	const VIDEO_OUTPUT = 0x00000002;
-	const VIDEO_OVERLAY = 0x00000004;
-	const VBI_CAPTURE = 0x00000010;
-	const VBI_OUTPUT = 0x00000020;
-	const SLICED_VBI_CAPTURE = 0x00000040;
-	const SLICED_VBI_OUTPUT = 0x00000080;
-	const RDS_CAPTURE = 0x00000100;
-	const VIDEO_OUTPUT_OVERLAY = 0x00000200;
-	const HW_FREQ_SEEK = 0x00000400;
-	const RDS_OUTPUT = 0x00000800;
-	const VIDEO_CAPTURE_MPLANE = 0x00001000;
-	const VIDEO_OUTPUT_MPLANE = 0x00002000;
-	const VIDEO_M2M_MPLANE = 0x00004000;
-	const VIDEO_M2M = 0x00008000;
-	const TUNER = 0x00010000;
-	const AUDIO = 0x00020000;
-	const RADIO = 0x00040000;
-	const MODULATOR = 0x00080000;
-	const SDR_CAPTURE = 0x00100000;
-	const EXT_PIX_FORMAT = 0x00200000;
-	const SDR_OUTPUT = 0x00400000;
-	const META_CAPTURE = 0x00800000;
-	const READWRITE = 0x01000000;
-	const ASYNCIO = 0x02000000;
-	const STREAMING = 0x04000000;
-	const META_OUTPUT = 0x08000000;
-	const TOUCH = 0x10000000;
-	const DEVICE_CAPS = 0x80000000;
-    }
-}
+use twox_hash::XxHash32;
 
 #[derive(Debug)]
 struct V4L2Capability {
-    pub driver: String,
-    pub card: String,
-    pub bus_info: String,
-    pub version: u32,
-    pub capabilities: CapabilitiesFlags,
-    pub device_caps: CapabilitiesFlags,
+	pub driver: String,
+	pub card: String,
+	pub bus_info: String,
+	pub version: u32,
+	pub capabilities: CapabilitiesFlags,
+	pub device_caps: CapabilitiesFlags,
 }
 
-impl From<c_v4l2_capability> for V4L2Capability {
-    fn from(caps: c_v4l2_capability) -> Self {
-	V4L2Capability {
-	    driver: String::from_utf8_lossy(&caps.driver).into_owned(),
-	    card: String::from_utf8_lossy(&caps.card).into_owned(),
-	    bus_info: String::from_utf8_lossy(&caps.bus_info).into_owned(),
-	    version: caps.version,
-	    capabilities: CapabilitiesFlags::from_bits_truncate(caps.capabilities),
-	    device_caps: CapabilitiesFlags::from_bits_truncate(caps.device_caps),
+impl From<v4l2_capability> for V4L2Capability {
+	fn from(caps: v4l2_capability) -> Self {
+		V4L2Capability {
+			driver: String::from_utf8_lossy(&caps.driver).into_owned(),
+			card: String::from_utf8_lossy(&caps.card).into_owned(),
+			bus_info: String::from_utf8_lossy(&caps.bus_info).into_owned(),
+			version: caps.version,
+			capabilities: CapabilitiesFlags::from_bits_truncate(caps.capabilities),
+			device_caps: CapabilitiesFlags::from_bits_truncate(caps.device_caps),
+		}
 	}
-    }
-}
-
-fn get_caps(device: &File) -> Result<V4L2Capability, ()> {
-    let mut caps: c_v4l2_capability = Default::default();
-
-    let result = unsafe { ioctl(device.as_raw_fd(), VIDIOC_QUERYCAP, &mut caps) };
-    if result < 0 {
-	panic!("AAAAAAH");
-    }
-
-    Ok(V4L2Capability::from(caps))
-}
-
-#[repr(C)]
-#[derive(Debug)]
-struct c_v4l2_requestbuffers {
-    pub count: u32,
-    pub r#type: u32,
-    pub memory: u32,
-    pub capabilities: u32,
-    pub reserved: u32,
-}
-
-impl ::std::default::Default for c_v4l2_requestbuffers {
-    fn default() -> Self {
-        unsafe { ::std::mem::zeroed() }
-    }
-}
-
-#[repr(C)]
-union c_v4l2_buffer_m {
-    pub offset: u32,
-    pub userptr: libc::c_ulong,
-    pub planes: usize,
-    pub fd: i32,
-}
-
-impl ::std::fmt::Debug for c_v4l2_buffer_m {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-	unsafe {
-	    f.write_fmt(format_args!("{{ offset: {} }}", self.offset))
-	}
-    }
-}
-
-#[repr(C)]
-#[derive(Debug)]
-struct c_timeval {
-    pub tv_sec: libc::c_long,
-    pub tv_nsec: libc::c_long,
-}
-
-#[repr(C)]
-#[derive(Debug)]
-struct c_v4l2_timecode {
-    pub r#type: u32,
-    pub flags: u32,
-    pub frames: u8,
-    pub seconds: u8,
-    pub minutes: u8,
-    pub hours: u8,
-    pub userbits: [u8; 4],
-}
-
-#[repr(C)]
-#[derive(Debug)]
-struct c_v4l2_buffer {
-    pub index: u32,
-    pub r#type: u32,
-    pub bytesused: u32,
-    pub flags: u32,
-    pub field: u32,
-    pub timestamp: c_timeval,
-    pub timecode: c_v4l2_timecode,
-    pub sequence: u32,
-    pub memory: u32,
-    pub m: c_v4l2_buffer_m,
-    pub length: u32,
-    pub reserved2: u32,
-    pub request_fd: i32,
-}
-
-impl ::std::default::Default for c_v4l2_buffer {
-    fn default() -> Self {
-        unsafe { ::std::mem::zeroed() }
-    }
-}
-
-bitflags! {
-    struct BufferFlags: u32 {
-	const BUF_FLAG_MAPPED = 0x00000001;
-	const BUF_FLAG_QUEUED = 0x00000002;
-	const BUF_FLAG_DONE = 0x00000004;
-	const BUF_FLAG_KEYFRAME = 0x00000008;
-	const BUF_FLAG_PFRAME = 0x00000010;
-	const BUF_FLAG_BFRAME = 0x00000020;
-	const BUF_FLAG_ERROR = 0x00000040;
-	const BUF_FLAG_IN_REQUEST = 0x00000080;
-	const BUF_FLAG_TIMECODE = 0x00000100;
-	const BUF_FLAG_M2M_CAPTURE_BUF = 0x00000200;
-	const BUF_FLAG_NO_CACHE_INVALIDATE = 0x00000800;
-	const BUF_FLAG_NO_CACHE_CLEAN = 0x00001000;
-	const BUF_FLAG_TIMESTAMP_MONOTONIC = 0x00002000;
-	const BUF_FLAG_TIMESTAMP_COPY = 0x00004000;
-	const BUF_FLAG_TSTAMP_SRC_SOE = 0x00010000;
-	const BUF_FLAG_LAST = 0x00100000;
-    }
 }
 
 struct V4L2Buffer<'a> {
-    index: u32,
-    ptr: &'a [u8],
-}
-
-fn alloc_buffers(device: &mut V4L2Device) -> Result<(), ()> {
-    let mut rbufs: c_v4l2_requestbuffers = Default::default();
-
-    rbufs.count = 16;
-    rbufs.r#type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    rbufs.memory = V4L2_MEMORY_MMAP;
-
-    let result = unsafe { ioctl(device.file.as_raw_fd(), VIDIOC_REQBUFS, &mut rbufs) };
-    if result < 0 {
-	panic!("AAAAAAH");
-    }
-
-    for index in 0..16 {
-	let mut c_buf: c_v4l2_buffer = Default::default();
-
-	c_buf.index = index;
-	c_buf.r#type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	c_buf.memory = V4L2_MEMORY_MMAP;
-
-	let result = unsafe { ioctl(device.file.as_raw_fd(), VIDIOC_QUERYBUF, &mut c_buf) };
-	if result < 0 {
-	    panic!("AAAAAAAH");
-	}
-
-	println!("{:?}", c_buf);
-	println!("{:?}", BufferFlags::from_bits_truncate(c_buf.flags));
-
-	let ptr = unsafe {
-	    let mmap = libc::mmap(ptr::null_mut(), c_buf.length as usize,
-				  libc::PROT_READ, libc::MAP_SHARED,
-				  device.file.as_raw_fd(),
-				  c_buf.m.offset as i64) as *const u8;
-	    slice::from_raw_parts(mmap, c_buf.length as usize)
-	};
-
-	let buf = Rc::new(V4L2Buffer {
-	    index: index,
-	    ptr: ptr as &[u8],
-	});
-
-	device.buffers.push(buf.clone());
-	device.pending.push_back(buf.clone());
-    }
-
-    Ok(())
+	index: u32,
+	mmap: MemoryMap,
+	slice: &'a [u8],
 }
 
 struct V4L2Device<'a> {
-    file: File,
-    buffers: Vec<Rc<V4L2Buffer<'a>>>,
-    queued: VecDeque<Rc<V4L2Buffer<'a>>>,
-    pending: VecDeque<Rc<V4L2Buffer<'a>>>,
+	file: File,
+	buffers: Vec<Rc<V4L2Buffer<'a>>>,
 }
 
-fn queue_buffer(dev: &mut V4L2Device) {
-    let mut buf = dev.pending.pop_front().unwrap();
-    let mut c_buf: c_v4l2_buffer = Default::default();
+const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
+const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_MMAP;
+const NUM_BUFFERS: usize = 2;
 
-    c_buf.index = buf.index;
-    c_buf.r#type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    c_buf.memory = V4L2_MEMORY_MMAP;
+fn dequeue_buffer(dev: &V4L2Device) -> Result<u32> {
+	let mut raw_struct: v4l2_buffer = Default::default();
+	raw_struct.type_ = BUFFER_TYPE as u32;
+	raw_struct.memory = MEMORY_TYPE as u32;
 
-    let result = unsafe { ioctl(dev.file.as_raw_fd(), VIDIOC_QBUF, &c_buf) };
-    if result < 0 {
-	panic!("AAAAAAH");
-    }
+	raw_struct = v4l2_dequeue_buffer(&dev.file, raw_struct)?;
 
-    dev.queued.push_back(buf);
+	Ok(raw_struct.index)
 }
 
-fn dequeue_buffer(dev: &mut V4L2Device) {
-    let mut c_buf: c_v4l2_buffer = Default::default();
+fn queue_buffer(dev: &V4L2Device, idx: usize) -> Result<()> {
+	let mut raw_struct: v4l2_buffer = Default::default();
+	raw_struct.index = idx as u32;
+	raw_struct.type_ = BUFFER_TYPE as u32;
+	raw_struct.memory = MEMORY_TYPE as u32;
 
-    c_buf.r#type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    c_buf.memory = V4L2_MEMORY_MMAP;
+	v4l2_queue_buffer(&dev.file, raw_struct)?;
 
-    let result = unsafe { ioctl(dev.file.as_raw_fd(), VIDIOC_DQBUF, &c_buf) };
-    if result < 0 {
-	panic!("AAAAAAH");
-    }
-
-    let buf = &dev.buffers[c_buf.index as usize];
-    let mut hasher = XxHash64::with_seed(42);
-
-    hasher.write(buf.ptr);
-
-    println!("Captured buffer, hash {}", hasher.finish());
-
-    dev.pending.push_back(buf.clone());
-}
-
-fn start_streaming(dev: &mut V4L2Device) {
-    let arg: u32 = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-    let result = unsafe { ioctl(dev.file.as_raw_fd(), VIDIOC_STREAMON, &arg) };
-    if result < 0 {
-	panic!("AAAAAAH");
-    }
+	Ok(())
 }
 
 fn main() {
-    let file = glob("/dev/video[0-9]*").unwrap()
-	.map(|path| {
-	    OpenOptions::new()
-		.read(true)
-		.write(true)
-		.open(path.unwrap())
+	let file = glob("/dev/video[0-9]*")
 		.unwrap()
-	})
-	.filter(|fd| {
-	    let caps = get_caps(&fd).unwrap();
+		.map(|path| {
+			OpenOptions::new()
+				.read(true)
+				.write(true)
+				.open(path.unwrap())
+				.unwrap()
+		})
+		.filter(|fd| {
+			let raw_caps = v4l2_query_cap(fd).unwrap();
+			let caps = V4L2Capability::from(raw_caps);
 
-	    caps.device_caps.contains(CapabilitiesFlags::VIDEO_CAPTURE)
-	})
-	.next()
-	.unwrap();
+			caps.device_caps.contains(CapabilitiesFlags::VIDEO_CAPTURE)
+		})
+		.next()
+		.unwrap();
 
-    let mut dev = V4L2Device {
-	file: file,
-	pending: VecDeque::new(),
-	queued: VecDeque::new(),
-	buffers: Vec::new(),
-    };
+	let mut dev = V4L2Device {
+		file,
+		buffers: Vec::with_capacity(NUM_BUFFERS),
+	};
 
-    let _ = alloc_buffers(&mut dev);
+	let mut fmt: Option<Format> = None;
+	let mut fmt_idx = 0;
+	loop {
+		let mut raw_desc: v4l2_fmtdesc = Default::default();
+		raw_desc.type_ = BUFFER_TYPE as u32;
+		raw_desc.index = fmt_idx;
 
-    for _ in 0..16 {
-	queue_buffer(&mut dev);
-    }
+		match v4l2_enum_formats(&dev.file, raw_desc) {
+			Ok(ret) => {
+				let enum_fmt: Format = unsafe { std::mem::transmute(ret.pixelformat as u32) };
+				println!("format {:#?}", enum_fmt);
 
-    start_streaming(&mut dev);
+				if enum_fmt == Format::YUYV {
+					fmt = Some(enum_fmt);
+				}
 
-    loop {
-	dequeue_buffer(&mut dev);
-	queue_buffer(&mut dev);
-    }
+				fmt_idx += 1;
+			}
+			Err(_) => break,
+		}
+	}
+
+	if fmt.is_none() {
+		panic!("Couldn't find the YUYV format");
+	}
+
+	let mut size_idx = 0;
+	loop {
+		let mut raw_struct: v4l2_frmsizeenum = Default::default();
+		raw_struct.pixel_format = Format::YUYV as u32;
+		raw_struct.index = size_idx;
+
+		match v4l2_enum_framesizes(&dev.file, raw_struct) {
+			Ok(ret) => {
+				println!("size {:#?}", unsafe { ret.__bindgen_anon_1.discrete.width });
+
+				size_idx += 1;
+			}
+			Err(_) => break,
+		}
+	}
+
+	let mut raw_fmt: v4l2_format = Default::default();
+	raw_fmt.type_ = 1;
+	raw_fmt.fmt.pix.width = 320;
+	raw_fmt.fmt.pix.height = 240;
+	raw_fmt.fmt.pix.pixelformat = Format::YUYV as u32;
+
+	v4l2_set_format(&dev.file, raw_fmt).expect("Couldn't set the target format");
+
+	let mut rbuf: v4l2_requestbuffers = Default::default();
+	rbuf.count = NUM_BUFFERS as u32;
+	rbuf.type_ = BUFFER_TYPE as u32;
+	rbuf.memory = MEMORY_TYPE as u32;
+
+	v4l2_request_buffers(&dev.file, rbuf).expect("Couldn't allocate our buffers");
+
+	for idx in 0..NUM_BUFFERS {
+		let mut rbuf: v4l2_buffer = Default::default();
+		rbuf.index = idx as u32;
+		rbuf.type_ = BUFFER_TYPE as u32;
+		rbuf.memory = MEMORY_TYPE as u32;
+
+		rbuf = v4l2_query_buffer(&dev.file, rbuf).expect("Couldn't query our buffer");
+
+		let mmap = MemoryMap::new(
+			rbuf.length as usize,
+			&[
+				MapOption::MapFd(dev.file.as_raw_fd()),
+				MapOption::MapOffset(unsafe { rbuf.m.offset as usize }),
+				MapOption::MapNonStandardFlags(libc::MAP_SHARED),
+				MapOption::MapReadable,
+			],
+		)
+		.expect("Couldn't map our buffer");
+
+		let slice = unsafe { slice::from_raw_parts(mmap.data(), rbuf.length as usize) };
+
+		println!("Buffer {} Address {:#?}", idx, mmap.data());
+
+		let buf = Rc::new(V4L2Buffer {
+			index: idx as u32,
+			mmap,
+			slice,
+		});
+
+		dev.buffers.push(buf);
+		queue_buffer(&dev, idx).expect("Couldn't queue our buffer");
+	}
+
+	v4l2_start_streaming(&dev.file, BUFFER_TYPE).expect("Couldn't start streaming");
+
+	loop {
+		let idx = dequeue_buffer(&dev).expect("Couldn't dequeue our buffer");
+
+		let buf = &dev.buffers[idx as usize];
+		let ptr = buf.mmap.data();
+
+		println!("Dequeued {} Address {:#?}", idx, ptr);
+
+		let mut hasher = XxHash32::with_seed(0);
+		hasher.write(buf.slice);
+		println!("Captured buffer: hash {}", hasher.finish());
+
+		queue_buffer(&dev, idx as usize).expect("Couldn't queue our buffer");
+	}
 }

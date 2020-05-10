@@ -1,0 +1,14 @@
+[package]
+name = "v4lise"
+version = "0.1.0"
+authors = ["Maxime Ripard <maxime@cerno.tech>"]
+edition = "2018"
+
+[dependencies]
+bitflags = "^1.2"
+cvt = "^0.1"
+libc = "^0.2"
+vmm-sys-util = "^0.5"
+
+[build-dependencies]
+bindgen = "^0.53"
