@@ -6,10 +6,12 @@ extern crate bitflags;
 #[macro_use]
 extern crate vmm_sys_util;
 
+mod capabilities;
 mod device;
 mod error;
 mod formats;
 mod lowlevel;
+mod queue;
 
 pub use crate::device::Device;
 pub use crate::error::Result;
@@ -33,3 +35,5 @@ pub use crate::lowlevel::v4l2_set_format;
 pub use crate::lowlevel::v4l2_start_streaming;
 pub use crate::lowlevel::BufferFlags;
 pub use crate::lowlevel::CapabilitiesFlags;
+pub use crate::queue::Queue;
+pub use crate::queue::QueueType;

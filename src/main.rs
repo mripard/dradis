@@ -13,7 +13,6 @@ use mmap::MemoryMap;
 
 use v4lise::v4l2_buf_type;
 use v4lise::v4l2_buffer;
-use v4lise::v4l2_capability;
 use v4lise::v4l2_dequeue_buffer;
 use v4lise::v4l2_enum_formats;
 use v4lise::v4l2_enum_framesizes;
@@ -30,31 +29,9 @@ use v4lise::v4l2_start_streaming;
 use v4lise::Device;
 use v4lise::Format;
 use v4lise::Result;
+use v4lise::QueueType;
 
 use twox_hash::XxHash32;
-
-#[derive(Debug)]
-struct V4L2Capability {
-	pub driver: String,
-	pub card: String,
-	pub bus_info: String,
-	pub version: u32,
-	pub capabilities: CapabilitiesFlags,
-	pub device_caps: CapabilitiesFlags,
-}
-
-impl From<v4l2_capability> for V4L2Capability {
-	fn from(caps: v4l2_capability) -> Self {
-		V4L2Capability {
-			driver: String::from_utf8_lossy(&caps.driver).into_owned(),
-			card: String::from_utf8_lossy(&caps.card).into_owned(),
-			bus_info: String::from_utf8_lossy(&caps.bus_info).into_owned(),
-			version: caps.version,
-			capabilities: CapabilitiesFlags::from_bits_truncate(caps.capabilities),
-			device_caps: CapabilitiesFlags::from_bits_truncate(caps.device_caps),
-		}
-	}
-}
 
 struct V4L2Buffer<'a> {
 	index: u32,
@@ -90,6 +67,7 @@ fn queue_buffer(dev: &Device, idx: usize) -> Result<()> {
 fn main() {
 	let mut buffers: Vec<V4L2Buffer> = Vec::with_capacity(NUM_BUFFERS);
 	let dev = Device::new("/dev/video0").expect("Couldn't open the v4l2 device");
+	let queue = dev.get_queue(QueueType::Capture).expect("Couldn't get our queue");
 
 	let mut fmt: Option<Format> = None;
 	let mut fmt_idx = 0;
