@@ -69,36 +69,15 @@ fn main() {
 	let dev = Device::new("/dev/video0").expect("Couldn't open the v4l2 device");
 	let queue = dev.get_queue(QueueType::Capture).expect("Couldn't get our queue");
 
-	let mut fmt: Option<Format> = None;
-	let mut fmt_idx = 0;
-	loop {
-		let mut raw_desc: v4l2_fmtdesc = Default::default();
-		raw_desc.type_ = BUFFER_TYPE as u32;
-		raw_desc.index = fmt_idx;
-
-		match v4l2_enum_formats(&dev, raw_desc) {
-			Ok(ret) => {
-				let enum_fmt: Format = unsafe { std::mem::transmute(ret.pixelformat as u32) };
-				println!("format {:#?}", enum_fmt);
-
-				if enum_fmt == Format::YUYV {
-					fmt = Some(enum_fmt);
-				}
-
-				fmt_idx += 1;
-			}
-			Err(_) => break,
-		}
-	}
-
-	if fmt.is_none() {
-		panic!("Couldn't find the YUYV format");
-	}
+	let fmt = queue.get_formats()
+		.filter(|fmt| *fmt == Format::YUYV)
+		.next()
+		.expect("Couldn't find our format");
 
 	let mut size_idx = 0;
 	loop {
 		let mut raw_struct: v4l2_frmsizeenum = Default::default();
-		raw_struct.pixel_format = Format::YUYV as u32;
+		raw_struct.pixel_format = fmt as u32;
 		raw_struct.index = size_idx;
 
 		match v4l2_enum_framesizes(&dev, raw_struct) {
@@ -115,7 +94,7 @@ fn main() {
 	raw_fmt.type_ = 1;
 	raw_fmt.fmt.pix.width = 320;
 	raw_fmt.fmt.pix.height = 240;
-	raw_fmt.fmt.pix.pixelformat = Format::YUYV as u32;
+	raw_fmt.fmt.pix.pixelformat = fmt as u32;
 
 	v4l2_set_format(&dev, raw_fmt).expect("Couldn't set the target format");
 
