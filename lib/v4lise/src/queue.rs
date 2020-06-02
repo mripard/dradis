@@ -5,10 +5,19 @@ use crate::error::Result;
 use crate::lowlevel::v4l2_query_cap;
 use crate::lowlevel::CapabilitiesFlags;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum QueueType {
     Capture,
     Output,
+}
+
+impl Into<CapabilitiesFlags> for QueueType {
+    fn into(self) -> CapabilitiesFlags {
+        match self {
+            QueueType::Capture => CapabilitiesFlags::VIDEO_CAPTURE,
+            QueueType::Output => CapabilitiesFlags::VIDEO_OUTPUT,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -21,19 +30,11 @@ impl<'a> Queue<'a> {
     pub fn new(dev: &'a Device, queue_type: QueueType) -> Result<Self> {
         let raw_caps = v4l2_query_cap(dev).unwrap();
         let caps = Capability::from(raw_caps);
-        
-        let flag = match queue_type {
-            QueueType::Capture => CapabilitiesFlags::VIDEO_CAPTURE,
-            QueueType::Output => CapabilitiesFlags::VIDEO_OUTPUT,
-        };
 
-        if !caps.device_caps.contains(flag) {
+        if !caps.device_caps.contains(queue_type.into()) {
             return Err(Error::Invalid);
         }
 
-        Ok(Queue {
-            dev,
-            queue_type,
-        })
+        Ok(Queue { dev, queue_type })
     }
 }
