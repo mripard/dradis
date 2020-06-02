@@ -4,7 +4,7 @@ macro_rules! fourcc_code {
     };
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u32)]
 pub enum Format {
     MJPG = fourcc_code!('M', 'J', 'P', 'G'),
