@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 bitflags = "1.2"
-glob = "0.3"
 libc = "0.2"
 mmap = "^0.1"
 twox-hash = "1.5"

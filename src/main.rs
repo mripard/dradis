@@ -1,8 +1,6 @@
-extern crate glob;
 extern crate mmap;
 extern crate v4lise;
 
-use std::fs::File;
 use std::hash::Hasher;
 use std::os::unix::io::AsRawFd;
 use std::rc::Rc;
@@ -36,7 +34,6 @@ use v4lise::Device;
 use v4lise::Format;
 use v4lise::Result;
 
-use glob::glob;
 use twox_hash::XxHash32;
 
 #[derive(Debug)]
