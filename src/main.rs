@@ -3,7 +3,6 @@ extern crate v4lise;
 
 use std::hash::Hasher;
 use std::os::unix::io::AsRawFd;
-use std::rc::Rc;
 use std::slice;
 
 use byteorder::ByteOrder;
@@ -23,13 +22,11 @@ use v4lise::v4l2_format;
 use v4lise::v4l2_frmsizeenum;
 use v4lise::v4l2_memory;
 use v4lise::v4l2_query_buffer;
-use v4lise::v4l2_query_cap;
 use v4lise::v4l2_queue_buffer;
 use v4lise::v4l2_request_buffers;
 use v4lise::v4l2_requestbuffers;
 use v4lise::v4l2_set_format;
 use v4lise::v4l2_start_streaming;
-use v4lise::CapabilitiesFlags;
 use v4lise::Device;
 use v4lise::Format;
 use v4lise::Result;
