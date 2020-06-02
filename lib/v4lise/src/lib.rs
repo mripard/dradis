@@ -6,10 +6,12 @@ extern crate bitflags;
 #[macro_use]
 extern crate vmm_sys_util;
 
+mod device;
 mod error;
 mod formats;
 mod lowlevel;
 
+pub use crate::device::Device;
 pub use crate::error::Result;
 pub use crate::formats::Format;
 pub use crate::lowlevel::v4l2_buf_type;
