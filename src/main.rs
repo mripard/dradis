@@ -74,26 +74,15 @@ fn main() {
 		.next()
 		.expect("Couldn't find our format");
 
-	let mut size_idx = 0;
-	loop {
-		let mut raw_struct: v4l2_frmsizeenum = Default::default();
-		raw_struct.pixel_format = fmt as u32;
-		raw_struct.index = size_idx;
-
-		match v4l2_enum_framesizes(&dev, raw_struct) {
-			Ok(ret) => {
-				println!("size {:#?}", unsafe { ret.__bindgen_anon_1.discrete.width });
-
-				size_idx += 1;
-			}
-			Err(_) => break,
-		}
-	}
+	let (width, height) = queue.get_sizes(fmt)
+		.filter(|(width, height)| *width == 320 && *height == 240)
+		.next()
+		.expect("Size not supported");
 
 	let mut raw_fmt: v4l2_format = Default::default();
 	raw_fmt.type_ = 1;
-	raw_fmt.fmt.pix.width = 320;
-	raw_fmt.fmt.pix.height = 240;
+	raw_fmt.fmt.pix.width = width as u32;
+	raw_fmt.fmt.pix.height = height as u32;
 	raw_fmt.fmt.pix.pixelformat = fmt as u32;
 
 	v4l2_set_format(&dev, raw_fmt).expect("Couldn't set the target format");

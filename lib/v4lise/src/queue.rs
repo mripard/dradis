@@ -1,3 +1,5 @@
+use crate::lowlevel::v4l2_frmsizeenum;
+use crate::lowlevel::v4l2_enum_framesizes;
 use crate::capabilities::Capability;
 use crate::device::Device;
 use crate::error::Error;
@@ -57,6 +59,14 @@ impl<'a> Queue<'a> {
             curr: 0,
         }
     }
+
+    pub fn get_sizes(&self, fmt: Format) -> QueueSizeIter<'_> {
+        QueueSizeIter {
+            queue: self,
+            curr: 0,
+            fmt,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -85,5 +95,35 @@ impl Iterator for QueueFormatIter<'_> {
 
         self.curr = self.curr + 1;
         Some(fmt)
+    }
+}
+
+#[derive(Debug)]
+pub struct QueueSizeIter<'a> {
+    queue: &'a Queue<'a>,
+    fmt: Format,
+    curr: usize,
+}
+
+impl Iterator for QueueSizeIter<'_> {
+    type Item = (usize, usize);
+
+    fn next(&mut self) -> Option<(usize, usize)> {
+        let mut raw_struct: v4l2_frmsizeenum = Default::default();
+		raw_struct.pixel_format = self.fmt as u32;
+		raw_struct.index = self.curr as u32;
+
+		let size = match v4l2_enum_framesizes(self.queue.dev, raw_struct) {
+			Ok(ret) => {
+                let height = unsafe { ret.__bindgen_anon_1.discrete.height } as usize;
+                let width = unsafe { ret.__bindgen_anon_1.discrete.width } as usize;
+
+                (width, height)
+			}
+			Err(_) => return None,
+		};
+
+        self.curr = self.curr + 1;
+        Some(size)
     }
 }
