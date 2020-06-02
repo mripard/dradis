@@ -1,8 +1,7 @@
+use crate::error::Result;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::os::unix::io::AsRawFd;
-
-use crate::error::Result;
 
 #[derive(Debug)]
 pub struct Device {
@@ -11,14 +10,9 @@ pub struct Device {
 
 impl Device {
     pub fn new(path: &str) -> Result<Self> {
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(path)?;
+        let file = OpenOptions::new().read(true).write(true).open(path)?;
 
-        Ok(Device {
-            file,
-        })
+        Ok(Device { file })
     }
 }
 
