@@ -69,8 +69,8 @@ fn main() {
 	let dev = Device::new("/dev/video0").expect("Couldn't open the v4l2 device");
 	let queue = dev.get_queue(QueueType::Capture).expect("Couldn't get our queue");
 
-	let fmt = queue.get_formats()
-		.filter(|fmt| *fmt == Format::YUYV)
+	let fmt = queue.get_pixel_formats()
+		.filter(|fmt| *fmt == PixelFormat::YUYV)
 		.next()
 		.expect("Couldn't find our format");
 
