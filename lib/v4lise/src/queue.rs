@@ -43,7 +43,7 @@ pub struct Queue<'a> {
 
 impl<'a> Queue<'a> {
     pub fn new(dev: &'a Device, queue_type: QueueType) -> Result<Self> {
-        let raw_caps = v4l2_query_cap(dev).unwrap();
+        let raw_caps = v4l2_query_cap(dev)?;
         let caps = Capability::from(raw_caps);
 
         if !caps.device_caps.contains(queue_type.into()) {
