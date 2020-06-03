@@ -4,7 +4,7 @@ use crate::capabilities::Capability;
 use crate::device::Device;
 use crate::error::Error;
 use crate::error::Result;
-use crate::formats::Format;
+use crate::formats::PixelFormat;
 use crate::lowlevel::v4l2_buf_type;
 use crate::lowlevel::v4l2_enum_formats;
 use crate::lowlevel::v4l2_fmtdesc;
@@ -53,8 +53,8 @@ impl<'a> Queue<'a> {
         Ok(Queue { dev, queue_type })
     }
 
-    pub fn get_formats(&self) -> QueueFormatIter<'_> {
-        QueueFormatIter {
+    pub fn get_pixel_formats(&self) -> QueuePixelFormatIter<'_> {
+        QueuePixelFormatIter {
             queue: self,
             curr: 0,
         }
@@ -70,15 +70,15 @@ impl<'a> Queue<'a> {
 }
 
 #[derive(Debug)]
-pub struct QueueFormatIter<'a> {
+pub struct QueuePixelFormatIter<'a> {
     queue: &'a Queue<'a>,
     curr: usize,
 }
 
-impl Iterator for QueueFormatIter<'_> {
-    type Item = Format;
+impl Iterator for QueuePixelFormatIter<'_> {
+    type Item = PixelFormat;
 
-    fn next(&mut self) -> Option<Format> {
+    fn next(&mut self) -> Option<PixelFormat> {
         let buf_type: v4l2_buf_type = self.queue.queue_type.into();
 
         let mut raw_desc: v4l2_fmtdesc = Default::default();
@@ -86,7 +86,7 @@ impl Iterator for QueueFormatIter<'_> {
         raw_desc.index = self.curr as u32;
         let fmt = match v4l2_enum_formats(self.queue.dev, raw_desc) {
             Ok(ret) => {
-                let cvt: Format = unsafe { std::mem::transmute(ret.pixelformat as u32) };
+                let cvt: PixelFormat = unsafe { std::mem::transmute(ret.pixelformat as u32) };
                 cvt
             }
 
