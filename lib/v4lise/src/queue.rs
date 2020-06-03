@@ -213,18 +213,18 @@ impl Iterator for QueueSizeIter<'_> {
 
     fn next(&mut self) -> Option<(usize, usize)> {
         let mut raw_struct: v4l2_frmsizeenum = Default::default();
-		raw_struct.pixel_format = self.fmt as u32;
-		raw_struct.index = self.curr as u32;
+        raw_struct.pixel_format = self.fmt as u32;
+        raw_struct.index = self.curr as u32;
 
-		let size = match v4l2_enum_framesizes(self.queue.dev, raw_struct) {
-			Ok(ret) => {
+        let size = match v4l2_enum_framesizes(self.queue.dev, raw_struct) {
+            Ok(ret) => {
                 let height = unsafe { ret.__bindgen_anon_1.discrete.height } as usize;
                 let width = unsafe { ret.__bindgen_anon_1.discrete.width } as usize;
 
                 (width, height)
-			}
-			Err(_) => return None,
-		};
+            }
+            Err(_) => return None,
+        };
 
         self.curr = self.curr + 1;
         Some(size)
