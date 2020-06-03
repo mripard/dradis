@@ -14,8 +14,6 @@ use mmap::MemoryMap;
 use v4lise::v4l2_buf_type;
 use v4lise::v4l2_buffer;
 use v4lise::v4l2_dequeue_buffer;
-use v4lise::v4l2_enum_formats;
-use v4lise::v4l2_fmtdesc;
 use v4lise::v4l2_memory;
 use v4lise::v4l2_query_buffer;
 use v4lise::v4l2_queue_buffer;
