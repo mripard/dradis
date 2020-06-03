@@ -27,7 +27,7 @@ use v4lise::v4l2_requestbuffers;
 use v4lise::v4l2_set_format;
 use v4lise::v4l2_start_streaming;
 use v4lise::Device;
-use v4lise::Format;
+use v4lise::PixelFormat;
 use v4lise::Result;
 use v4lise::QueueType;
 

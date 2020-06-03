@@ -6,7 +6,7 @@ macro_rules! fourcc_code {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u32)]
-pub enum Format {
+pub enum PixelFormat {
     MJPG = fourcc_code!('M', 'J', 'P', 'G'),
     YUYV = fourcc_code!('Y', 'U', 'Y', 'V'),
     RGB24 = fourcc_code!('R', 'G', 'B', '3'),
