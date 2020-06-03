@@ -60,7 +60,7 @@ impl<'a> Queue<'a> {
         }
     }
 
-    pub fn get_sizes(&self, fmt: Format) -> QueueSizeIter<'_> {
+    pub fn get_sizes(&self, fmt: PixelFormat) -> QueueSizeIter<'_> {
         QueueSizeIter {
             queue: self,
             curr: 0,
@@ -101,7 +101,7 @@ impl Iterator for QueuePixelFormatIter<'_> {
 #[derive(Debug)]
 pub struct QueueSizeIter<'a> {
     queue: &'a Queue<'a>,
-    fmt: Format,
+    fmt: PixelFormat,
     curr: usize,
 }
 
