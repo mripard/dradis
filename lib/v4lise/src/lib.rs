@@ -35,5 +35,6 @@ pub use crate::lowlevel::v4l2_set_format;
 pub use crate::lowlevel::v4l2_start_streaming;
 pub use crate::lowlevel::BufferFlags;
 pub use crate::lowlevel::CapabilitiesFlags;
+pub use crate::queue::FrameFormat;
 pub use crate::queue::Queue;
 pub use crate::queue::QueueType;

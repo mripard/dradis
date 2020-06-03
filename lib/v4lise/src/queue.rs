@@ -1,5 +1,4 @@
-use crate::lowlevel::v4l2_frmsizeenum;
-use crate::lowlevel::v4l2_enum_framesizes;
+use crate::lowlevel::v4l2_set_format;
 use crate::capabilities::Capability;
 use crate::device::Device;
 use crate::error::Error;
@@ -7,7 +6,11 @@ use crate::error::Result;
 use crate::formats::PixelFormat;
 use crate::lowlevel::v4l2_buf_type;
 use crate::lowlevel::v4l2_enum_formats;
+use crate::lowlevel::v4l2_enum_framesizes;
 use crate::lowlevel::v4l2_fmtdesc;
+use crate::lowlevel::v4l2_format;
+use crate::lowlevel::v4l2_frmsizeenum;
+use crate::lowlevel::v4l2_get_format;
 use crate::lowlevel::v4l2_query_cap;
 use crate::lowlevel::CapabilitiesFlags;
 
@@ -31,6 +34,59 @@ impl Into<v4l2_buf_type> for QueueType {
         match self {
             QueueType::Capture => v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE,
             QueueType::Output => v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_OUTPUT,
+        }
+    }
+}
+
+pub trait FrameFormat {
+    fn set_frame_size(self, width: usize, height: usize) -> Self where Self: Sized;
+    fn set_pixel_format(self, fmt: PixelFormat) -> Self where Self: Sized;
+}
+
+#[derive(Debug)]
+pub struct SinglePlanarCaptureFrameFormat<'a> {
+    queue: &'a Queue<'a>,
+    width: usize,
+    height: usize,
+    pixel_format: PixelFormat,
+}
+
+impl SinglePlanarCaptureFrameFormat<'_> {
+    pub fn set_frame_size(mut self, width: usize, height: usize) -> Self {
+        self.width = width;
+        self.height = height;
+        self
+    }
+
+    pub fn set_pixel_format(mut self, fmt: PixelFormat) -> Self {
+        self.pixel_format = fmt;
+        self
+    }
+}
+
+#[derive(Debug)]
+pub enum QueueFrameFormat<'a> {
+    SinglePlanarCapture(SinglePlanarCaptureFrameFormat<'a>),
+}
+
+impl FrameFormat for QueueFrameFormat<'_> {
+    fn set_frame_size(self, width: usize, height: usize) -> Self {
+        match self {
+            QueueFrameFormat::SinglePlanarCapture(fmt) => {
+                let frm = fmt.set_frame_size(width, height);
+
+                QueueFrameFormat::SinglePlanarCapture(frm)
+            },
+        }
+    }
+
+    fn set_pixel_format(self, pixfmt: PixelFormat) -> Self {
+        match self {
+            QueueFrameFormat::SinglePlanarCapture(fmt) => {
+                let frm = fmt.set_pixel_format(pixfmt);
+
+                QueueFrameFormat::SinglePlanarCapture(frm)
+            },
         }
     }
 }
@@ -60,12 +116,59 @@ impl<'a> Queue<'a> {
         }
     }
 
+    pub fn get_current_format(&self) -> Result<QueueFrameFormat<'_>> {
+        let buf_type: v4l2_buf_type = self.queue_type.into();
+
+        let mut raw_fmt: v4l2_format = Default::default();
+        raw_fmt.type_ = buf_type as u32;
+
+        let raw_fmt = v4l2_get_format(self.dev, raw_fmt)?;
+
+        let buf_type = unsafe { std::mem::transmute(raw_fmt.type_) };
+        match buf_type {
+            v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE => {
+                let fmt = unsafe { &raw_fmt.fmt.pix };
+
+                let width = fmt.width as usize;
+                let height = fmt.height as usize;
+                let pixfmt: PixelFormat = unsafe { std::mem::transmute(fmt.pixelformat as u32) };
+
+                Ok(QueueFrameFormat::SinglePlanarCapture(SinglePlanarCaptureFrameFormat {
+                    queue: self,
+                    width,
+                    height,
+                    pixel_format: pixfmt,
+                }))
+            }
+
+            _ => Err(Error::NotSupported),
+        }
+    }
+
     pub fn get_sizes(&self, fmt: PixelFormat) -> QueueSizeIter<'_> {
         QueueSizeIter {
             queue: self,
             curr: 0,
             fmt,
         }
+    }
+
+    pub fn set_format(&self, fmt: QueueFrameFormat<'_>) -> Result<()> {
+        let buf_type: v4l2_buf_type = self.queue_type.into();
+        let mut raw_fmt: v4l2_format = Default::default();
+
+        raw_fmt.type_ = buf_type as u32;
+        match fmt {
+            QueueFrameFormat::SinglePlanarCapture(inner) => {
+                raw_fmt.fmt.pix.width = inner.width as u32;
+                raw_fmt.fmt.pix.height = inner.height as u32;
+                raw_fmt.fmt.pix.pixelformat = inner.pixel_format as u32;
+            }
+        }
+
+        v4l2_set_format(self.dev, raw_fmt)?;
+
+        Ok(())
     }
 }
 

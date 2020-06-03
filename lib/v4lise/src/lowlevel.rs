@@ -19,6 +19,7 @@ ioctl_ior_nr!(VIDIOC_QUERYCAP, V4L2_IOCTL_BASE, 00, v4l2_capability);
 
 ioctl_iowr_nr!(VIDIOC_ENUM_FMT, V4L2_IOCTL_BASE, 02, v4l2_fmtdesc);
 
+ioctl_iowr_nr!(VIDIOC_G_FMT, V4L2_IOCTL_BASE, 04, v4l2_format);
 ioctl_iowr_nr!(VIDIOC_S_FMT, V4L2_IOCTL_BASE, 05, v4l2_format);
 
 ioctl_iowr_nr!(VIDIOC_REQBUFS, V4L2_IOCTL_BASE, 08, v4l2_requestbuffers);
@@ -141,6 +142,12 @@ pub fn v4l2_request_buffers(
     let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_REQBUFS(), &mut rbuf) })?;
 
     Ok(rbuf)
+}
+
+pub fn v4l2_get_format(file: &impl AsRawFd, mut fmt: v4l2_format) -> Result<v4l2_format> {
+    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_G_FMT(), &mut fmt) })?;
+
+    Ok(fmt)
 }
 
 pub fn v4l2_set_format(file: &impl AsRawFd, mut fmt: v4l2_format) -> Result<v4l2_format> {

@@ -17,16 +17,15 @@ use v4lise::v4l2_dequeue_buffer;
 use v4lise::v4l2_enum_formats;
 use v4lise::v4l2_enum_framesizes;
 use v4lise::v4l2_fmtdesc;
-use v4lise::v4l2_format;
 use v4lise::v4l2_frmsizeenum;
 use v4lise::v4l2_memory;
 use v4lise::v4l2_query_buffer;
 use v4lise::v4l2_queue_buffer;
 use v4lise::v4l2_request_buffers;
 use v4lise::v4l2_requestbuffers;
-use v4lise::v4l2_set_format;
 use v4lise::v4l2_start_streaming;
 use v4lise::Device;
+use v4lise::FrameFormat;
 use v4lise::PixelFormat;
 use v4lise::Result;
 use v4lise::QueueType;
@@ -75,17 +74,15 @@ fn main() {
 		.expect("Couldn't find our format");
 
 	let (width, height) = queue.get_sizes(fmt)
-		.filter(|(width, height)| *width == 320 && *height == 240)
+		.filter(|(width, height)| *width == 640 && *height == 480)
 		.next()
 		.expect("Size not supported");
 
-	let mut raw_fmt: v4l2_format = Default::default();
-	raw_fmt.type_ = 1;
-	raw_fmt.fmt.pix.width = width as u32;
-	raw_fmt.fmt.pix.height = height as u32;
-	raw_fmt.fmt.pix.pixelformat = fmt as u32;
-
-	v4l2_set_format(&dev, raw_fmt).expect("Couldn't set the target format");
+	queue.set_format(queue.get_current_format()
+					.expect("Couldn't get our queue format")
+					.set_pixel_format(fmt)
+					.set_frame_size(width, height))
+		.expect("Couldn't change our queue format");
 
 	let mut rbuf: v4l2_requestbuffers = Default::default();
 	rbuf.count = NUM_BUFFERS as u32;
