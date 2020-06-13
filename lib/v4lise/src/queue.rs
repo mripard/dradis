@@ -39,8 +39,12 @@ impl Into<v4l2_buf_type> for QueueType {
 }
 
 pub trait FrameFormat {
-    fn set_frame_size(self, width: usize, height: usize) -> Self where Self: Sized;
-    fn set_pixel_format(self, fmt: PixelFormat) -> Self where Self: Sized;
+    fn set_frame_size(self, width: usize, height: usize) -> Self
+    where
+        Self: Sized;
+    fn set_pixel_format(self, fmt: PixelFormat) -> Self
+    where
+        Self: Sized;
 }
 
 #[derive(Debug)]
@@ -76,7 +80,7 @@ impl FrameFormat for QueueFrameFormat<'_> {
                 let frm = fmt.set_frame_size(width, height);
 
                 QueueFrameFormat::SinglePlanarCapture(frm)
-            },
+            }
         }
     }
 
@@ -86,7 +90,7 @@ impl FrameFormat for QueueFrameFormat<'_> {
                 let frm = fmt.set_pixel_format(pixfmt);
 
                 QueueFrameFormat::SinglePlanarCapture(frm)
-            },
+            }
         }
     }
 }
