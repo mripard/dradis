@@ -137,12 +137,14 @@ impl<'a> Queue<'a> {
                 let height = fmt.height as usize;
                 let pixfmt: PixelFormat = unsafe { std::mem::transmute(fmt.pixelformat as u32) };
 
-                Ok(QueueFrameFormat::SinglePlanarCapture(SinglePlanarCaptureFrameFormat {
-                    queue: self,
-                    width,
-                    height,
-                    pixel_format: pixfmt,
-                }))
+                Ok(QueueFrameFormat::SinglePlanarCapture(
+                    SinglePlanarCaptureFrameFormat {
+                        queue: self,
+                        width,
+                        height,
+                        pixel_format: pixfmt,
+                    },
+                ))
             }
 
             _ => Err(Error::NotSupported),
