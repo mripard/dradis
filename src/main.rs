@@ -17,13 +17,12 @@ use v4lise::v4l2_dequeue_buffer;
 use v4lise::v4l2_memory;
 use v4lise::v4l2_query_buffer;
 use v4lise::v4l2_queue_buffer;
-use v4lise::v4l2_request_buffers;
-use v4lise::v4l2_requestbuffers;
 use v4lise::v4l2_start_streaming;
 use v4lise::Device;
 use v4lise::FrameFormat;
 use v4lise::PixelFormat;
 use v4lise::Result;
+use v4lise::MemoryType;
 use v4lise::QueueType;
 
 use twox_hash::XxHash32;
@@ -80,12 +79,8 @@ fn main() {
 					.set_frame_size(width, height))
 		.expect("Couldn't change our queue format");
 
-	let mut rbuf: v4l2_requestbuffers = Default::default();
-	rbuf.count = NUM_BUFFERS as u32;
-	rbuf.type_ = BUFFER_TYPE as u32;
-	rbuf.memory = MEMORY_TYPE as u32;
-
-	v4l2_request_buffers(&dev, rbuf).expect("Couldn't allocate our buffers");
+	queue.request_buffers(MemoryType::MMAP, NUM_BUFFERS)
+		.expect("Couldn't request our buffers");
 
 	for idx in 0..NUM_BUFFERS {
 		let mut rbuf: v4l2_buffer = Default::default();

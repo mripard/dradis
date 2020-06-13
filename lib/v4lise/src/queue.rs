@@ -10,9 +10,25 @@ use crate::lowlevel::v4l2_fmtdesc;
 use crate::lowlevel::v4l2_format;
 use crate::lowlevel::v4l2_frmsizeenum;
 use crate::lowlevel::v4l2_get_format;
+use crate::lowlevel::v4l2_memory;
 use crate::lowlevel::v4l2_query_cap;
+use crate::lowlevel::v4l2_request_buffers;
+use crate::lowlevel::v4l2_requestbuffers;
 use crate::lowlevel::v4l2_set_format;
 use crate::lowlevel::CapabilitiesFlags;
+
+#[derive(Clone, Copy, Debug)]
+pub enum MemoryType {
+    MMAP,
+}
+
+impl Into<v4l2_memory> for MemoryType {
+    fn into(self) -> v4l2_memory {
+        match self {
+            MemoryType::MMAP => v4l2_memory::V4L2_MEMORY_MMAP,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub enum QueueType {
@@ -157,6 +173,19 @@ impl<'a> Queue<'a> {
             curr: 0,
             fmt,
         }
+    }
+
+    pub fn request_buffers(self, mem_type: MemoryType, num: usize) -> Result<()> {
+        let buf_type: v4l2_buf_type = self.queue_type.into();
+        let mem_type: v4l2_memory = mem_type.into();
+        let mut rbuf: v4l2_requestbuffers = Default::default();
+        rbuf.count = num as u32;
+        rbuf.type_ = buf_type as u32;
+        rbuf.memory = mem_type as u32;
+
+        v4l2_request_buffers(self.dev, rbuf)?;
+
+        Ok(())
     }
 
     pub fn set_format(&self, fmt: QueueFrameFormat<'_>) -> Result<()> {
