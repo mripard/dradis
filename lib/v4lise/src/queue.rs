@@ -1,4 +1,3 @@
-use crate::lowlevel::v4l2_set_format;
 use crate::capabilities::Capability;
 use crate::device::Device;
 use crate::error::Error;
@@ -12,6 +11,7 @@ use crate::lowlevel::v4l2_format;
 use crate::lowlevel::v4l2_frmsizeenum;
 use crate::lowlevel::v4l2_get_format;
 use crate::lowlevel::v4l2_query_cap;
+use crate::lowlevel::v4l2_set_format;
 use crate::lowlevel::CapabilitiesFlags;
 
 #[derive(Clone, Copy, Debug)]
