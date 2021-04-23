@@ -25,7 +25,6 @@ use v4lise::QueueType;
 use twox_hash::XxHash32;
 
 struct V4L2Buffer<'a> {
-	index: u32,
 	mmap: MemoryMap,
 	slice: &'a [u8],
 }
@@ -103,7 +102,6 @@ fn main() {
 		println!("Buffer {} Address {:#?}", idx, mmap.data());
 
 		let buf = V4L2Buffer {
-			index: idx as u32,
 			mmap,
 			slice,
 		};
