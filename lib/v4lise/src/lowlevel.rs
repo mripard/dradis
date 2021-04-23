@@ -33,6 +33,13 @@ ioctl_iowr_nr!(VIDIOC_DQBUF, V4L2_IOCTL_BASE, 17, v4l2_buffer);
 ioctl_iow_nr!(VIDIOC_STREAMON, V4L2_IOCTL_BASE, 18, libc::c_int);
 
 ioctl_iowr_nr!(
+    VIDIOC_S_EDID,
+    V4L2_IOCTL_BASE,
+    41,
+    v4l2_edid
+);
+
+ioctl_iowr_nr!(
     VIDIOC_ENUM_FRAMESIZES,
     V4L2_IOCTL_BASE,
     74,
@@ -220,6 +227,16 @@ pub fn v4l2_start_streaming(file: &impl AsRawFd, buf_type: v4l2_buf_type) -> Res
     let arg: u32 = buf_type as u32;
 
     let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_STREAMON(), &arg) })?;
+
+    Ok(())
+}
+
+pub fn v4l2_set_edid(file: &impl AsRawFd, edid: &mut [u8]) -> Result<()> {
+    let mut arg = v4l2_edid::default();
+    arg.blocks = (edid.len() / 128) as u32;
+    arg.edid = edid.as_mut_ptr();
+
+    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_S_EDID(), &mut arg) })?;
 
     Ok(())
 }

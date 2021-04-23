@@ -34,6 +34,7 @@ pub use crate::lowlevel::v4l2_queue_buffer;
 pub use crate::lowlevel::v4l2_request_buffers;
 pub use crate::lowlevel::v4l2_requestbuffers;
 pub use crate::lowlevel::v4l2_set_dv_timings;
+pub use crate::lowlevel::v4l2_set_edid;
 pub use crate::lowlevel::v4l2_set_format;
 pub use crate::lowlevel::v4l2_start_streaming;
 pub use crate::lowlevel::BufferFlags;
