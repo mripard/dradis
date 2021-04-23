@@ -5,9 +5,6 @@ use std::hash::Hasher;
 use std::os::unix::io::AsRawFd;
 use std::slice;
 
-use byteorder::ByteOrder;
-use byteorder::LittleEndian;
-
 use mmap::MapOption;
 use mmap::MemoryMap;
 
