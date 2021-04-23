@@ -73,7 +73,7 @@ fn main() {
 
     let (width, height) = queue
         .get_sizes(fmt)
-        .filter(|(width, height)| *width == 640 && *height == 480)
+        .filter(|(width, height)| *width == 1280 && *height == 720)
         .next()
         .expect("Size not supported");
 
