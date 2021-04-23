@@ -29,7 +29,7 @@ struct V4L2Buffer {
 
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
 const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
-const NUM_BUFFERS: usize = 2;
+const NUM_BUFFERS: usize = 5;
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
     let mut raw_struct: v4l2_buffer = Default::default();
