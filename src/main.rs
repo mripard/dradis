@@ -5,6 +5,7 @@ use std::{
     os::unix::io::{AsRawFd, RawFd},
 };
 
+use byteorder::{ByteOrder, LittleEndian};
 use dma_buf::MappedDmaBuf;
 use dma_heap::{DmaBufHeap, DmaBufHeapType};
 use twox_hash::XxHash32;
@@ -44,10 +45,15 @@ fn queue_buffer(dev: &Device, idx: usize, fd: RawFd) -> Result<()> {
     Ok(())
 }
 
-fn compute_hash(slice: &[u8]) -> std::result::Result<u64, dma_buf::Error> {
+fn compute_hash(slice: &[u8]) -> std::result::Result<(u64, u64), dma_buf::Error> {
+    let mut frame_hash: u64 = LittleEndian::read_u16(&slice[6..8]) as u64;
+    frame_hash = frame_hash | ((LittleEndian::read_u16(&slice[9..11]) as u64) << 16);
+
     let mut hasher = XxHash32::with_seed(0);
-    hasher.write(slice);
-    Ok(hasher.finish())
+    hasher.write(&slice[15..]);
+    let computed_hash = hasher.finish();
+
+    Ok((frame_hash, computed_hash))
 }
 
 fn main() {
@@ -111,9 +117,10 @@ fn main() {
 
         let buf = &buffers[idx as usize];
 
-        let hash = buf.dmabuf.read(compute_hash).unwrap();
+        let hashes = buf.dmabuf.read(compute_hash).unwrap();
 
-        println!("Computed hash {:#x}", hash);
+        println!("Found Hash {:#x}", hashes.0);
+        println!("Computed hash {:#x}", hashes.1);
 
         queue_buffer(&dev, idx as usize, buf.dmabuf.as_raw_fd())
             .expect("Couldn't queue our buffer");
