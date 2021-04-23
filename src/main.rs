@@ -61,7 +61,7 @@ fn main() {
 
     let fmt = queue
         .get_pixel_formats()
-        .filter(|fmt| *fmt == PixelFormat::YUYV)
+        .filter(|fmt| *fmt == PixelFormat::RGB24)
         .next()
         .expect("Couldn't find our format");
 
