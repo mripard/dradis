@@ -10,11 +10,17 @@ use std::{
 use byteorder::{ByteOrder, LittleEndian};
 use dma_buf::MappedDmaBuf;
 use dma_heap::{DmaBufHeap, DmaBufHeapType};
+use edid::{
+    EDIDDescriptor, EDIDDetailedTiming, EDIDDetailedTimingDigitalSync, EDIDDetailedTimingSync,
+    EDIDDisplayColorEncoding, EDIDDisplayColorTypeEncoding, EDIDVersion,
+    EDIDVideoDigitalColorDepth, EDIDVideoDigitalInterface, EDIDVideoDigitalInterfaceStandard,
+    EDIDVideoInput, EDIDWeekYear, EDID,
+};
 use twox_hash::XxHash32;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_buffer,
-    v4l2_query_dv_timings, v4l2_queue_buffer, v4l2_set_dv_timings, v4l2_start_streaming, Device,
-    FrameFormat, MemoryType, PixelFormat, QueueType, Result,
+    v4l2_query_dv_timings, v4l2_queue_buffer, v4l2_set_dv_timings, v4l2_set_edid,
+    v4l2_start_streaming, Device, FrameFormat, MemoryType, PixelFormat, QueueType, Result,
 };
 
 struct V4L2Buffer {
@@ -45,6 +51,34 @@ fn queue_buffer(dev: &Device, idx: usize, fd: RawFd) -> Result<()> {
     v4l2_queue_buffer(dev, raw_struct)?;
 
     Ok(())
+}
+
+fn set_edid(dev: &impl AsRawFd) {
+    let mut edid = EDID::new(EDIDVersion::V1R4)
+        .set_manufacturer_id("CRN")
+        .set_week_year(EDIDWeekYear::YearOfManufacture(2021))
+        .set_input(EDIDVideoInput::Digital(EDIDVideoDigitalInterface::new(
+            EDIDVideoDigitalInterfaceStandard::HDMIa,
+            EDIDVideoDigitalColorDepth::Depth8bpc,
+        )))
+        .set_display_color_type_encoding(EDIDDisplayColorTypeEncoding::ColorEncoding(
+            EDIDDisplayColorEncoding::RGB444,
+        ))
+        .set_preferred_timings_native(true)
+        .add_descriptor(EDIDDescriptor::DetailedTiming(
+            EDIDDetailedTiming::new()
+                .set_front_porch(220, 20)
+                .set_display(1280, 720)
+                .set_sync_pulse(40, 5)
+                .set_blanking(370, 30)
+                .set_pixel_clock(74250)
+                .set_sync_type(EDIDDetailedTimingSync::Digital(
+                    EDIDDetailedTimingDigitalSync::Separate(true, true),
+                )),
+        ))
+        .serialize();
+
+    v4l2_set_edid(dev, &mut edid);
 }
 
 fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) {
@@ -87,6 +121,8 @@ fn main() {
     let queue = dev
         .get_queue(QueueType::Capture)
         .expect("Couldn't get our queue");
+
+    set_edid(&dev);
 
     wait_and_set_dv_timings(&dev, 1280, 720);
 
