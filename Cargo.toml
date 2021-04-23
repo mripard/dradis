@@ -5,8 +5,8 @@ authors = ["Maxime Ripard <maxime@cerno.tech>"]
 edition = "2018"
 
 [dependencies]
-libc = "0.2"
-mmap = "^0.1"
+dma-buf = { git = "https://github.com/mripard/dma-buf.git" }
+dma-heap = { git = "https://github.com/mripard/dma-heap.git" }
 twox-hash = "1.5"
 
 [dependencies.v4lise]

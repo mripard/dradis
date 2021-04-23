@@ -1,9 +1,12 @@
-extern crate mmap;
 extern crate v4lise;
 
-use std::{hash::Hasher, os::unix::io::AsRawFd, slice};
+use std::{
+    hash::Hasher,
+    os::unix::io::{AsRawFd, RawFd},
+};
 
-use mmap::{MapOption, MemoryMap};
+use dma_buf::MappedDmaBuf;
+use dma_heap::{DmaBufHeap, DmaBufHeapType};
 use twox_hash::XxHash32;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_buffer,
@@ -11,13 +14,12 @@ use v4lise::{
     QueueType, Result,
 };
 
-struct V4L2Buffer<'a> {
-    mmap: MemoryMap,
-    slice: &'a [u8],
+struct V4L2Buffer {
+    dmabuf: MappedDmaBuf,
 }
 
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
-const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_MMAP;
+const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
 const NUM_BUFFERS: usize = 2;
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
@@ -30,18 +32,27 @@ fn dequeue_buffer(dev: &Device) -> Result<u32> {
     Ok(raw_struct.index)
 }
 
-fn queue_buffer(dev: &Device, idx: usize) -> Result<()> {
+fn queue_buffer(dev: &Device, idx: usize, fd: RawFd) -> Result<()> {
     let mut raw_struct: v4l2_buffer = Default::default();
     raw_struct.index = idx as u32;
     raw_struct.type_ = BUFFER_TYPE as u32;
     raw_struct.memory = MEMORY_TYPE as u32;
+    raw_struct.m.fd = fd;
 
     v4l2_queue_buffer(dev, raw_struct)?;
 
     Ok(())
 }
 
+fn compute_hash(slice: &[u8]) -> std::result::Result<u64, dma_buf::Error> {
+    let mut hasher = XxHash32::with_seed(0);
+    hasher.write(slice);
+    Ok(hasher.finish())
+}
+
 fn main() {
+    let heap = DmaBufHeap::new(DmaBufHeapType::Cma).unwrap();
+
     let mut buffers: Vec<V4L2Buffer> = Vec::with_capacity(NUM_BUFFERS);
     let dev = Device::new("/dev/video0").expect("Couldn't open the v4l2 device");
     let queue = dev
@@ -71,7 +82,7 @@ fn main() {
         .expect("Couldn't change our queue format");
 
     queue
-        .request_buffers(MemoryType::MMAP, NUM_BUFFERS)
+        .request_buffers(MemoryType::DMABUF, NUM_BUFFERS)
         .expect("Couldn't request our buffers");
 
     for idx in 0..NUM_BUFFERS {
@@ -82,25 +93,15 @@ fn main() {
 
         rbuf = v4l2_query_buffer(&dev, rbuf).expect("Couldn't query our buffer");
 
-        let mmap = MemoryMap::new(
-            rbuf.length as usize,
-            &[
-                MapOption::MapFd(dev.as_raw_fd()),
-                MapOption::MapOffset(unsafe { rbuf.m.offset as usize }),
-                MapOption::MapNonStandardFlags(libc::MAP_SHARED),
-                MapOption::MapReadable,
-            ],
-        )
-        .expect("Couldn't map our buffer");
+        let len = rbuf.length as usize;
+        let buffer: MappedDmaBuf = heap
+            .allocate::<dma_buf::DmaBuf>(len)
+            .unwrap()
+            .memory_map()
+            .unwrap();
 
-        let slice = unsafe { slice::from_raw_parts(mmap.data(), rbuf.length as usize) };
-
-        println!("Buffer {} Address {:#?}", idx, mmap.data());
-
-        let buf = V4L2Buffer { mmap, slice };
-
-        buffers.push(buf);
-        queue_buffer(&dev, idx).expect("Couldn't queue our buffer");
+        queue_buffer(&dev, idx, buffer.as_raw_fd()).expect("Couldn't queue our buffer");
+        buffers.push(V4L2Buffer { dmabuf: buffer });
     }
 
     v4l2_start_streaming(&dev, BUFFER_TYPE).expect("Couldn't start streaming");
@@ -109,14 +110,12 @@ fn main() {
         let idx = dequeue_buffer(&dev).expect("Couldn't dequeue our buffer");
 
         let buf = &buffers[idx as usize];
-        let ptr = buf.mmap.data();
 
-        println!("Dequeued {} Address {:#?}", idx, ptr);
+        let hash = buf.dmabuf.read(compute_hash).unwrap();
 
-        let mut hasher = XxHash32::with_seed(0);
-        hasher.write(buf.slice);
-        println!("Captured buffer: hash {}", hasher.finish());
+        println!("Computed hash {:#x}", hash);
 
-        queue_buffer(&dev, idx as usize).expect("Couldn't queue our buffer");
+        queue_buffer(&dev, idx as usize, buf.dmabuf.as_raw_fd())
+            .expect("Couldn't queue our buffer");
     }
 }
