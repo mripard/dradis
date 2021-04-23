@@ -11,6 +11,3 @@ twox-hash = "1.5"
 
 [dependencies.v4lise]
 path = "lib/v4lise"
-
-[build-dependencies]
-bindgen = "0.53"
