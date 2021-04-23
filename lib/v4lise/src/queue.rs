@@ -20,11 +20,13 @@ use crate::lowlevel::CapabilitiesFlags;
 #[derive(Clone, Copy, Debug)]
 pub enum MemoryType {
     MMAP,
+    DMABUF,
 }
 
 impl Into<v4l2_memory> for MemoryType {
     fn into(self) -> v4l2_memory {
         match self {
+            MemoryType::DMABUF => v4l2_memory::V4L2_MEMORY_DMABUF,
             MemoryType::MMAP => v4l2_memory::V4L2_MEMORY_MMAP,
         }
     }
