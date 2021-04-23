@@ -3,6 +3,8 @@ extern crate v4lise;
 use std::{
     hash::Hasher,
     os::unix::io::{AsRawFd, RawFd},
+    thread::sleep,
+    time::Duration,
 };
 
 use byteorder::{ByteOrder, LittleEndian};
@@ -11,8 +13,8 @@ use dma_heap::{DmaBufHeap, DmaBufHeapType};
 use twox_hash::XxHash32;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_buffer,
-    v4l2_queue_buffer, v4l2_start_streaming, Device, FrameFormat, MemoryType, PixelFormat,
-    QueueType, Result,
+    v4l2_query_dv_timings, v4l2_queue_buffer, v4l2_set_dv_timings, v4l2_start_streaming, Device,
+    FrameFormat, MemoryType, PixelFormat, QueueType, Result,
 };
 
 struct V4L2Buffer {
@@ -45,6 +47,27 @@ fn queue_buffer(dev: &Device, idx: usize, fd: RawFd) -> Result<()> {
     Ok(())
 }
 
+fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) {
+    loop {
+        let timings = v4l2_query_dv_timings(dev);
+        if let Ok(timings) = timings {
+            println!("{:#?}", timings);
+
+            let bt = unsafe { timings.__bindgen_anon_1.bt };
+
+            if bt.width as usize == width && bt.height as usize == height {
+                println!("Source started to transmit the proper resolution");
+                v4l2_set_dv_timings(dev, timings);
+                return;
+            }
+        } else {
+            // TODO: Check for ENOLINK
+        }
+
+        sleep(Duration::from_millis(100));
+    }
+}
+
 fn compute_hash(slice: &[u8]) -> std::result::Result<(u64, u64), dma_buf::Error> {
     let mut frame_hash: u64 = LittleEndian::read_u16(&slice[6..8]) as u64;
     frame_hash = frame_hash | ((LittleEndian::read_u16(&slice[9..11]) as u64) << 16);
@@ -64,6 +87,8 @@ fn main() {
     let queue = dev
         .get_queue(QueueType::Capture)
         .expect("Couldn't get our queue");
+
+    wait_and_set_dv_timings(&dev, 1280, 720);
 
     let fmt = queue
         .get_pixel_formats()
