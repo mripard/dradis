@@ -1,28 +1,15 @@
 extern crate mmap;
 extern crate v4lise;
 
-use std::hash::Hasher;
-use std::os::unix::io::AsRawFd;
-use std::slice;
+use std::{hash::Hasher, os::unix::io::AsRawFd, slice};
 
-use mmap::MapOption;
-use mmap::MemoryMap;
-
-use v4lise::v4l2_buf_type;
-use v4lise::v4l2_buffer;
-use v4lise::v4l2_dequeue_buffer;
-use v4lise::v4l2_memory;
-use v4lise::v4l2_query_buffer;
-use v4lise::v4l2_queue_buffer;
-use v4lise::v4l2_start_streaming;
-use v4lise::Device;
-use v4lise::FrameFormat;
-use v4lise::MemoryType;
-use v4lise::PixelFormat;
-use v4lise::QueueType;
-use v4lise::Result;
-
+use mmap::{MapOption, MemoryMap};
 use twox_hash::XxHash32;
+use v4lise::{
+    v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_buffer,
+    v4l2_queue_buffer, v4l2_start_streaming, Device, FrameFormat, MemoryType, PixelFormat,
+    QueueType, Result,
+};
 
 struct V4L2Buffer<'a> {
     mmap: MemoryMap,
