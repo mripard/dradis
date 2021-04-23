@@ -22,6 +22,7 @@ fn main() {
         .whitelist_type("v4l2_buf_type")
         .whitelist_type("v4l2_buffer")
         .whitelist_type("v4l2_capability")
+        .whitelist_type("v4l2_dv_timings")
         .whitelist_type("v4l2_fmtdesc")
         .whitelist_type("v4l2_frmsizeenum")
         .whitelist_type("v4l2_format")

@@ -39,6 +39,44 @@ ioctl_iowr_nr!(
     v4l2_frmsizeenum
 );
 
+ioctl_iowr_nr!(
+    VIDIOC_S_DV_TIMINGS,
+    V4L2_IOCTL_BASE,
+    87,
+    v4l2_dv_timings
+);
+
+ioctl_iowr_nr!(
+    VIDIOC_G_DV_TIMINGS,
+    V4L2_IOCTL_BASE,
+    88,
+    v4l2_dv_timings
+);
+
+ioctl_ior_nr!(
+    VIDIOC_QUERY_DV_TIMINGS,
+    V4L2_IOCTL_BASE,
+    99,
+    v4l2_dv_timings
+);
+
+impl std::fmt::Debug for v4l2_dv_timings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.type_ {
+            V4L2_DV_BT_656_1120 => {
+                unsafe {
+                    let bt = &self.__bindgen_anon_1.bt;
+                    f.debug_struct("v4l2_dv_timings: v4l2_bt_timings")
+                        .field("width", &bt.width)
+                        .field("height", &bt.height)
+                        .finish()
+                }
+            },
+            _ => Err(std::fmt::Error),
+        }
+    }
+}
+
 bitflags! {
     pub struct BufferFlags: u32 {
        const BUF_FLAG_MAPPED = 0x00000001;
@@ -119,6 +157,28 @@ pub fn v4l2_query_buffer(file: &impl AsRawFd, mut buf: v4l2_buffer) -> Result<v4
     let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_QUERYBUF(), &mut buf) })?;
 
     Ok(buf)
+}
+
+pub fn v4l2_query_dv_timings(file: &impl AsRawFd) -> Result<v4l2_dv_timings> {
+    let mut timings = v4l2_dv_timings::default();
+
+    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_QUERY_DV_TIMINGS(), &mut timings) })?;
+
+    Ok(timings)
+}
+
+pub fn v4l2_get_dv_timings(file: &impl AsRawFd) -> Result<v4l2_dv_timings> {
+    let mut timings = v4l2_dv_timings::default();
+
+    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_G_DV_TIMINGS(), &mut timings) })?;
+
+    Ok(timings)
+}
+
+pub fn v4l2_set_dv_timings(file: &impl AsRawFd, mut timings: v4l2_dv_timings) -> Result<v4l2_dv_timings> {
+    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_S_DV_TIMINGS(), &mut timings) })?;
+
+    Ok(timings)
 }
 
 pub fn v4l2_query_cap(file: &impl AsRawFd) -> Result<v4l2_capability> {
