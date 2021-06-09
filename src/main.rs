@@ -16,7 +16,7 @@ use edid::{
     EDIDVideoDigitalColorDepth, EDIDVideoDigitalInterface, EDIDVideoDigitalInterfaceStandard,
     EDIDVideoInput, EDIDWeekYear, EDID,
 };
-use log::{info, warn};
+use log::{debug, info, warn};
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use twox_hash::XxHash32;
 use v4lise::{
@@ -83,21 +83,33 @@ fn set_edid(dev: &impl AsRawFd) {
     v4l2_set_edid(dev, &mut edid);
 }
 
-fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) {
+fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) -> Result<()> {
     loop {
         let timings = v4l2_query_dv_timings(dev);
-        if let Ok(timings) = timings {
-            println!("{:#?}", timings);
 
-            let bt = unsafe { timings.__bindgen_anon_1.bt };
+        match timings {
+            Ok(timings) => {
+                let bt = unsafe { timings.__bindgen_anon_1.bt };
 
-            if bt.width as usize == width && bt.height as usize == height {
-                info!("Source started to transmit the proper resolution");
-                v4l2_set_dv_timings(dev, timings);
-                return;
+                if bt.width as usize == width && bt.height as usize == height {
+                    info!("Source started to transmit the proper resolution.");
+                    let _ = v4l2_set_dv_timings(dev, timings)?;
+                    return Ok(());
+                }
             }
-        } else {
-            // TODO: Check for ENOLINK
+
+            Err(e) => match e {
+                v4lise::Error::Io(ref io) => match io.raw_os_error() {
+                    Some(libc::ENOLCK) => {
+                        debug!("Link detected but unstable.");
+                    }
+                    Some(libc::ENOLINK) => {
+                        debug!("No link detected.")
+                    }
+                    _ => return Err(e),
+                },
+                _ => return Err(e),
+            },
         }
 
         sleep(Duration::from_millis(100));
