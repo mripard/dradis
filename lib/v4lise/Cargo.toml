@@ -6,9 +6,8 @@ edition = "2018"
 
 [dependencies]
 bitflags = "^1.2"
-cvt = "^0.1"
 libc = "^0.2"
-vmm-sys-util = "^0.5"
+nix = "^0.20"
 
 [build-dependencies]
 bindgen = "^0.53"

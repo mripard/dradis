@@ -3,8 +3,6 @@
 
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate vmm_sys_util;
 
 mod capabilities;
 mod device;

@@ -5,63 +5,105 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 use std::os::unix::io::AsRawFd;
 
-use cvt::cvt_r;
-use libc::ioctl;
+use nix::{ioctl_read, ioctl_readwrite, ioctl_write_ptr};
 
 use crate::error::Result;
 
-use vmm_sys_util::ioctl_ior_nr;
-use vmm_sys_util::ioctl_iowr_nr;
-
 const V4L2_IOCTL_BASE: u32 = 'V' as u32;
 
-ioctl_ior_nr!(VIDIOC_QUERYCAP, V4L2_IOCTL_BASE, 00, v4l2_capability);
+ioctl_read!(
+    v4l2_ioctl_querycap,
+    V4L2_IOCTL_BASE,
+    00,
+    v4l2_capability
+);
 
-ioctl_iowr_nr!(VIDIOC_ENUM_FMT, V4L2_IOCTL_BASE, 02, v4l2_fmtdesc);
+ioctl_readwrite!(
+    v4l2_ioctl_enum_fmt,
+    V4L2_IOCTL_BASE,
+    02,
+    v4l2_fmtdesc
+);
 
-ioctl_iowr_nr!(VIDIOC_G_FMT, V4L2_IOCTL_BASE, 04, v4l2_format);
-ioctl_iowr_nr!(VIDIOC_S_FMT, V4L2_IOCTL_BASE, 05, v4l2_format);
+ioctl_readwrite!(
+    v4l2_ioctl_g_fmt,
+    V4L2_IOCTL_BASE,
+    04,
+    v4l2_format
+);
 
-ioctl_iowr_nr!(VIDIOC_REQBUFS, V4L2_IOCTL_BASE, 08, v4l2_requestbuffers);
+ioctl_readwrite!(
+    v4l2_ioctl_s_fmt,
+    V4L2_IOCTL_BASE,
+    05,
+    v4l2_format
+);
 
-ioctl_iowr_nr!(VIDIOC_QUERYBUF, V4L2_IOCTL_BASE, 09, v4l2_buffer);
+ioctl_readwrite!(
+    v4l2_ioctl_reqbufs,
+    V4L2_IOCTL_BASE,
+    08,
+    v4l2_requestbuffers
+);
 
-ioctl_iowr_nr!(VIDIOC_QBUF, V4L2_IOCTL_BASE, 15, v4l2_buffer);
+ioctl_readwrite!(
+    v4l2_ioctl_querybuf,
+    V4L2_IOCTL_BASE,
+    09,
+    v4l2_buffer
+);
 
-ioctl_iowr_nr!(VIDIOC_DQBUF, V4L2_IOCTL_BASE, 17, v4l2_buffer);
+ioctl_readwrite!(
+    v4l2_ioctl_qbuf,
+    V4L2_IOCTL_BASE,
+    15,
+    v4l2_buffer
+);
 
-ioctl_iow_nr!(VIDIOC_STREAMON, V4L2_IOCTL_BASE, 18, libc::c_int);
+ioctl_readwrite!(
+    v4l2_ioctl_dqbuf,
+    V4L2_IOCTL_BASE,
+    17,
+    v4l2_buffer
+);
 
-ioctl_iowr_nr!(
-    VIDIOC_S_EDID,
+ioctl_write_ptr!(
+    v4l2_ioctl_streamon,
+    V4L2_IOCTL_BASE,
+    18,
+    libc::c_int
+);
+
+ioctl_readwrite!(
+    v4l2_ioctl_s_edid,
     V4L2_IOCTL_BASE,
     41,
     v4l2_edid
 );
 
-ioctl_iowr_nr!(
-    VIDIOC_ENUM_FRAMESIZES,
+ioctl_readwrite!(
+    v4l2_ioctl_enum_framesizes,
     V4L2_IOCTL_BASE,
     74,
     v4l2_frmsizeenum
 );
 
-ioctl_iowr_nr!(
-    VIDIOC_S_DV_TIMINGS,
+ioctl_readwrite!(
+    v4l2_ioctl_s_dv_timings,
     V4L2_IOCTL_BASE,
     87,
     v4l2_dv_timings
 );
 
-ioctl_iowr_nr!(
-    VIDIOC_G_DV_TIMINGS,
+ioctl_readwrite!(
+    v4l2_ioctl_g_dv_timings,
     V4L2_IOCTL_BASE,
     88,
     v4l2_dv_timings
 );
 
-ioctl_ior_nr!(
-    VIDIOC_QUERY_DV_TIMINGS,
+ioctl_read!(
+    v4l2_ioctl_query_dv_timings,
     V4L2_IOCTL_BASE,
     99,
     v4l2_dv_timings
@@ -140,13 +182,13 @@ bitflags! {
 }
 
 pub fn v4l2_dequeue_buffer(file: &impl AsRawFd, mut buf: v4l2_buffer) -> Result<v4l2_buffer> {
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_DQBUF(), &mut buf) })?;
+    let _ = unsafe { v4l2_ioctl_dqbuf(file.as_raw_fd(), &mut buf) }?;
 
     Ok(buf)
 }
 
 pub fn v4l2_enum_formats(file: &impl AsRawFd, mut desc: v4l2_fmtdesc) -> Result<v4l2_fmtdesc> {
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_ENUM_FMT(), &mut desc) })?;
+    let _ = unsafe { v4l2_ioctl_enum_fmt(file.as_raw_fd(), &mut desc)}?;
 
     Ok(desc)
 }
@@ -155,13 +197,13 @@ pub fn v4l2_enum_framesizes(
     file: &impl AsRawFd,
     mut desc: v4l2_frmsizeenum,
 ) -> Result<v4l2_frmsizeenum> {
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_ENUM_FRAMESIZES(), &mut desc) })?;
+    let _ = unsafe { v4l2_ioctl_enum_framesizes(file.as_raw_fd(), &mut desc) }?;
 
     Ok(desc)
 }
 
 pub fn v4l2_query_buffer(file: &impl AsRawFd, mut buf: v4l2_buffer) -> Result<v4l2_buffer> {
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_QUERYBUF(), &mut buf) })?;
+    let _ = unsafe { v4l2_ioctl_querybuf(file.as_raw_fd(), &mut buf) }?;
 
     Ok(buf)
 }
@@ -169,7 +211,7 @@ pub fn v4l2_query_buffer(file: &impl AsRawFd, mut buf: v4l2_buffer) -> Result<v4
 pub fn v4l2_query_dv_timings(file: &impl AsRawFd) -> Result<v4l2_dv_timings> {
     let mut timings = v4l2_dv_timings::default();
 
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_QUERY_DV_TIMINGS(), &mut timings) })?;
+    let _ = unsafe { v4l2_ioctl_query_dv_timings(file.as_raw_fd(), &mut timings) }?;
 
     Ok(timings)
 }
@@ -177,13 +219,13 @@ pub fn v4l2_query_dv_timings(file: &impl AsRawFd) -> Result<v4l2_dv_timings> {
 pub fn v4l2_get_dv_timings(file: &impl AsRawFd) -> Result<v4l2_dv_timings> {
     let mut timings = v4l2_dv_timings::default();
 
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_G_DV_TIMINGS(), &mut timings) })?;
+    let _ = unsafe { v4l2_ioctl_g_dv_timings(file.as_raw_fd(), &mut timings) }?;
 
     Ok(timings)
 }
 
 pub fn v4l2_set_dv_timings(file: &impl AsRawFd, mut timings: v4l2_dv_timings) -> Result<v4l2_dv_timings> {
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_S_DV_TIMINGS(), &mut timings) })?;
+    let _ = unsafe { v4l2_ioctl_s_dv_timings(file.as_raw_fd(), &mut timings) }?;
 
     Ok(timings)
 }
@@ -191,13 +233,13 @@ pub fn v4l2_set_dv_timings(file: &impl AsRawFd, mut timings: v4l2_dv_timings) ->
 pub fn v4l2_query_cap(file: &impl AsRawFd) -> Result<v4l2_capability> {
     let mut caps: v4l2_capability = Default::default();
 
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_QUERYCAP(), &mut caps) })?;
+    let _ = unsafe { v4l2_ioctl_querycap(file.as_raw_fd(), &mut caps) }?;
 
     Ok(caps)
 }
 
-pub fn v4l2_queue_buffer(file: &impl AsRawFd, buf: v4l2_buffer) -> Result<()> {
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_QBUF(), &buf) })?;
+pub fn v4l2_queue_buffer(file: &impl AsRawFd, mut buf: v4l2_buffer) -> Result<()> {
+    let _ = unsafe { v4l2_ioctl_qbuf(file.as_raw_fd(), &mut buf) }?;
 
     Ok(())
 }
@@ -206,27 +248,27 @@ pub fn v4l2_request_buffers(
     file: &impl AsRawFd,
     mut rbuf: v4l2_requestbuffers,
 ) -> Result<v4l2_requestbuffers> {
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_REQBUFS(), &mut rbuf) })?;
+    let _ = unsafe { v4l2_ioctl_reqbufs(file.as_raw_fd(), &mut rbuf) }?;
 
     Ok(rbuf)
 }
 
 pub fn v4l2_get_format(file: &impl AsRawFd, mut fmt: v4l2_format) -> Result<v4l2_format> {
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_G_FMT(), &mut fmt) })?;
+    let _ = unsafe { v4l2_ioctl_g_fmt(file.as_raw_fd(), &mut fmt) }?;
 
     Ok(fmt)
 }
 
 pub fn v4l2_set_format(file: &impl AsRawFd, mut fmt: v4l2_format) -> Result<v4l2_format> {
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_S_FMT(), &mut fmt) })?;
+    let _ = unsafe { v4l2_ioctl_s_fmt(file.as_raw_fd(), &mut fmt) }?;
 
     Ok(fmt)
 }
 
 pub fn v4l2_start_streaming(file: &impl AsRawFd, buf_type: v4l2_buf_type) -> Result<()> {
-    let arg: u32 = buf_type as u32;
+    let arg = buf_type as libc::c_int;
 
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_STREAMON(), &arg) })?;
+    let _ = unsafe { v4l2_ioctl_streamon(file.as_raw_fd(), &arg as *const i32) }?;
 
     Ok(())
 }
@@ -236,7 +278,7 @@ pub fn v4l2_set_edid(file: &impl AsRawFd, edid: &mut [u8]) -> Result<()> {
     arg.blocks = (edid.len() / 128) as u32;
     arg.edid = edid.as_mut_ptr();
 
-    let _ = cvt_r(|| unsafe { ioctl(file.as_raw_fd(), VIDIOC_S_EDID(), &mut arg) })?;
+    let _ = unsafe { v4l2_ioctl_s_edid(file.as_raw_fd(), &mut arg) }?;
 
     Ok(())
 }
