@@ -16,6 +16,8 @@ use edid::{
     EDIDVideoDigitalColorDepth, EDIDVideoDigitalInterface, EDIDVideoDigitalInterfaceStandard,
     EDIDVideoInput, EDIDWeekYear, EDID,
 };
+use log::{info, warn};
+use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use twox_hash::XxHash32;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_buffer,
@@ -90,7 +92,7 @@ fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) {
             let bt = unsafe { timings.__bindgen_anon_1.bt };
 
             if bt.width as usize == width && bt.height as usize == height {
-                println!("Source started to transmit the proper resolution");
+                info!("Source started to transmit the proper resolution");
                 v4l2_set_dv_timings(dev, timings);
                 return;
             }
@@ -114,6 +116,14 @@ fn compute_hash(slice: &[u8]) -> std::result::Result<(u64, u64), dma_buf::Error>
 }
 
 fn main() {
+    TermLogger::init(
+        LevelFilter::Debug,
+        Config::default(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    )
+    .unwrap();
+
     let heap = DmaBufHeap::new(DmaBufHeapType::Cma).unwrap();
 
     let mut buffers: Vec<V4L2Buffer> = Vec::with_capacity(NUM_BUFFERS);
@@ -180,8 +190,8 @@ fn main() {
 
         let hashes = buf.dmabuf.read(compute_hash).unwrap();
 
-        println!("Found Hash {:#x}", hashes.0);
-        println!("Computed hash {:#x}", hashes.1);
+        info!("Found Hash {:#x}", hashes.0);
+        info!("Computed hash {:#x}", hashes.1);
 
         queue_buffer(&dev, idx as usize, buf.dmabuf.as_raw_fd())
             .expect("Couldn't queue our buffer");
