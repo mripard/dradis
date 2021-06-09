@@ -12,6 +12,7 @@ mod lowlevel;
 mod queue;
 
 pub use crate::device::Device;
+pub use crate::error::Error;
 pub use crate::error::Result;
 pub use crate::formats::PixelFormat;
 pub use crate::lowlevel::v4l2_buf_type;
