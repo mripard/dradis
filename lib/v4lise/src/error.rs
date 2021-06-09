@@ -2,6 +2,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
+    Io(std::io::Error),
     Invalid,
     Empty,
     FileNotFound,
@@ -9,8 +10,8 @@ pub enum Error {
 }
 
 impl From<std::io::Error> for Error {
-    fn from(_err: std::io::Error) -> Self {
-        Error::FileNotFound
+    fn from(err: std::io::Error) -> Self {
+        Error::Io(err)
     }
 }
 
