@@ -9,9 +9,9 @@ byteorder = "^1.3"
 dma-buf = { git = "https://github.com/mripard/dma-buf.git" }
 dma-heap = { git = "https://github.com/mripard/dma-heap.git" }
 edid = { git = "ssh://git@github.com/mripard/edid-rs.git" }
-libc = "^0.2"
-log = "^0.4"
-simplelog = "^0.10"
+libc = "~0.2"
+log = "~0.4"
+simplelog = "~0.10"
 twox-hash = "^1.5"
 
 [dependencies.v4lise]
