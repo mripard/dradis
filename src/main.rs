@@ -33,9 +33,11 @@ const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
 const NUM_BUFFERS: u32 = 5;
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
-    let mut raw_struct: v4l2_buffer = Default::default();
-    raw_struct.type_ = BUFFER_TYPE as u32;
-    raw_struct.memory = MEMORY_TYPE as u32;
+    let mut raw_struct = v4l2_buffer {
+        type_: BUFFER_TYPE as u32,
+        memory: MEMORY_TYPE as u32,
+        ..v4l2_buffer::default()
+    };
 
     raw_struct = v4l2_dequeue_buffer(dev, raw_struct)?;
 
@@ -43,10 +45,12 @@ fn dequeue_buffer(dev: &Device) -> Result<u32> {
 }
 
 fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> Result<()> {
-    let mut raw_struct: v4l2_buffer = Default::default();
-    raw_struct.index = idx;
-    raw_struct.type_ = BUFFER_TYPE as u32;
-    raw_struct.memory = MEMORY_TYPE as u32;
+    let mut raw_struct = v4l2_buffer {
+        index: idx,
+        type_: BUFFER_TYPE as u32,
+        memory: MEMORY_TYPE as u32,
+        ..v4l2_buffer::default()
+    };
     raw_struct.m.fd = fd;
 
     v4l2_queue_buffer(dev, raw_struct)?;
@@ -187,10 +191,12 @@ fn main() {
         .expect("Couldn't request our buffers");
 
     for idx in 0..NUM_BUFFERS {
-        let mut rbuf: v4l2_buffer = Default::default();
-        rbuf.index = idx;
-        rbuf.type_ = BUFFER_TYPE as u32;
-        rbuf.memory = MEMORY_TYPE as u32;
+        let mut rbuf = v4l2_buffer {
+            index: idx,
+            type_: BUFFER_TYPE as u32,
+            memory: MEMORY_TYPE as u32,
+            ..v4l2_buffer::default()
+        };
 
         rbuf = v4l2_query_buffer(&dev, rbuf)
             .expect("Couldn't query our buffer");
