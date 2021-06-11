@@ -164,19 +164,12 @@ fn main() {
         .next()
         .expect("Couldn't find our format");
 
-    let (width, height) = queue
-        .get_sizes(fmt)
-        .filter(|(width, height)| *width == 1280 && *height == 720)
-        .next()
-        .expect("Size not supported");
-
     queue
         .set_format(
             queue
                 .get_current_format()
                 .expect("Couldn't get our queue format")
-                .set_pixel_format(fmt)
-                .set_frame_size(width, height),
+                .set_pixel_format(fmt),
         )
         .expect("Couldn't change our queue format");
 
