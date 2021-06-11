@@ -131,6 +131,7 @@ fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) -> R
     }
 }
 
+#[derive(Debug)]
 struct CapturedFrame {
     index: u32,
     frame_hash: u32,
