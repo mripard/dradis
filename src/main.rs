@@ -132,26 +132,21 @@ fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) -> R
 }
 
 struct CapturedFrame {
-    index: usize,
+    index: u32,
     frame_hash: u32,
     computed_hash: u32,
 }
 
 #[allow(clippy::unnecessary_wraps)]
 fn decode_captured_frame(data: &[u8]) -> std::result::Result<CapturedFrame, dma_buf::Error> {
-    let index = LittleEndian::read_u16(&data[3..5]) as usize;
-
-    let mut frame_hash = u32::from(LittleEndian::read_u16(&data[6..8]));
-    frame_hash |= u32::from(LittleEndian::read_u16(&data[9..11])) << 16;
-
     let mut hasher = XxHash32::with_seed(0);
-    hasher.write(&data[15..]);
+    hasher.write(&data[16..]);
     let computed_hash = u32::try_from(hasher.finish())
         .expect("Computed Hash was overflowing");
 
     Ok(CapturedFrame {
-        index,
-        frame_hash,
+        index: LittleEndian::read_u32(&data[8..12]),
+        frame_hash: LittleEndian::read_u32(&data[12..16]),
         computed_hash,
     })
 }
