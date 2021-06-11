@@ -233,7 +233,9 @@ fn main() {
 
         let buf = &buffers[idx as usize];
 
-        let frame = buf.dmabuf.read(decode_captured_frame)
+        let frame = buf
+            .dmabuf
+            .read(decode_captured_frame)
             .expect("Couldn't read the frame content");
 
         if frame.frame_hash == frame.computed_hash {
