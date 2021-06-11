@@ -42,11 +42,7 @@ fn main() -> Result<()> {
         })
         .context("No Active Connector")?;
 
-    println!(
-        "Running from connector {}-{}",
-        connector.connector_type(),
-        connector.connector_type_id()
-    );
+    log::info!("Running from connector {:#?}", connector);
 
     // let mode = connector
     //     .preferred_mode()
@@ -62,12 +58,7 @@ fn main() -> Result<()> {
     let width = mode.width();
     let height = mode.height();
 
-    println!(
-        "Using mode {}x{}@{}",
-        mode.width(),
-        mode.height(),
-        mode.refresh()
-    );
+    log::info!("Using mode {:#?}", mode);
 
     let output = device
         .output_from_connector(&connector)
@@ -88,13 +79,13 @@ fn main() -> Result<()> {
                                                  FilterType::Nearest);
     let img_data = img.to_bgra8().into_vec();
 
-    println!("Opened image {}", img_path);
+    log::info!("Opened image {}", img_path);
 
     let mut hasher = XxHash32::with_seed(0);
     hasher.write(&img_data[10..]);
     let hash = hasher.finish() as u32;
 
-    println!("Hash {:#x}", hash);
+    log::info!("Hash {:#x}", hash);
 
     let mut buffers: Vec<_> = Vec::new();
     for _idx in 0..NUM_BUFFERS {
@@ -118,7 +109,7 @@ fn main() -> Result<()> {
         hasher.write(&data[15..]);
         let hash = hasher.finish() as u32;
 
-        println!("Hash {:#x}", hash);
+        log::info!("Hash {:#x}", hash);
 
         LittleEndian::write_u16(&mut data[6..8], hash as u16);
         LittleEndian::write_u16(&mut data[9..11], (hash >> 16) as u16);
@@ -126,7 +117,7 @@ fn main() -> Result<()> {
         buffers.push(buffer);
     }
 
-    println!("Setting up the pipeline");
+    log::info!("Setting up the pipeline");
 
     let first = &buffers[0];
     let mut output = output
@@ -149,7 +140,7 @@ fn main() -> Result<()> {
         )
         .commit()?;
 
-    println!("Starting to output");
+    log::info!("Starting to output");
 
     let mut index = 0x0000;
     loop {
@@ -157,6 +148,8 @@ fn main() -> Result<()> {
         let data = buffer.data();
 
         LittleEndian::write_u16(&mut data[3..5], index as u16);
+
+        log::debug!("Switching to frame {}", index);
 
         output = output
             .start_update()
