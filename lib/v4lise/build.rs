@@ -19,6 +19,7 @@ fn main() {
         .allowlist_var("V4L2_CAP_.*")
         // This is not a v4l2_capability, but a v4l2_captureparm one
         .blocklist_item("V4L2_CAP_TIMEPERFRAME")
+        .allowlist_var("V4L2_DV_BT_656_1120")
         .allowlist_type("v4l2_buf_type")
         .allowlist_type("v4l2_buffer")
         .allowlist_type("v4l2_capability")
