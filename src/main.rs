@@ -1,5 +1,3 @@
-extern crate v4lise;
-
 use std::{
     hash::Hasher,
     os::unix::io::{AsRawFd, RawFd},
