@@ -53,7 +53,7 @@ fn queue_buffer(dev: &Device, idx: usize, fd: RawFd) -> Result<()> {
     Ok(())
 }
 
-fn set_edid(dev: &impl AsRawFd) {
+fn set_edid(dev: &impl AsRawFd) -> Result<()> {
     let mut edid = EDID::new(EDIDVersion::V1R4)
         .set_manufacturer_id("CRN")
         .set_week_year(EDIDWeekYear::YearOfManufacture(2021))
@@ -78,7 +78,9 @@ fn set_edid(dev: &impl AsRawFd) {
         ))
         .serialize();
 
-    v4l2_set_edid(dev, &mut edid);
+    v4l2_set_edid(dev, &mut edid)?;
+
+    Ok(())
 }
 
 fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) -> Result<()> {
@@ -144,19 +146,24 @@ fn main() {
         TerminalMode::Mixed,
         ColorChoice::Auto,
     )
-    .unwrap();
+    .expect("Couldn't initialize our logging configuration");
 
-    let heap = DmaBufHeap::new(DmaBufHeapType::Cma).unwrap();
+    let heap = DmaBufHeap::new(DmaBufHeapType::Cma)
+        .expect("Couldn't open the dma-buf Heap");
 
     let mut buffers: Vec<V4L2Buffer> = Vec::with_capacity(NUM_BUFFERS);
-    let dev = Device::new("/dev/video0").expect("Couldn't open the v4l2 device");
+    let dev = Device::new("/dev/video0")
+        .expect("Couldn't open the V4L2 Device");
+
     let queue = dev
         .get_queue(QueueType::Capture)
-        .expect("Couldn't get our queue");
+        .expect("Couldn't get the Capture Queue");
 
-    set_edid(&dev);
+    set_edid(&dev)
+        .expect("Couldn't setup the EDID in our bridge");
 
-    wait_and_set_dv_timings(&dev, 1280, 720);
+    wait_and_set_dv_timings(&dev, 1280, 720)
+        .expect("Error when retrieving our timings");
 
     let fmt = queue
         .get_pixel_formats()
@@ -183,27 +190,32 @@ fn main() {
         rbuf.type_ = BUFFER_TYPE as u32;
         rbuf.memory = MEMORY_TYPE as u32;
 
-        rbuf = v4l2_query_buffer(&dev, rbuf).expect("Couldn't query our buffer");
+        rbuf = v4l2_query_buffer(&dev, rbuf)
+            .expect("Couldn't query our buffer");
 
         let len = rbuf.length as usize;
         let buffer: MappedDmaBuf = heap
             .allocate::<dma_buf::DmaBuf>(len)
-            .unwrap()
+            .expect("Couldn't allocate our dma-buf buffer")
             .memory_map()
-            .unwrap();
+            .expect("Couldn't map our dma-buf buffer");
 
-        queue_buffer(&dev, idx, buffer.as_raw_fd()).expect("Couldn't queue our buffer");
+        queue_buffer(&dev, idx, buffer.as_raw_fd())
+            .expect("Couldn't queue our buffer");
         buffers.push(V4L2Buffer { dmabuf: buffer });
     }
 
-    v4l2_start_streaming(&dev, BUFFER_TYPE).expect("Couldn't start streaming");
+    v4l2_start_streaming(&dev, BUFFER_TYPE)
+        .expect("Couldn't start streaming");
 
     loop {
-        let idx = dequeue_buffer(&dev).expect("Couldn't dequeue our buffer");
+        let idx = dequeue_buffer(&dev)
+            .expect("Couldn't dequeue our buffer");
 
         let buf = &buffers[idx as usize];
 
-        let frame = buf.dmabuf.read(decode_captured_frame).unwrap();
+        let frame = buf.dmabuf.read(decode_captured_frame)
+            .expect("Couldn't read the frame content");
 
         if frame.frame_hash == frame.computed_hash {
             info!("Frame valid");
