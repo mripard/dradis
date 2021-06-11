@@ -131,7 +131,7 @@ fn decode_captured_frame(data: &[u8]) -> std::result::Result<CapturedFrame, dma_
     let index = LittleEndian::read_u16(&data[3..5]) as usize;
 
     let mut frame_hash = u32::from(LittleEndian::read_u16(&data[6..8]));
-    frame_hash = frame_hash | (u32::from(LittleEndian::read_u16(&data[9..11])) << 16);
+    frame_hash |= u32::from(LittleEndian::read_u16(&data[9..11])) << 16;
 
     let mut hasher = XxHash32::with_seed(0);
     hasher.write(&data[15..]);
