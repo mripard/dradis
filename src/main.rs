@@ -1,4 +1,5 @@
 use std::{
+    convert::TryFrom,
     hash::Hasher,
     os::unix::io::{AsRawFd, RawFd},
     thread::sleep,
@@ -130,7 +131,8 @@ fn decode_captured_frame(data: &[u8]) -> std::result::Result<CapturedFrame, dma_
 
     let mut hasher = XxHash32::with_seed(0);
     hasher.write(&data[15..]);
-    let computed_hash = hasher.finish() as u32;
+    let computed_hash = u32::try_from(hasher.finish())
+        .expect("Computed Hash was overflowing");
 
     Ok(CapturedFrame {
         index,
