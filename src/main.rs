@@ -25,7 +25,7 @@ use edid::{
     EDIDVideoDigitalColorDepth, EDIDVideoDigitalInterface, EDIDVideoDigitalInterfaceStandard,
     EDIDVideoInput, EDIDWeekYear, EDID,
 };
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use twox_hash::XxHash32;
 use v4lise::{
@@ -41,6 +41,9 @@ struct V4L2Buffer {
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
 const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
 const NUM_BUFFERS: u32 = 5;
+
+const HEADER_VERSION_MAJOR: u8 = 1;
+const HEADER_VERSION_MINOR: u8 = 0;
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
     let mut raw_struct = v4l2_buffer {
@@ -133,6 +136,8 @@ fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) -> R
 
 #[derive(Debug)]
 struct CapturedFrame {
+    major: u8,
+    minor: u8,
     index: u32,
     frame_hash: u32,
     computed_hash: u32,
@@ -146,6 +151,8 @@ fn decode_captured_frame(data: &[u8]) -> std::result::Result<CapturedFrame, dma_
         .expect("Computed Hash was overflowing");
 
     Ok(CapturedFrame {
+        major: data[0],
+        minor: data[1],
         index: LittleEndian::read_u32(&data[8..12]),
         frame_hash: LittleEndian::read_u32(&data[12..16]),
         computed_hash,
@@ -232,6 +239,12 @@ fn main() {
             .dmabuf
             .read(decode_captured_frame)
             .expect("Couldn't read the frame content");
+
+        if frame.major != HEADER_VERSION_MAJOR || frame.minor != HEADER_VERSION_MINOR {
+            error!("Header Version Mismatch ({}.{} vs {}.{})",
+                   frame.major, frame.minor,
+                   HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR);
+        }
 
         if frame.frame_hash == frame.computed_hash {
             info!("Frame valid");
