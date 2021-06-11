@@ -1,3 +1,13 @@
+#![warn(missing_debug_implementations)]
+#![warn(rust_2018_idioms)]
+#![deny(clippy::all)]
+#![deny(clippy::cargo)]
+#![deny(clippy::pedantic)]
+#![deny(clippy::nursery)]
+#![warn(clippy::unwrap_used)]
+#![allow(clippy::cargo_common_metadata)]
+#![allow(clippy::unreadable_literal)]
+
 use std::{
     convert::TryFrom,
     hash::Hasher,
@@ -127,6 +137,7 @@ struct CapturedFrame {
     computed_hash: u32,
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn decode_captured_frame(data: &[u8]) -> std::result::Result<CapturedFrame, dma_buf::Error> {
     let index = LittleEndian::read_u16(&data[3..5]) as usize;
 
