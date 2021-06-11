@@ -232,6 +232,7 @@ fn main() {
     v4l2_start_streaming(&dev, BUFFER_TYPE)
         .expect("Couldn't start streaming");
 
+    let mut last_frame_index = 0;
     loop {
         let idx = dequeue_buffer(&dev)
             .expect("Couldn't dequeue our buffer");
@@ -254,6 +255,11 @@ fn main() {
                    frame.magic, HEADER_MAGIC);
         }
 
+        if frame.index <= last_frame_index {
+            error!("Frames in invalid order: frame {}, last {}",
+                   frame.index, last_frame_index);
+        }
+
         if frame.frame_hash == frame.computed_hash {
             info!("Frame valid");
         } else {
@@ -262,6 +268,8 @@ fn main() {
                 frame.index, frame.frame_hash, frame.computed_hash
             );
         }
+
+        last_frame_index = frame.index;
 
         queue_buffer(&dev, idx, buf.dmabuf.as_raw_fd())
             .expect("Couldn't queue our buffer");
