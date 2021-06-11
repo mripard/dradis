@@ -114,15 +114,27 @@ fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) -> R
     }
 }
 
-fn compute_hash(slice: &[u8]) -> std::result::Result<(u64, u64), dma_buf::Error> {
-    let mut frame_hash: u64 = LittleEndian::read_u16(&slice[6..8]) as u64;
-    frame_hash = frame_hash | ((LittleEndian::read_u16(&slice[9..11]) as u64) << 16);
+struct CapturedFrame {
+    index: usize,
+    frame_hash: u32,
+    computed_hash: u32,
+}
+
+fn decode_captured_frame(data: &[u8]) -> std::result::Result<CapturedFrame, dma_buf::Error> {
+    let index = LittleEndian::read_u16(&data[3..5]) as usize;
+
+    let mut frame_hash: u32 = LittleEndian::read_u16(&data[6..8]) as u32;
+    frame_hash = frame_hash | ((LittleEndian::read_u16(&data[9..11]) as u32) << 16);
 
     let mut hasher = XxHash32::with_seed(0);
-    hasher.write(&slice[15..]);
-    let computed_hash = hasher.finish();
+    hasher.write(&data[15..]);
+    let computed_hash = hasher.finish() as u32;
 
-    Ok((frame_hash, computed_hash))
+    Ok(CapturedFrame {
+        index,
+        frame_hash,
+        computed_hash,
+    })
 }
 
 fn main() {
@@ -198,10 +210,16 @@ fn main() {
 
         let buf = &buffers[idx as usize];
 
-        let hashes = buf.dmabuf.read(compute_hash).unwrap();
+        let frame = buf.dmabuf.read(decode_captured_frame).unwrap();
 
-        info!("Found Hash {:#x}", hashes.0);
-        info!("Computed hash {:#x}", hashes.1);
+        if frame.frame_hash == frame.computed_hash {
+            info!("Frame valid");
+        } else {
+            warn!(
+                "Frame {} corrupted, hash mismatch: retrieved {:#x} vs computed {:#x}",
+                frame.index, frame.frame_hash, frame.computed_hash
+            );
+        }
 
         queue_buffer(&dev, idx as usize, buf.dmabuf.as_raw_fd())
             .expect("Couldn't queue our buffer");
