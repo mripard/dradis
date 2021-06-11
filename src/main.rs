@@ -30,7 +30,7 @@ struct V4L2Buffer {
 
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
 const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
-const NUM_BUFFERS: usize = 5;
+const NUM_BUFFERS: u32 = 5;
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
     let mut raw_struct: v4l2_buffer = Default::default();
@@ -42,9 +42,9 @@ fn dequeue_buffer(dev: &Device) -> Result<u32> {
     Ok(raw_struct.index)
 }
 
-fn queue_buffer(dev: &Device, idx: usize, fd: RawFd) -> Result<()> {
+fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> Result<()> {
     let mut raw_struct: v4l2_buffer = Default::default();
-    raw_struct.index = idx as u32;
+    raw_struct.index = idx;
     raw_struct.type_ = BUFFER_TYPE as u32;
     raw_struct.memory = MEMORY_TYPE as u32;
     raw_struct.m.fd = fd;
@@ -153,7 +153,7 @@ fn main() {
     let heap = DmaBufHeap::new(DmaBufHeapType::Cma)
         .expect("Couldn't open the dma-buf Heap");
 
-    let mut buffers: Vec<V4L2Buffer> = Vec::with_capacity(NUM_BUFFERS);
+    let mut buffers: Vec<V4L2Buffer> = Vec::with_capacity(NUM_BUFFERS as usize);
     let dev = Device::new("/dev/video0")
         .expect("Couldn't open the V4L2 Device");
 
@@ -183,12 +183,12 @@ fn main() {
         .expect("Couldn't change our queue format");
 
     queue
-        .request_buffers(MemoryType::DMABUF, NUM_BUFFERS)
+        .request_buffers(MemoryType::DMABUF, NUM_BUFFERS as usize)
         .expect("Couldn't request our buffers");
 
     for idx in 0..NUM_BUFFERS {
         let mut rbuf: v4l2_buffer = Default::default();
-        rbuf.index = idx as u32;
+        rbuf.index = idx;
         rbuf.type_ = BUFFER_TYPE as u32;
         rbuf.memory = MEMORY_TYPE as u32;
 
@@ -228,7 +228,7 @@ fn main() {
             );
         }
 
-        queue_buffer(&dev, idx as usize, buf.dmabuf.as_raw_fd())
+        queue_buffer(&dev, idx, buf.dmabuf.as_raw_fd())
             .expect("Couldn't queue our buffer");
     }
 }
