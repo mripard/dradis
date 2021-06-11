@@ -260,15 +260,12 @@ fn main() {
                    frame.index, last_frame_index);
         }
 
-        if frame.frame_hash == frame.computed_hash {
-            info!("Frame valid");
-        } else {
-            warn!(
-                "Frame {} corrupted, hash mismatch: retrieved {:#x} vs computed {:#x}",
-                frame.index, frame.frame_hash, frame.computed_hash
-            );
+        if frame.frame_hash != frame.computed_hash {
+            error!("Frame Corrupted: hash {:#x} vs {:#x}",
+                   frame.frame_hash, frame.computed_hash);
         }
 
+        info!("Frame {} Valid", frame.index);
         last_frame_index = frame.index;
 
         queue_buffer(&dev, idx, buf.dmabuf.as_raw_fd())
