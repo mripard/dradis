@@ -44,6 +44,7 @@ const NUM_BUFFERS: u32 = 5;
 
 const HEADER_VERSION_MAJOR: u8 = 1;
 const HEADER_VERSION_MINOR: u8 = 0;
+const HEADER_MAGIC: u32 = u32::from_ne_bytes(*b"CRNO");
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
     let mut raw_struct = v4l2_buffer {
@@ -138,6 +139,7 @@ fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) -> R
 struct CapturedFrame {
     major: u8,
     minor: u8,
+    magic: u32,
     index: u32,
     frame_hash: u32,
     computed_hash: u32,
@@ -153,6 +155,7 @@ fn decode_captured_frame(data: &[u8]) -> std::result::Result<CapturedFrame, dma_
     Ok(CapturedFrame {
         major: data[0],
         minor: data[1],
+        magic: LittleEndian::read_u32(&data[4..8]),
         index: LittleEndian::read_u32(&data[8..12]),
         frame_hash: LittleEndian::read_u32(&data[12..16]),
         computed_hash,
@@ -244,6 +247,11 @@ fn main() {
             error!("Header Version Mismatch ({}.{} vs {}.{})",
                    frame.major, frame.minor,
                    HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR);
+        }
+
+        if frame.magic != HEADER_MAGIC {
+            error!("Header Magic Mismatch ({:#06x} vs {:#06x})",
+                   frame.magic, HEADER_MAGIC);
         }
 
         if frame.frame_hash == frame.computed_hash {
