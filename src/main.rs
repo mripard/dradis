@@ -34,10 +34,6 @@ use v4lise::{
     v4l2_start_streaming, Device, FrameFormat, MemoryType, PixelFormat, QueueType, Result,
 };
 
-struct V4L2Buffer {
-    dmabuf: MappedDmaBuf,
-}
-
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
 const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
 const NUM_BUFFERS: u32 = 5;
@@ -176,7 +172,7 @@ fn main() {
     let heap = DmaBufHeap::new(DmaBufHeapType::Cma)
         .expect("Couldn't open the dma-buf Heap");
 
-    let mut buffers: Vec<V4L2Buffer> = Vec::with_capacity(NUM_BUFFERS as usize);
+    let mut buffers: Vec<MappedDmaBuf> = Vec::with_capacity(NUM_BUFFERS as usize);
     let dev = Device::new("/dev/video0", true)
         .expect("Couldn't open the V4L2 Device");
 
@@ -228,7 +224,7 @@ fn main() {
 
         queue_buffer(&dev, idx, buffer.as_raw_fd())
             .expect("Couldn't queue our buffer");
-        buffers.push(V4L2Buffer { dmabuf: buffer });
+        buffers.push(buffer);
     }
 
     v4l2_start_streaming(&dev, BUFFER_TYPE)
@@ -262,7 +258,6 @@ fn main() {
         let buf = &buffers[idx as usize];
 
         let frame = buf
-            .dmabuf
             .read(decode_captured_frame)
             .expect("Couldn't read the frame content");
 
@@ -290,7 +285,7 @@ fn main() {
         info!("Frame {} Valid", frame.index);
         last_frame_index = frame.index;
 
-        queue_buffer(&dev, idx, buf.dmabuf.as_raw_fd())
+        queue_buffer(&dev, idx, buf.as_raw_fd())
             .expect("Couldn't queue our buffer");
     }
 }
