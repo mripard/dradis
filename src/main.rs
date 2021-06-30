@@ -140,31 +140,51 @@ fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) -> R
     }
 }
 
-#[derive(Debug)]
-struct CapturedFrame {
-    major: u8,
-    minor: u8,
-    magic: u32,
-    index: u32,
-    frame_hash: u32,
-    computed_hash: u32,
-}
+fn decode_and_check_frame(
+    data: &[u8],
+    last_idx: Option<usize>,
+) -> std::result::Result<usize, dma_buf::Error> {
+    let major = data[0];
+    let minor = data[1];
 
-#[allow(clippy::unnecessary_wraps)]
-fn decode_captured_frame(data: &[u8], _: Option<()>) -> std::result::Result<CapturedFrame, dma_buf::Error> {
+    if major != HEADER_VERSION_MAJOR || minor != HEADER_VERSION_MINOR {
+        error!(
+            "Header Version Mismatch ({}.{} vs {}.{})",
+            major, minor, HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR
+        );
+        return Err(dma_buf::Error::Closure);
+    }
+
+    let magic = LittleEndian::read_u32(&data[4..8]);
+    if magic != HEADER_MAGIC {
+        error!(
+            "Header Magic Mismatch ({:#06x} vs {:#06x})",
+            magic, HEADER_MAGIC
+        );
+        return Err(dma_buf::Error::Closure);
+    }
+
+    let index = LittleEndian::read_u32(&data[8..12]) as usize;
+    if let Some(last) = last_idx {
+        if index <= last {
+            error!("Frames in invalid order: frame {}, last {}", index, last);
+            return Err(dma_buf::Error::Closure);
+        }
+    }
+
+    let hash = LittleEndian::read_u32(&data[12..16]);
+
     let mut hasher = XxHash32::with_seed(0);
     hasher.write(&data[16..]);
     let computed_hash = u32::try_from(hasher.finish())
         .expect("Computed Hash was overflowing");
 
-    Ok(CapturedFrame {
-        major: data[0],
-        minor: data[1],
-        magic: LittleEndian::read_u32(&data[4..8]),
-        index: LittleEndian::read_u32(&data[8..12]),
-        frame_hash: LittleEndian::read_u32(&data[12..16]),
-        computed_hash,
-    })
+    if hash != computed_hash {
+        error!("Frame Corrupted: hash {:#x} vs {:#x}", hash, computed_hash);
+        return Err(dma_buf::Error::Closure);
+    }
+
+    Ok(index)
 }
 
 fn main() {
@@ -237,7 +257,7 @@ fn main() {
     v4l2_start_streaming(&dev, BUFFER_TYPE)
         .expect("Couldn't start streaming");
 
-    let mut last_frame_index = 0;
+    let mut last_frame_index = None;
     loop {
         let frame_dequeue_start = Instant::now();
 
@@ -265,34 +285,16 @@ fn main() {
         .expect("Couldn't dequeue our buffer");
 
         let buf = &buffers[idx as usize];
-
-        let frame = buf
-            .read(decode_captured_frame, None)
-            .expect("Couldn't read the frame content");
-
-        if frame.major != HEADER_VERSION_MAJOR || frame.minor != HEADER_VERSION_MINOR {
-            error!("Header Version Mismatch ({}.{} vs {}.{})",
-                   frame.major, frame.minor,
-                   HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR);
+        match buf.read(decode_and_check_frame, last_frame_index) {
+            Ok(frame_index) => {
+                info!("Frame {} Valid", frame_index);
+                last_frame_index = Some(frame_index);
+            }
+            Err(_) => {
+                warn!("Frame Invalid.");
+                last_frame_index = None;
+            }
         }
-
-        if frame.magic != HEADER_MAGIC {
-            error!("Header Magic Mismatch ({:#06x} vs {:#06x})",
-                   frame.magic, HEADER_MAGIC);
-        }
-
-        if frame.index <= last_frame_index {
-            error!("Frames in invalid order: frame {}, last {}",
-                   frame.index, last_frame_index);
-        }
-
-        if frame.frame_hash != frame.computed_hash {
-            error!("Frame Corrupted: hash {:#x} vs {:#x}",
-                   frame.frame_hash, frame.computed_hash);
-        }
-
-        info!("Frame {} Valid", frame.index);
-        last_frame_index = frame.index;
 
         queue_buffer(&dev, idx, buf.as_raw_fd())
             .expect("Couldn't queue our buffer");
