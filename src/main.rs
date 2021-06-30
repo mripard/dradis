@@ -151,7 +151,7 @@ struct CapturedFrame {
 }
 
 #[allow(clippy::unnecessary_wraps)]
-fn decode_captured_frame(data: &[u8]) -> std::result::Result<CapturedFrame, dma_buf::Error> {
+fn decode_captured_frame(data: &[u8], _: Option<()>) -> std::result::Result<CapturedFrame, dma_buf::Error> {
     let mut hasher = XxHash32::with_seed(0);
     hasher.write(&data[16..]);
     let computed_hash = u32::try_from(hasher.finish())
@@ -267,7 +267,7 @@ fn main() {
         let buf = &buffers[idx as usize];
 
         let frame = buf
-            .read(decode_captured_frame)
+            .read(decode_captured_frame, None)
             .expect("Couldn't read the frame content");
 
         if frame.major != HEADER_VERSION_MAJOR || frame.minor != HEADER_VERSION_MINOR {

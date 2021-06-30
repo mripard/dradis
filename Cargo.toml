@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 byteorder = "^1.3"
-dma-buf = { git = "https://github.com/mripard/dma-buf.git" }
+dma-buf = "~0.2"
 dma-heap = { git = "https://github.com/mripard/dma-heap.git" }
 edid = { git = "ssh://git@github.com/mripard/edid-rs.git" }
 libc = "~0.2"
