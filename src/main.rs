@@ -252,7 +252,7 @@ fn main() {
                 Err(ref e) => match e {
                     v4lise::Error::Io(io) => match io.raw_os_error() {
                         Some(libc::EAGAIN) => {
-                            continue;
+                            debug!("No buffer to dequeue.");
                         }
                         _ => break buffer_idx,
                     },
