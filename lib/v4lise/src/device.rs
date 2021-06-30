@@ -4,6 +4,7 @@ use crate::queue::QueueType;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::os::unix::io::AsRawFd;
+use std::os::unix::prelude::OpenOptionsExt;
 
 #[derive(Debug)]
 pub struct Device {
@@ -11,8 +12,16 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new(path: &str) -> Result<Self> {
-        let file = OpenOptions::new().read(true).write(true).open(path)?;
+    pub fn new(path: &str, blocking: bool) -> Result<Self> {
+        let mut options = OpenOptions::new();
+        options.read(true);
+        options.write(true);
+
+        if blocking {
+            options.custom_flags(libc::O_NONBLOCK);
+        }
+
+        let file = options.open(path)?;
 
         Ok(Device { file })
     }

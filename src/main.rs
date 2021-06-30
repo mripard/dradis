@@ -175,7 +175,7 @@ fn main() {
         .expect("Couldn't open the dma-buf Heap");
 
     let mut buffers: Vec<V4L2Buffer> = Vec::with_capacity(NUM_BUFFERS as usize);
-    let dev = Device::new("/dev/video0")
+    let dev = Device::new("/dev/video0", true)
         .expect("Couldn't open the V4L2 Device");
 
     let queue = dev
@@ -234,8 +234,22 @@ fn main() {
 
     let mut last_frame_index = 0;
     loop {
-        let idx = dequeue_buffer(&dev)
-            .expect("Couldn't dequeue our buffer");
+        let idx = loop {
+            let buffer_idx = dequeue_buffer(&dev);
+            match buffer_idx {
+                Ok(_) => break buffer_idx,
+                Err(ref e) => match e {
+                    v4lise::Error::Io(io) => match io.raw_os_error() {
+                        Some(libc::EAGAIN) => {
+                            continue;
+                        }
+                        _ => break buffer_idx,
+                    },
+                    _ => break buffer_idx,
+                },
+            };
+        }
+        .expect("Couldn't dequeue our buffer");
 
         let buf = &buffers[idx as usize];
 
