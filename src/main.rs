@@ -43,6 +43,7 @@ const HEADER_VERSION_MINOR: u8 = 0;
 const HEADER_MAGIC: u32 = u32::from_ne_bytes(*b"CRNO");
 
 const FRAMES_DEQUEUED_TIMEOUT: Duration = Duration::from_secs(10);
+const NO_LINK_TIMEOUT: Duration = Duration::from_secs(10);
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
     let mut raw_struct = v4l2_buffer {
@@ -101,7 +102,13 @@ fn set_edid(dev: &impl AsRawFd) -> Result<()> {
 }
 
 fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) -> Result<()> {
+    let start = Instant::now();
+
     loop {
+        if start.elapsed() > NO_LINK_TIMEOUT {
+            return Err(v4lise::Error::Empty);
+        }
+
         let timings = v4l2_query_dv_timings(dev);
 
         match timings {
