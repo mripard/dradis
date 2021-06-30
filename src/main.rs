@@ -13,7 +13,7 @@ use std::{
     hash::Hasher,
     os::unix::io::{AsRawFd, RawFd},
     thread::sleep,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use byteorder::{ByteOrder, LittleEndian};
@@ -45,6 +45,8 @@ const NUM_BUFFERS: u32 = 5;
 const HEADER_VERSION_MAJOR: u8 = 1;
 const HEADER_VERSION_MINOR: u8 = 0;
 const HEADER_MAGIC: u32 = u32::from_ne_bytes(*b"CRNO");
+
+const FRAMES_DEQUEUED_TIMEOUT: Duration = Duration::from_secs(10);
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
     let mut raw_struct = v4l2_buffer {
@@ -234,7 +236,13 @@ fn main() {
 
     let mut last_frame_index = 0;
     loop {
+        let frame_dequeue_start = Instant::now();
+
         let idx = loop {
+            if frame_dequeue_start.elapsed() > FRAMES_DEQUEUED_TIMEOUT {
+                break Err(v4lise::Error::Empty);
+            }
+
             let buffer_idx = dequeue_buffer(&dev);
             match buffer_idx {
                 Ok(_) => break buffer_idx,
