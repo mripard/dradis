@@ -259,6 +259,8 @@ fn main() {
                     _ => break buffer_idx,
                 },
             };
+
+            sleep(Duration::from_millis(5));
         }
         .expect("Couldn't dequeue our buffer");
 
