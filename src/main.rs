@@ -17,7 +17,6 @@ use std::{
 };
 
 use byteorder::{ByteOrder, LittleEndian};
-use dma_buf::MappedDmaBuf;
 use dma_heap::{DmaBufHeap, DmaBufHeapType};
 use edid::{
     EDIDDescriptor, EDIDDetailedTiming, EDIDDetailedTimingDigitalSync, EDIDDetailedTimingSync,
@@ -231,7 +230,7 @@ fn main() {
         .request_buffers(MemoryType::DMABUF, NUM_BUFFERS as usize)
         .expect("Couldn't request our buffers");
 
-    let mut buffers: Vec<MappedDmaBuf> = Vec::with_capacity(NUM_BUFFERS as usize);
+    let mut buffers = Vec::with_capacity(NUM_BUFFERS as usize);
 
     for idx in 0..NUM_BUFFERS {
         let mut rbuf = v4l2_buffer {
@@ -245,7 +244,7 @@ fn main() {
             .expect("Couldn't query our buffer");
 
         let len = rbuf.length as usize;
-        let buffer: MappedDmaBuf = heap
+        let buffer = heap
             .allocate::<dma_buf::DmaBuf>(len)
             .expect("Couldn't allocate our dma-buf buffer")
             .memory_map()
