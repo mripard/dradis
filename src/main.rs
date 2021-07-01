@@ -200,7 +200,6 @@ fn main() {
     let heap = DmaBufHeap::new(DmaBufHeapType::Cma)
         .expect("Couldn't open the dma-buf Heap");
 
-    let mut buffers: Vec<MappedDmaBuf> = Vec::with_capacity(NUM_BUFFERS as usize);
     let dev = Device::new("/dev/video0", true)
         .expect("Couldn't open the V4L2 Device");
 
@@ -231,6 +230,8 @@ fn main() {
     queue
         .request_buffers(MemoryType::DMABUF, NUM_BUFFERS as usize)
         .expect("Couldn't request our buffers");
+
+    let mut buffers: Vec<MappedDmaBuf> = Vec::with_capacity(NUM_BUFFERS as usize);
 
     for idx in 0..NUM_BUFFERS {
         let mut rbuf = v4l2_buffer {
