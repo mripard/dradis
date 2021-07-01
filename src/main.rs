@@ -43,6 +43,7 @@ const HEADER_VERSION_MINOR: u8 = 0;
 const HEADER_MAGIC: u32 = u32::from_ne_bytes(*b"CRNO");
 
 const FRAMES_DEQUEUED_TIMEOUT: Duration = Duration::from_secs(10);
+const NO_VALID_FRAME_TIMEOUT: Duration = Duration::from_secs(2);
 const NO_LINK_TIMEOUT: Duration = Duration::from_secs(10);
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
@@ -257,8 +258,13 @@ fn main() {
     v4l2_start_streaming(&dev, BUFFER_TYPE)
         .expect("Couldn't start streaming");
 
+    let mut last_frame_valid = Instant::now();
     let mut last_frame_index = None;
     loop {
+        if last_frame_valid.elapsed() > NO_VALID_FRAME_TIMEOUT {
+            panic!("Timeout: no valid frames since {} seconds", NO_VALID_FRAME_TIMEOUT.as_secs());
+        }
+
         let frame_dequeue_start = Instant::now();
 
         let idx = loop {
@@ -289,6 +295,7 @@ fn main() {
             Ok(frame_index) => {
                 info!("Frame {} Valid", frame_index);
                 last_frame_index = Some(frame_index);
+                last_frame_valid = Instant::now();
             }
             Err(_) => {
                 warn!("Frame Invalid.");
