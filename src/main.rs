@@ -17,6 +17,7 @@ use std::{
 };
 
 use byteorder::{ByteOrder, LittleEndian};
+use clap::{App, Arg};
 use dma_heap::{DmaBufHeap, DmaBufHeapType};
 use edid::{
     EDIDDescriptor, EDIDDetailedTiming, EDIDDetailedTimingDigitalSync, EDIDDetailedTimingSync,
@@ -188,8 +189,33 @@ fn decode_and_check_frame(
 }
 
 fn main() {
+    let matches = App::new("V4L2 Test Capture Program")
+    .arg(Arg::with_name("device")
+            .long("device")
+            .short("D")
+            .help("V4L2 Device File")
+            .default_value("/dev/video0"))
+    .arg(Arg::with_name("debug")
+            .long("debug")
+            .short("d")
+            .help("Enables debug log level"))
+    .arg(Arg::with_name("trace")
+            .long("trace")
+            .short("t")
+            .conflicts_with("debug")
+            .help("Enables trace log level"))
+    .get_matches();
+
+    let log_level = if matches.is_present("trace") {
+        LevelFilter::Trace
+    } else if matches.is_present("debug") {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
+
     TermLogger::init(
-        LevelFilter::Debug,
+        log_level,
         Config::default(),
         TerminalMode::Mixed,
         ColorChoice::Auto,
@@ -199,7 +225,8 @@ fn main() {
     let heap = DmaBufHeap::new(DmaBufHeapType::Cma)
         .expect("Couldn't open the dma-buf Heap");
 
-    let dev = Device::new("/dev/video0", true)
+    let dev_file = matches.value_of("device").unwrap();
+    let dev = Device::new(dev_file, true)
         .expect("Couldn't open the V4L2 Device");
 
     let queue = dev
