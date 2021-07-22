@@ -10,6 +10,7 @@
 
 use std::{
     convert::TryFrom,
+    fs::File,
     hash::Hasher,
     os::unix::io::{AsRawFd, RawFd},
     thread::sleep,
@@ -26,6 +27,7 @@ use edid::{
     EDIDVideoInput, EDIDWeekYear, EDID,
 };
 use log::{debug, error, info, warn};
+use serde::Deserialize;
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use twox_hash::XxHash32;
 use v4lise::{
@@ -46,6 +48,44 @@ const HEADER_MAGIC: u32 = u32::from_ne_bytes(*b"CRNO");
 const FRAMES_DEQUEUED_TIMEOUT: Duration = Duration::from_secs(10);
 const NO_VALID_FRAME_TIMEOUT: Duration = Duration::from_secs(2);
 const NO_LINK_TIMEOUT: Duration = Duration::from_secs(10);
+
+#[derive(Debug, Deserialize)]
+struct TestEdidDetailedTiming {
+    clock: usize,
+    hfp: usize,
+    hdisplay: usize,
+    hbp: usize,
+    hsync: usize,
+    vfp: usize,
+    vdisplay: usize,
+    vbp: usize,
+    vsync: usize,
+}
+
+#[derive(Debug, Deserialize)]
+enum TestEdid {
+    #[serde(rename = "detailed-timing")]
+    DetailedTiming(TestEdidDetailedTiming),
+}
+
+#[derive(Debug, Deserialize)]
+struct TestItem {
+    #[serde(default)]
+    duration: usize,
+
+    #[serde(rename = "expected-height")]
+    expected_height: usize,
+
+    #[serde(rename = "expected-width")]
+    expected_width: usize,
+
+    edid: TestEdid,
+}
+
+#[derive(Debug, Deserialize)]
+struct Test {
+    tests: Vec<TestItem>
+}
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
     let mut raw_struct = v4l2_buffer {
@@ -73,8 +113,8 @@ fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> Result<()> {
     Ok(())
 }
 
-fn set_edid(dev: &impl AsRawFd) -> Result<()> {
-    let mut edid = EDID::new(EDIDVersion::V1R4)
+fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<()> {
+    let mut test_edid = EDID::new(EDIDVersion::V1R4)
         .set_manufacturer_id("CRN")
         .set_week_year(EDIDWeekYear::YearOfManufacture(2021))
         .set_input(EDIDVideoInput::Digital(EDIDVideoDigitalInterface::new(
@@ -84,21 +124,28 @@ fn set_edid(dev: &impl AsRawFd) -> Result<()> {
         .set_display_color_type_encoding(EDIDDisplayColorTypeEncoding::ColorEncoding(
             EDIDDisplayColorEncoding::RGB444,
         ))
-        .set_preferred_timings_native(true)
-        .add_descriptor(EDIDDescriptor::DetailedTiming(
-            EDIDDetailedTiming::new()
-                .set_front_porch(220, 20)
-                .set_display(1280, 720)
-                .set_sync_pulse(40, 5)
-                .set_blanking(370, 30)
-                .set_pixel_clock(74250)
-                .set_sync_type(EDIDDetailedTimingSync::Digital(
-                    EDIDDetailedTimingDigitalSync::Separate(true, true),
-                )),
-        ))
-        .serialize();
+        .set_preferred_timings_native(true);
 
-    v4l2_set_edid(dev, &mut edid)?;
+    test_edid = match edid {
+        TestEdid::DetailedTiming(dtd) => {
+            let hblanking = dtd.hfp + dtd.hsync + dtd.hbp;
+            let vblanking = dtd.vfp + dtd.vsync + dtd.vbp;
+
+            test_edid.add_descriptor(EDIDDescriptor::DetailedTiming(
+                EDIDDetailedTiming::new()
+                    .set_front_porch(dtd.hfp as u16, dtd.vfp as u16)
+                    .set_display(dtd.hdisplay as u16, dtd.vdisplay as u16)
+                    .set_sync_pulse(dtd.hsync as u16, dtd.vsync as u16)
+                    .set_blanking(hblanking as u16, vblanking as u16)
+                    .set_pixel_clock(dtd.clock as u32)
+                    .set_sync_type(EDIDDetailedTimingSync::Digital(
+                        EDIDDetailedTimingDigitalSync::Separate(true, true),
+                    )),
+            ))
+        },
+    };
+
+    v4l2_set_edid(dev, &mut test_edid.serialize())?;
 
     Ok(())
 }
@@ -189,11 +236,11 @@ fn decode_and_check_frame(
     Ok(index)
 }
 
-fn test_display_one_mode(dev: &Device, queue: &Queue, heap: &DmaBufHeap) {
-    set_edid(dev)
+fn test_display_one_mode(dev: &Device, queue: &Queue, heap: &DmaBufHeap, test: &TestItem) {
+    set_edid(dev, &test.edid)
         .expect("Couldn't setup the EDID in our bridge");
 
-    wait_and_set_dv_timings(dev, 1280, 720)
+    wait_and_set_dv_timings(dev, test.expected_width, test.expected_height)
         .expect("Error when retrieving our timings");
 
     let fmt = queue
@@ -308,6 +355,9 @@ fn main() {
             .short("t")
             .conflicts_with("debug")
             .help("Enables trace log level"))
+    .arg(Arg::with_name("test")
+            .required(true)
+            .help("Test Configuration File"))
     .get_matches();
 
     let log_level = if matches.is_present("trace") {
@@ -326,6 +376,14 @@ fn main() {
     )
     .expect("Couldn't initialize our logging configuration");
 
+    let test_path = matches.value_of("test")
+        .expect("Couldn't get test file path.");
+    let test_file = File::open(test_path)
+        .expect("Coludn't open the test file.");
+
+    let test_config: Test = serde_yaml::from_reader(test_file)
+        .expect("Couldn't parse the test file.");
+
     let heap = DmaBufHeap::new(DmaBufHeapType::Cma)
         .expect("Couldn't open the dma-buf Heap");
 
@@ -337,5 +395,7 @@ fn main() {
         .get_queue(QueueType::Capture)
         .expect("Couldn't get the Capture Queue");
 
-    test_display_one_mode(&dev, &queue, &heap);
+    for test in test_config.tests {
+        test_display_one_mode(&dev, &queue, &heap, &test);
+    }
 }

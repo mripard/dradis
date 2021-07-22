@@ -193,9 +193,9 @@ HAT for the controller board, with:
 
 * [x] Implement the timeout if no header is detected
 
-* [ ] Implement the test configuration file format
+* [x] Implement the test configuration file format
 
-* [ ] Support multiple resolutions
+* [x] Support multiple resolutions
 
 * [ ] Find a name for test-capture
 
