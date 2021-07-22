@@ -177,7 +177,7 @@ impl<'a> Queue<'a> {
         }
     }
 
-    pub fn request_buffers(self, mem_type: MemoryType, num: usize) -> Result<()> {
+    pub fn request_buffers(&self, mem_type: MemoryType, num: usize) -> Result<()> {
         let buf_type: v4l2_buf_type = self.queue_type.into();
         let mem_type: v4l2_memory = mem_type.into();
         let mut rbuf: v4l2_requestbuffers = Default::default();
