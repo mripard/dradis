@@ -123,7 +123,7 @@ fn main() -> Result<()> {
             .unwrap();
 
         let data = buffer.data();
-        // data.copy_from_slice(&img_data);
+        data.copy_from_slice(&img_data);
 
         data[0] = HEADER_VERSION_MAJOR;
         data[1] = HEADER_VERSION_MINOR;
