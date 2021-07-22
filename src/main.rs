@@ -103,7 +103,7 @@ fn main() -> Result<()> {
                                    .resize_exact(width as u32,
                                                  height as u32,
                                                  FilterType::Nearest);
-    let img_data = img.to_bgra8().into_vec();
+    let img_data = img.to_bgr8().into_vec();
 
     log::info!("Opened image {}", img_path);
 
