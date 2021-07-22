@@ -197,7 +197,7 @@ HAT for the controller board, with:
 
 * [x] Support multiple resolutions
 
-* [ ] Find a name for test-capture
+* [x] Find a name for test-capture
 
 * [ ] The CRC and header in general will be an issue with properties that will
       modify the output, such as the bpc, scaling, CSC, etc. How should we test

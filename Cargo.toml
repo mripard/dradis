@@ -1,5 +1,5 @@
 [package]
-name = "test-capture"
+name = "dradis"
 version = "0.1.0"
 authors = ["Maxime Ripard <maxime@cerno.tech>"]
 edition = "2018"

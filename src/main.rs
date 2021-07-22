@@ -340,7 +340,7 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &DmaBufHeap, tes
 }
 
 fn main() {
-    let matches = App::new("V4L2 Test Capture Program")
+    let matches = App::new("DRADIS DRM/KMS Test Program")
     .arg(Arg::with_name("device")
             .long("device")
             .short("D")
