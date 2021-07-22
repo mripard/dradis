@@ -16,8 +16,9 @@ use nucleid::{BufferType, ConnectorStatus, ConnectorUpdate, Device, Format, Obje
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use twox_hash::XxHash32;
 
-const HEADER_VERSION_MAJOR: u8 = 0x42;
-const HEADER_VERSION_MINOR: u8 = 0x14;
+const HEADER_VERSION_MAJOR: u8 = 1;
+const HEADER_VERSION_MINOR: u8 = 0;
+const HEADER_MAGIC: u32 = u32::from_ne_bytes(*b"CRNO");
 
 const NUM_BUFFERS: u32 = 3;
 
@@ -108,7 +109,7 @@ fn main() -> Result<()> {
     log::info!("Opened image {}", img_path);
 
     let mut hasher = XxHash32::with_seed(0);
-    hasher.write(&img_data[10..]);
+    hasher.write(&img_data[16..]);
     let hash = hasher.finish() as u32;
 
     log::info!("Hash {:#x}", hash);
@@ -127,18 +128,10 @@ fn main() -> Result<()> {
         data[0] = HEADER_VERSION_MAJOR;
         data[1] = HEADER_VERSION_MINOR;
         data[2] = 0;
-        LittleEndian::write_u16(&mut data[3..5], 0);
-        LittleEndian::write_u16(&mut data[8..10], hash as u16);
-        LittleEndian::write_u16(&mut data[12..14], (hash >> 16) as u16);
-
-        let mut hasher = XxHash32::with_seed(0);
-        hasher.write(&data[15..]);
-        let hash = hasher.finish() as u32;
-
-        log::info!("Hash {:#x}", hash);
-
-        LittleEndian::write_u16(&mut data[6..8], hash as u16);
-        LittleEndian::write_u16(&mut data[9..11], (hash >> 16) as u16);
+        data[3] = 0;
+        LittleEndian::write_u32(&mut data[4..8], HEADER_MAGIC);
+        LittleEndian::write_u32(&mut data[8..12], 0);
+        LittleEndian::write_u32(&mut data[12..16], hash);
 
         buffers.push(buffer);
     }
@@ -173,7 +166,7 @@ fn main() -> Result<()> {
         let buffer = &mut buffers[(index % NUM_BUFFERS) as usize];
         let data = buffer.data();
 
-        LittleEndian::write_u16(&mut data[8..12], index as u16);
+        LittleEndian::write_u32(&mut data[8..12], index);
 
         log::debug!("Switching to frame {}", index);
 
