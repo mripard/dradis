@@ -236,7 +236,7 @@ fn decode_and_check_frame(
     Ok(index)
 }
 
-fn test_display_one_mode(dev: &Device, queue: &Queue, heap: &DmaBufHeap, test: &TestItem) {
+fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &DmaBufHeap, test: &TestItem) {
     set_edid(dev, &test.edid)
         .expect("Couldn't setup the EDID in our bridge");
 
