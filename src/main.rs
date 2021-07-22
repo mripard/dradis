@@ -19,7 +19,7 @@ use twox_hash::XxHash32;
 const HEADER_VERSION_MAJOR: u8 = 0x42;
 const HEADER_VERSION_MINOR: u8 = 0x14;
 
-const NUM_BUFFERS: usize = 3;
+const NUM_BUFFERS: u32 = 3;
 
 fn main() -> Result<()> {
     let matches = App::new("KMS Crash Test Pattern")
@@ -168,12 +168,12 @@ fn main() -> Result<()> {
 
     log::info!("Starting to output");
 
-    let mut index = 0x0000;
+    let mut index = 0;
     loop {
-        let buffer = &mut buffers[index % NUM_BUFFERS];
+        let buffer = &mut buffers[(index % NUM_BUFFERS) as usize];
         let data = buffer.data();
 
-        LittleEndian::write_u16(&mut data[3..5], index as u16);
+        LittleEndian::write_u16(&mut data[8..12], index as u16);
 
         log::debug!("Switching to frame {}", index);
 
