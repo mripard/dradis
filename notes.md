@@ -226,4 +226,4 @@ HAT for the controller board, with:
 * [ ] Use resvg instead of image
 * [ ] Embed the test image in the binary
 * [ ] Check the binary size
-* [ ] Proper command line arguments to set the debug level
+* [x] Proper command line arguments to set the debug level
