@@ -31,7 +31,8 @@ use twox_hash::XxHash32;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_buffer,
     v4l2_query_dv_timings, v4l2_queue_buffer, v4l2_set_dv_timings, v4l2_set_edid,
-    v4l2_start_streaming, Device, FrameFormat, MemoryType, PixelFormat, QueueType, Result,
+    v4l2_start_streaming, Device, FrameFormat, MemoryType, PixelFormat, Queue, QueueType,
+    Result,
 };
 
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -188,55 +189,11 @@ fn decode_and_check_frame(
     Ok(index)
 }
 
-fn main() {
-    let matches = App::new("V4L2 Test Capture Program")
-    .arg(Arg::with_name("device")
-            .long("device")
-            .short("D")
-            .help("V4L2 Device File")
-            .default_value("/dev/video0"))
-    .arg(Arg::with_name("debug")
-            .long("debug")
-            .short("d")
-            .help("Enables debug log level"))
-    .arg(Arg::with_name("trace")
-            .long("trace")
-            .short("t")
-            .conflicts_with("debug")
-            .help("Enables trace log level"))
-    .get_matches();
-
-    let log_level = if matches.is_present("trace") {
-        LevelFilter::Trace
-    } else if matches.is_present("debug") {
-        LevelFilter::Debug
-    } else {
-        LevelFilter::Info
-    };
-
-    TermLogger::init(
-        log_level,
-        Config::default(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )
-    .expect("Couldn't initialize our logging configuration");
-
-    let heap = DmaBufHeap::new(DmaBufHeapType::Cma)
-        .expect("Couldn't open the dma-buf Heap");
-
-    let dev_file = matches.value_of("device").unwrap();
-    let dev = Device::new(dev_file, true)
-        .expect("Couldn't open the V4L2 Device");
-
-    let queue = dev
-        .get_queue(QueueType::Capture)
-        .expect("Couldn't get the Capture Queue");
-
-    set_edid(&dev)
+fn test_display_one_mode(dev: &Device, queue: &Queue, heap: &DmaBufHeap) {
+    set_edid(dev)
         .expect("Couldn't setup the EDID in our bridge");
 
-    wait_and_set_dv_timings(&dev, 1280, 720)
+    wait_and_set_dv_timings(dev, 1280, 720)
         .expect("Error when retrieving our timings");
 
     let fmt = queue
@@ -267,7 +224,7 @@ fn main() {
             ..v4l2_buffer::default()
         };
 
-        rbuf = v4l2_query_buffer(&dev, rbuf)
+        rbuf = v4l2_query_buffer(dev, rbuf)
             .expect("Couldn't query our buffer");
 
         let len = rbuf.length as usize;
@@ -282,7 +239,7 @@ fn main() {
         buffers.push(buffer);
     }
 
-    v4l2_start_streaming(&dev, BUFFER_TYPE)
+    v4l2_start_streaming(dev, BUFFER_TYPE)
         .expect("Couldn't start streaming");
 
     let mut last_frame_valid = Instant::now();
@@ -333,4 +290,52 @@ fn main() {
         queue_buffer(&dev, idx, buf.as_raw_fd())
             .expect("Couldn't queue our buffer");
     }
+}
+
+fn main() {
+    let matches = App::new("V4L2 Test Capture Program")
+    .arg(Arg::with_name("device")
+            .long("device")
+            .short("D")
+            .help("V4L2 Device File")
+            .default_value("/dev/video0"))
+    .arg(Arg::with_name("debug")
+            .long("debug")
+            .short("d")
+            .help("Enables debug log level"))
+    .arg(Arg::with_name("trace")
+            .long("trace")
+            .short("t")
+            .conflicts_with("debug")
+            .help("Enables trace log level"))
+    .get_matches();
+
+    let log_level = if matches.is_present("trace") {
+        LevelFilter::Trace
+    } else if matches.is_present("debug") {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
+
+    TermLogger::init(
+        log_level,
+        Config::default(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    )
+    .expect("Couldn't initialize our logging configuration");
+
+    let heap = DmaBufHeap::new(DmaBufHeapType::Cma)
+        .expect("Couldn't open the dma-buf Heap");
+
+    let dev_file = matches.value_of("device").unwrap();
+    let dev = Device::new(dev_file, true)
+        .expect("Couldn't open the V4L2 Device");
+
+    let queue = dev
+        .get_queue(QueueType::Capture)
+        .expect("Couldn't get the Capture Queue");
+
+    test_display_one_mode(&dev, &queue, &heap);
 }
