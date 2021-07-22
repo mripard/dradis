@@ -13,6 +13,7 @@ use clap::App;
 use clap::Arg;
 use image::imageops::FilterType;
 use nucleid::{BufferType, ConnectorStatus, ConnectorUpdate, Device, Format, ObjectUpdate, PlaneType, PlaneUpdate};
+use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use twox_hash::XxHash32;
 
 const HEADER_VERSION_MAJOR: u8 = 0x42;
@@ -26,9 +27,34 @@ fn main() -> Result<()> {
                 .short("D")
                 .help("DRM Device Path")
                 .default_value("/dev/dri/card0"))
+        .arg(Arg::with_name("debug")
+                .long("debug")
+                .short("d")
+                .help("Enables debug log level"))
+        .arg(Arg::with_name("trace")
+                .long("trace")
+                .short("t")
+                .conflicts_with("debug")
+                .help("Enables trace log level"))
         .arg(Arg::with_name("image")
              .required(true))
         .get_matches();
+
+    let log_level = if matches.is_present("trace") {
+        LevelFilter::Trace
+    } else if matches.is_present("debug") {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
+
+    let _ = TermLogger::init(
+        log_level,
+        Config::default(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto
+    )
+    .context("Couldn't setup our logger.")?;
 
     let img_path = matches.value_of("image").unwrap();
     let dev_path = matches.value_of("device").unwrap();
