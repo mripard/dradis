@@ -71,16 +71,9 @@ fn main() -> Result<()> {
 
     log::info!("Running from connector {:#?}", connector);
 
-    // let mode = connector
-    //     .preferred_mode()
-    //     .context("Couldn't find a mode for the connector")?;
-
-    let mode = connector.modes()
-        .context("Couldn't retrieve the connector modes")?
-        .into_iter()
-        // .find(|mode| mode.width() == 640 && mode.height() == 480 && mode.refresh() == 60)
-        .find(|mode| mode.width() == 1280 && mode.height() == 720 && mode.refresh() == 60)
-        .context("Couldn't find our mode")?;
+    let mode = connector
+        .preferred_mode()
+        .context("Couldn't find a mode for the connector")?;
 
     let width = mode.width();
     let height = mode.height();
