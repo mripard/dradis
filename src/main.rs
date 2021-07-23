@@ -22,6 +22,8 @@ const HEADER_MAGIC: u32 = u32::from_ne_bytes(*b"CRNO");
 
 const NUM_BUFFERS: u32 = 3;
 
+const PATTERN: &'static [u8] = include_bytes!("../resources/smpte-color-bars.png");
+
 fn main() -> Result<()> {
     let matches = App::new("KMS Crash Test Pattern")
         .arg(Arg::with_name("device")
@@ -37,8 +39,6 @@ fn main() -> Result<()> {
                 .short("t")
                 .conflicts_with("debug")
                 .help("Enables trace log level"))
-        .arg(Arg::with_name("image")
-             .required(true))
         .get_matches();
 
     let log_level = if matches.is_present("trace") {
@@ -57,7 +57,6 @@ fn main() -> Result<()> {
     )
     .context("Couldn't setup our logger.")?;
 
-    let img_path = matches.value_of("image").unwrap();
     let dev_path = matches.value_of("device").unwrap();
     let device = Device::new(dev_path).unwrap();
 
@@ -93,13 +92,10 @@ fn main() -> Result<()> {
         })
         .context("Couldn't find a plane with the proper format")?;
 
-    let img = image::open(img_path).unwrap()
-                                   .resize_exact(width as u32,
-                                                 height as u32,
-                                                 FilterType::Nearest);
+    let img = image::load_from_memory(PATTERN)
+        .context("Couldn't load our image")?
+        .resize_exact(width as u32, height as u32, FilterType::Nearest);
     let img_data = img.to_bgr8().into_vec();
-
-    log::info!("Opened image {}", img_path);
 
     let mut hasher = XxHash32::with_seed(0);
     hasher.write(&img_data[16..]);
