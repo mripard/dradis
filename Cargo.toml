@@ -2,7 +2,7 @@
 name = "dradis"
 version = "0.1.0"
 authors = ["Maxime Ripard <maxime@cerno.tech>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 byteorder = "^1.3"
