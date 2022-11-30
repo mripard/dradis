@@ -19,6 +19,7 @@ use std::{
 
 use byteorder::{ByteOrder, LittleEndian};
 use clap::{App, Arg};
+use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{DmaBufHeap, DmaBufHeapType};
 use edid::{
     EDIDDescriptor, EDIDDetailedTiming, EDIDDetailedTimingDigitalSync, EDIDDetailedTimingSync,
@@ -276,8 +277,10 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &DmaBufHeap, tes
 
         let len = rbuf.length as usize;
         let buffer = heap
-            .allocate::<dma_buf::DmaBuf>(len)
-            .expect("Couldn't allocate our dma-buf buffer")
+            .allocate(len)
+            .expect("Couldn't allocate our dma-buf buffer");
+
+        let buffer: MappedDmaBuf = DmaBuf::from(buffer)
             .memory_map()
             .expect("Couldn't map our dma-buf buffer");
 
