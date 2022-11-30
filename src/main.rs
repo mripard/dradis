@@ -35,8 +35,7 @@ use twox_hash::XxHash32;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_buffer,
     v4l2_query_dv_timings, v4l2_queue_buffer, v4l2_set_dv_timings, v4l2_set_edid,
-    v4l2_start_streaming, Device, FrameFormat, MemoryType, PixelFormat, Queue, QueueType,
-    Result,
+    v4l2_start_streaming, Device, FrameFormat, MemoryType, PixelFormat, Queue, QueueType, Result,
 };
 
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -86,7 +85,7 @@ struct TestItem {
 
 #[derive(Debug, Deserialize)]
 struct Test {
-    tests: Vec<TestItem>
+    tests: Vec<TestItem>,
 }
 
 fn dequeue_buffer(dev: &Device) -> Result<u32> {
@@ -144,7 +143,7 @@ fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<()> {
                         EDIDDetailedTimingDigitalSync::Separate(true, true),
                     )),
             ))
-        },
+        }
     };
 
     v4l2_set_edid(dev, &mut test_edid.serialize())?;
@@ -196,7 +195,7 @@ enum FrameError {
     Invalid,
 }
 
-impl std::error::Error for FrameError { }
+impl std::error::Error for FrameError {}
 
 fn decode_and_check_frame(
     data: &[u8],
@@ -234,8 +233,7 @@ fn decode_and_check_frame(
 
     let mut hasher = XxHash32::with_seed(0);
     hasher.write(&data[16..]);
-    let computed_hash = u32::try_from(hasher.finish())
-        .expect("Computed Hash was overflowing");
+    let computed_hash = u32::try_from(hasher.finish()).expect("Computed Hash was overflowing");
 
     if hash != computed_hash {
         error!("Frame Corrupted: hash {:#x} vs {:#x}", hash, computed_hash);
@@ -246,8 +244,7 @@ fn decode_and_check_frame(
 }
 
 fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &TestItem) {
-    set_edid(dev, &test.edid)
-        .expect("Couldn't setup the EDID in our bridge");
+    set_edid(dev, &test.edid).expect("Couldn't setup the EDID in our bridge");
 
     wait_and_set_dv_timings(dev, test.expected_width, test.expected_height)
         .expect("Error when retrieving our timings");
@@ -280,8 +277,7 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &Te
             ..v4l2_buffer::default()
         };
 
-        rbuf = v4l2_query_buffer(dev, rbuf)
-            .expect("Couldn't query our buffer");
+        rbuf = v4l2_query_buffer(dev, rbuf).expect("Couldn't query our buffer");
 
         let len = rbuf.length as usize;
         let buffer = heap
@@ -292,19 +288,20 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &Te
             .memory_map()
             .expect("Couldn't map our dma-buf buffer");
 
-        queue_buffer(&dev, idx, buffer.as_raw_fd())
-            .expect("Couldn't queue our buffer");
+        queue_buffer(&dev, idx, buffer.as_raw_fd()).expect("Couldn't queue our buffer");
         buffers.push(buffer);
     }
 
-    v4l2_start_streaming(dev, BUFFER_TYPE)
-        .expect("Couldn't start streaming");
+    v4l2_start_streaming(dev, BUFFER_TYPE).expect("Couldn't start streaming");
 
     let mut last_frame_valid = Instant::now();
     let mut last_frame_index = None;
     loop {
         if last_frame_valid.elapsed() > NO_VALID_FRAME_TIMEOUT {
-            panic!("Timeout: no valid frames since {} seconds", NO_VALID_FRAME_TIMEOUT.as_secs());
+            panic!(
+                "Timeout: no valid frames since {} seconds",
+                NO_VALID_FRAME_TIMEOUT.as_secs()
+            );
         }
 
         let frame_dequeue_start = Instant::now();
@@ -345,31 +342,38 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &Te
             }
         }
 
-        queue_buffer(&dev, idx, buf.as_raw_fd())
-            .expect("Couldn't queue our buffer");
+        queue_buffer(&dev, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
     }
 }
 
 fn main() {
     let matches = App::new("DRADIS DRM/KMS Test Program")
-    .arg(Arg::with_name("device")
-            .long("device")
-            .short("D")
-            .help("V4L2 Device File")
-            .default_value("/dev/video0"))
-    .arg(Arg::with_name("debug")
-            .long("debug")
-            .short("d")
-            .help("Enables debug log level"))
-    .arg(Arg::with_name("trace")
-            .long("trace")
-            .short("t")
-            .conflicts_with("debug")
-            .help("Enables trace log level"))
-    .arg(Arg::with_name("test")
-            .required(true)
-            .help("Test Configuration File"))
-    .get_matches();
+        .arg(
+            Arg::with_name("device")
+                .long("device")
+                .short("D")
+                .help("V4L2 Device File")
+                .default_value("/dev/video0"),
+        )
+        .arg(
+            Arg::with_name("debug")
+                .long("debug")
+                .short("d")
+                .help("Enables debug log level"),
+        )
+        .arg(
+            Arg::with_name("trace")
+                .long("trace")
+                .short("t")
+                .conflicts_with("debug")
+                .help("Enables trace log level"),
+        )
+        .arg(
+            Arg::with_name("test")
+                .required(true)
+                .help("Test Configuration File"),
+        )
+        .get_matches();
 
     let log_level = if matches.is_present("trace") {
         LevelFilter::Trace
@@ -387,20 +391,18 @@ fn main() {
     )
     .expect("Couldn't initialize our logging configuration");
 
-    let test_path = matches.value_of("test")
+    let test_path = matches
+        .value_of("test")
         .expect("Couldn't get test file path.");
-    let test_file = File::open(test_path)
-        .expect("Coludn't open the test file.");
+    let test_file = File::open(test_path).expect("Coludn't open the test file.");
 
-    let test_config: Test = serde_yaml::from_reader(test_file)
-        .expect("Couldn't parse the test file.");
+    let test_config: Test =
+        serde_yaml::from_reader(test_file).expect("Couldn't parse the test file.");
 
-    let heap = Heap::new(HeapKind::Cma)
-        .expect("Couldn't open the dma-buf Heap");
+    let heap = Heap::new(HeapKind::Cma).expect("Couldn't open the dma-buf Heap");
 
     let dev_file = matches.value_of("device").unwrap();
-    let dev = Device::new(dev_file, true)
-        .expect("Couldn't open the V4L2 Device");
+    let dev = Device::new(dev_file, true).expect("Couldn't open the V4L2 Device");
 
     let queue = dev
         .get_queue(QueueType::Capture)

@@ -12,75 +12,25 @@ use crate::error::Result;
 
 const V4L2_IOCTL_BASE: u32 = 'V' as u32;
 
-ioctl_read!(
-    v4l2_ioctl_querycap,
-    V4L2_IOCTL_BASE,
-    00,
-    v4l2_capability
-);
+ioctl_read!(v4l2_ioctl_querycap, V4L2_IOCTL_BASE, 00, v4l2_capability);
 
-ioctl_readwrite!(
-    v4l2_ioctl_enum_fmt,
-    V4L2_IOCTL_BASE,
-    02,
-    v4l2_fmtdesc
-);
+ioctl_readwrite!(v4l2_ioctl_enum_fmt, V4L2_IOCTL_BASE, 02, v4l2_fmtdesc);
 
-ioctl_readwrite!(
-    v4l2_ioctl_g_fmt,
-    V4L2_IOCTL_BASE,
-    04,
-    v4l2_format
-);
+ioctl_readwrite!(v4l2_ioctl_g_fmt, V4L2_IOCTL_BASE, 04, v4l2_format);
 
-ioctl_readwrite!(
-    v4l2_ioctl_s_fmt,
-    V4L2_IOCTL_BASE,
-    05,
-    v4l2_format
-);
+ioctl_readwrite!(v4l2_ioctl_s_fmt, V4L2_IOCTL_BASE, 05, v4l2_format);
 
-ioctl_readwrite!(
-    v4l2_ioctl_reqbufs,
-    V4L2_IOCTL_BASE,
-    08,
-    v4l2_requestbuffers
-);
+ioctl_readwrite!(v4l2_ioctl_reqbufs, V4L2_IOCTL_BASE, 08, v4l2_requestbuffers);
 
-ioctl_readwrite!(
-    v4l2_ioctl_querybuf,
-    V4L2_IOCTL_BASE,
-    09,
-    v4l2_buffer
-);
+ioctl_readwrite!(v4l2_ioctl_querybuf, V4L2_IOCTL_BASE, 09, v4l2_buffer);
 
-ioctl_readwrite!(
-    v4l2_ioctl_qbuf,
-    V4L2_IOCTL_BASE,
-    15,
-    v4l2_buffer
-);
+ioctl_readwrite!(v4l2_ioctl_qbuf, V4L2_IOCTL_BASE, 15, v4l2_buffer);
 
-ioctl_readwrite!(
-    v4l2_ioctl_dqbuf,
-    V4L2_IOCTL_BASE,
-    17,
-    v4l2_buffer
-);
+ioctl_readwrite!(v4l2_ioctl_dqbuf, V4L2_IOCTL_BASE, 17, v4l2_buffer);
 
-ioctl_write_ptr!(
-    v4l2_ioctl_streamon,
-    V4L2_IOCTL_BASE,
-    18,
-    libc::c_int
-);
+ioctl_write_ptr!(v4l2_ioctl_streamon, V4L2_IOCTL_BASE, 18, libc::c_int);
 
-ioctl_readwrite!(
-    v4l2_ioctl_s_edid,
-    V4L2_IOCTL_BASE,
-    41,
-    v4l2_edid
-);
+ioctl_readwrite!(v4l2_ioctl_s_edid, V4L2_IOCTL_BASE, 41, v4l2_edid);
 
 ioctl_readwrite!(
     v4l2_ioctl_enum_framesizes,
@@ -113,17 +63,15 @@ ioctl_read!(
 impl std::fmt::Debug for v4l2_dv_timings {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.type_ {
-            V4L2_DV_BT_656_1120 => {
-                unsafe {
-                    let bt = &self.__bindgen_anon_1.bt;
-                    let width = bt.width;
-                    let height = bt.height;
+            V4L2_DV_BT_656_1120 => unsafe {
+                let bt = &self.__bindgen_anon_1.bt;
+                let width = bt.width;
+                let height = bt.height;
 
-                    f.debug_struct("v4l2_dv_timings: v4l2_bt_timings")
-                        .field("width", &width)
-                        .field("height", &height)
-                        .finish()
-                }
+                f.debug_struct("v4l2_dv_timings: v4l2_bt_timings")
+                    .field("width", &width)
+                    .field("height", &height)
+                    .finish()
             },
             _ => Err(std::fmt::Error),
         }
@@ -192,7 +140,7 @@ pub fn v4l2_dequeue_buffer(file: &impl AsRawFd, mut buf: v4l2_buffer) -> Result<
 }
 
 pub fn v4l2_enum_formats(file: &impl AsRawFd, mut desc: v4l2_fmtdesc) -> Result<v4l2_fmtdesc> {
-    let _ = unsafe { v4l2_ioctl_enum_fmt(file.as_raw_fd(), &mut desc)}?;
+    let _ = unsafe { v4l2_ioctl_enum_fmt(file.as_raw_fd(), &mut desc) }?;
 
     Ok(desc)
 }
@@ -228,7 +176,10 @@ pub fn v4l2_get_dv_timings(file: &impl AsRawFd) -> Result<v4l2_dv_timings> {
     Ok(timings)
 }
 
-pub fn v4l2_set_dv_timings(file: &impl AsRawFd, mut timings: v4l2_dv_timings) -> Result<v4l2_dv_timings> {
+pub fn v4l2_set_dv_timings(
+    file: &impl AsRawFd,
+    mut timings: v4l2_dv_timings,
+) -> Result<v4l2_dv_timings> {
     let _ = unsafe { v4l2_ioctl_s_dv_timings(file.as_raw_fd(), &mut timings) }?;
 
     Ok(timings)
