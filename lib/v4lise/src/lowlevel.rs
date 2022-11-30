@@ -116,9 +116,12 @@ impl std::fmt::Debug for v4l2_dv_timings {
             V4L2_DV_BT_656_1120 => {
                 unsafe {
                     let bt = &self.__bindgen_anon_1.bt;
+                    let width = bt.width;
+                    let height = bt.height;
+
                     f.debug_struct("v4l2_dv_timings: v4l2_bt_timings")
-                        .field("width", &bt.width)
-                        .field("height", &bt.height)
+                        .field("width", &width)
+                        .field("height", &height)
                         .finish()
                 }
             },
