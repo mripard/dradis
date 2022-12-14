@@ -20,7 +20,7 @@ use std::{
 use byteorder::{ByteOrder, LittleEndian};
 use clap::{App, Arg};
 use dma_buf::{DmaBuf, MappedDmaBuf};
-use dma_heap::{DmaBufHeap, DmaBufHeapType};
+use dma_heap::{Heap, HeapKind};
 use edid::{
     EDIDDescriptor, EDIDDetailedTiming, EDIDDetailedTimingDigitalSync, EDIDDetailedTimingSync,
     EDIDDisplayColorEncoding, EDIDDisplayColorTypeEncoding, EDIDVersion,
@@ -245,7 +245,7 @@ fn decode_and_check_frame(
     Ok(index)
 }
 
-fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &DmaBufHeap, test: &TestItem) {
+fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &TestItem) {
     set_edid(dev, &test.edid)
         .expect("Couldn't setup the EDID in our bridge");
 
@@ -395,7 +395,7 @@ fn main() {
     let test_config: Test = serde_yaml::from_reader(test_file)
         .expect("Couldn't parse the test file.");
 
-    let heap = DmaBufHeap::new(DmaBufHeapType::Cma)
+    let heap = Heap::new(HeapKind::Cma)
         .expect("Couldn't open the dma-buf Heap");
 
     let dev_file = matches.value_of("device").unwrap();
