@@ -1,9 +1,7 @@
 #![warn(rust_2018_idioms)]
 #![deny(clippy::all)]
-#![deny(clippy::pedantic)]
-#![deny(clippy::nursery)]
-#![deny(clippy::cargo)]
-#![allow(clippy::unreadable_literal)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::cast_sign_loss)]
 
 use anyhow::{Context, Result};
 use byteorder::ByteOrder;
@@ -25,7 +23,7 @@ const HEADER_MAGIC: u32 = u32::from_ne_bytes(*b"CRNO");
 
 const NUM_BUFFERS: u32 = 3;
 
-const PATTERN: &'static [u8] = include_bytes!("../resources/smpte-color-bars.png");
+const PATTERN: &[u8] = include_bytes!("../resources/smpte-color-bars.png");
 
 fn main() -> Result<()> {
     let matches = App::new("KMS Crash Test Pattern")
@@ -58,7 +56,7 @@ fn main() -> Result<()> {
         LevelFilter::Info
     };
 
-    let _ = TermLogger::init(
+    TermLogger::init(
         log_level,
         Config::default(),
         TerminalMode::Mixed,
@@ -147,7 +145,7 @@ fn main() -> Result<()> {
         )
         .add_plane(
             PlaneUpdate::new(&plane)
-                .set_framebuffer(&first)
+                .set_framebuffer(first)
                 .set_source_size(width as f32, height as f32)
                 .set_source_coordinates(0.0, 0.0)
                 .set_display_size(width, height)
@@ -168,9 +166,9 @@ fn main() -> Result<()> {
 
         output = output
             .start_update()
-            .add_plane(PlaneUpdate::new(&plane).set_framebuffer(&buffer))
+            .add_plane(PlaneUpdate::new(&plane).set_framebuffer(buffer))
             .commit()?;
 
-        index = index + 1;
+        index += 1;
     }
 }
