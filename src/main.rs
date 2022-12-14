@@ -19,6 +19,7 @@ use std::{
 
 use byteorder::{ByteOrder, LittleEndian};
 use clap::{App, Arg};
+use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{DmaBufHeap, DmaBufHeapType};
 use edid::{
     EDIDDescriptor, EDIDDetailedTiming, EDIDDetailedTimingDigitalSync, EDIDDetailedTimingSync,
@@ -29,6 +30,7 @@ use edid::{
 use log::{debug, error, info, warn};
 use serde::Deserialize;
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
+use strum_macros::Display;
 use twox_hash::XxHash32;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_buffer,
@@ -189,10 +191,17 @@ fn wait_and_set_dv_timings(dev: &impl AsRawFd, width: usize, height: usize) -> R
     }
 }
 
+#[derive(Display, Debug)]
+enum FrameError {
+    Invalid,
+}
+
+impl std::error::Error for FrameError { }
+
 fn decode_and_check_frame(
     data: &[u8],
     last_idx: Option<usize>,
-) -> std::result::Result<usize, dma_buf::Error> {
+) -> std::result::Result<usize, Box<dyn std::error::Error>> {
     let major = data[0];
     let minor = data[1];
 
@@ -201,7 +210,7 @@ fn decode_and_check_frame(
             "Header Version Mismatch ({}.{} vs {}.{})",
             major, minor, HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR
         );
-        return Err(dma_buf::Error::Closure);
+        return Err(FrameError::Invalid)?;
     }
 
     let magic = LittleEndian::read_u32(&data[4..8]);
@@ -210,14 +219,14 @@ fn decode_and_check_frame(
             "Header Magic Mismatch ({:#06x} vs {:#06x})",
             magic, HEADER_MAGIC
         );
-        return Err(dma_buf::Error::Closure);
+        return Err(FrameError::Invalid)?;
     }
 
     let index = LittleEndian::read_u32(&data[8..12]) as usize;
     if let Some(last) = last_idx {
         if index <= last {
             error!("Frames in invalid order: frame {}, last {}", index, last);
-            return Err(dma_buf::Error::Closure);
+            return Err(FrameError::Invalid)?;
         }
     }
 
@@ -230,7 +239,7 @@ fn decode_and_check_frame(
 
     if hash != computed_hash {
         error!("Frame Corrupted: hash {:#x} vs {:#x}", hash, computed_hash);
-        return Err(dma_buf::Error::Closure);
+        return Err(FrameError::Invalid)?;
     }
 
     Ok(index)
@@ -276,8 +285,10 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &DmaBufHeap, tes
 
         let len = rbuf.length as usize;
         let buffer = heap
-            .allocate::<dma_buf::DmaBuf>(len)
-            .expect("Couldn't allocate our dma-buf buffer")
+            .allocate(len)
+            .expect("Couldn't allocate our dma-buf buffer");
+
+        let buffer: MappedDmaBuf = DmaBuf::from(buffer)
             .memory_map()
             .expect("Couldn't map our dma-buf buffer");
 
