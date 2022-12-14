@@ -5,15 +5,18 @@
 #![deny(clippy::cargo)]
 #![allow(clippy::unreadable_literal)]
 
-use std::hash::Hasher;
 use anyhow::{Context, Result};
 use byteorder::ByteOrder;
 use byteorder::LittleEndian;
 use clap::App;
 use clap::Arg;
 use image::imageops::FilterType;
-use nucleid::{BufferType, ConnectorStatus, ConnectorUpdate, Device, Format, ObjectUpdate, PlaneType, PlaneUpdate};
+use nucleid::{
+    BufferType, ConnectorStatus, ConnectorUpdate, Device, Format, ObjectUpdate, PlaneType,
+    PlaneUpdate,
+};
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
+use std::hash::Hasher;
 use twox_hash::XxHash32;
 
 const HEADER_VERSION_MAJOR: u8 = 1;
@@ -26,19 +29,25 @@ const PATTERN: &'static [u8] = include_bytes!("../resources/smpte-color-bars.png
 
 fn main() -> Result<()> {
     let matches = App::new("KMS Crash Test Pattern")
-        .arg(Arg::with_name("device")
+        .arg(
+            Arg::with_name("device")
                 .short("D")
                 .help("DRM Device Path")
-                .default_value("/dev/dri/card0"))
-        .arg(Arg::with_name("debug")
+                .default_value("/dev/dri/card0"),
+        )
+        .arg(
+            Arg::with_name("debug")
                 .long("debug")
                 .short("d")
-                .help("Enables debug log level"))
-        .arg(Arg::with_name("trace")
+                .help("Enables debug log level"),
+        )
+        .arg(
+            Arg::with_name("trace")
                 .long("trace")
                 .short("t")
                 .conflicts_with("debug")
-                .help("Enables trace log level"))
+                .help("Enables trace log level"),
+        )
         .get_matches();
 
     let log_level = if matches.is_present("trace") {
@@ -53,7 +62,7 @@ fn main() -> Result<()> {
         log_level,
         Config::default(),
         TerminalMode::Mixed,
-        ColorChoice::Auto
+        ColorChoice::Auto,
     )
     .context("Couldn't setup our logger.")?;
 
@@ -63,9 +72,7 @@ fn main() -> Result<()> {
     let connector = device
         .connectors()
         .into_iter()
-        .find(|con| {
-            con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected
-        })
+        .find(|con| con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected)
         .context("No Active Connector")?;
 
     log::info!("Running from connector {:#?}", connector);
@@ -161,9 +168,7 @@ fn main() -> Result<()> {
 
         output = output
             .start_update()
-            .add_plane(PlaneUpdate::new(&plane)
-                .set_framebuffer(&buffer)
-            )
+            .add_plane(PlaneUpdate::new(&plane).set_framebuffer(&buffer))
             .commit()?;
 
         index = index + 1;
