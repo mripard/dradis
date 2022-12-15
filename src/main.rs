@@ -163,15 +163,15 @@ fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<()> {
     Ok(())
 }
 
-fn wait_and_set_dv_timings(dev: &impl AsRawFd, suite: &Test, width: usize, height: usize) -> Result<()> {
+fn wait_and_set_dv_timings(suite: &Dradis<'_>, width: usize, height: usize) -> Result<()> {
     let start = Instant::now();
 
     loop {
-        if start.elapsed() > suite.link_timeout {
+        if start.elapsed() > suite.cfg.link_timeout {
             return Err(v4lise::Error::Empty);
         }
 
-        let timings = v4l2_query_dv_timings(dev);
+        let timings = v4l2_query_dv_timings(suite.dev);
 
         match timings {
             Ok(timings) => {
@@ -179,7 +179,7 @@ fn wait_and_set_dv_timings(dev: &impl AsRawFd, suite: &Test, width: usize, heigh
 
                 if bt.width as usize == width && bt.height as usize == height {
                     info!("Source started to transmit the proper resolution.");
-                    let _ = v4l2_set_dv_timings(dev, timings)?;
+                    let _ = v4l2_set_dv_timings(suite.dev, timings)?;
                     return Ok(());
                 }
             }
@@ -287,27 +287,31 @@ fn decode_and_check_frame(
     Ok(metadata.index as usize)
 }
 
-fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &Test, test: &TestItem) {
-    set_edid(dev, &test.edid).expect("Couldn't setup the EDID in our bridge");
+fn test_display_one_mode(suite: &Dradis<'_>, test: &TestItem) {
+    set_edid(suite.dev, &test.edid).expect("Couldn't setup the EDID in our bridge");
 
-    wait_and_set_dv_timings(dev, suite, test.expected_width, test.expected_height)
+    wait_and_set_dv_timings(suite, test.expected_width, test.expected_height)
         .expect("Error when retrieving our timings");
 
-    let fmt = queue
+    let fmt = suite
+        .queue
         .get_pixel_formats()
         .find(|fmt| *fmt == PixelFormat::RGB24)
         .expect("Couldn't find our format");
 
-    queue
+    suite
+        .queue
         .set_format(
-            queue
+            suite
+                .queue
                 .get_current_format()
                 .expect("Couldn't get our queue format")
                 .set_pixel_format(fmt),
         )
         .expect("Couldn't change our queue format");
 
-    queue
+    suite
+        .queue
         .request_buffers(MemoryType::DMABUF, NUM_BUFFERS as usize)
         .expect("Couldn't request our buffers");
 
@@ -321,10 +325,11 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &T
             ..v4l2_buffer::default()
         };
 
-        rbuf = v4l2_query_buffer(dev, rbuf).expect("Couldn't query our buffer");
+        rbuf = v4l2_query_buffer(suite.dev, rbuf).expect("Couldn't query our buffer");
 
         let len = rbuf.length as usize;
-        let buffer = heap
+        let buffer = suite
+            .heap
             .allocate(len)
             .expect("Couldn't allocate our dma-buf buffer");
 
@@ -332,21 +337,21 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &T
             .memory_map()
             .expect("Couldn't map our dma-buf buffer");
 
-        queue_buffer(&dev, idx, buffer.as_raw_fd()).expect("Couldn't queue our buffer");
+        queue_buffer(suite.dev, idx, buffer.as_raw_fd()).expect("Couldn't queue our buffer");
         buffers.push(buffer);
     }
 
-    v4l2_start_streaming(dev, BUFFER_TYPE).expect("Couldn't start streaming");
+    v4l2_start_streaming(suite.dev, BUFFER_TYPE).expect("Couldn't start streaming");
 
     let start = Instant::now();
     let mut first_frame_valid = None;
     let mut last_frame_valid = None;
     let mut last_frame_index = None;
     loop {
-        if last_frame_valid.is_none() && start.elapsed() > suite.valid_frame_timeout {
+        if last_frame_valid.is_none() && start.elapsed() > suite.cfg.valid_frame_timeout {
             panic!(
                 "Timeout: no valid frames since {} seconds",
-                suite.valid_frame_timeout.as_secs()
+                suite.cfg.valid_frame_timeout.as_secs()
             );
         }
 
@@ -357,7 +362,7 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &T
                 break Err(v4lise::Error::Empty);
             }
 
-            let buffer_idx = dequeue_buffer(&dev);
+            let buffer_idx = dequeue_buffer(suite.dev);
             match buffer_idx {
                 Ok(_) => break buffer_idx,
                 Err(ref e) => match e {
@@ -402,7 +407,7 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &T
             frame_decode_start.elapsed().as_millis()
         );
 
-        queue_buffer(&dev, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
+        queue_buffer(suite.dev, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
 
         if let Some(duration) = test.duration {
             if let Some(first) = first_frame_valid {
@@ -413,6 +418,14 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &T
             }
         }
     }
+}
+
+#[derive(Debug)]
+pub(crate) struct Dradis<'a> {
+    cfg: Test,
+    dev: &'a Device,
+    heap: &'a Heap,
+    queue: &'a Queue<'a>,
 }
 
 fn main() {
@@ -477,7 +490,14 @@ fn main() {
         .get_queue(QueueType::Capture)
         .expect("Couldn't get the Capture Queue");
 
-    for test in &test_config.tests {
-        test_display_one_mode(&dev, &queue, &heap, &test_config, &test);
+    let dradis = Dradis {
+        cfg: test_config,
+        dev: &dev,
+        heap: &heap,
+        queue: &queue,
+    };
+
+    for test in &dradis.cfg.tests {
+        test_display_one_mode(&dradis, &test);
     }
 }
