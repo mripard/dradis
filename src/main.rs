@@ -46,8 +46,11 @@ const NUM_BUFFERS: u32 = 5;
 const HEADER_VERSION_MAJOR: u8 = 2;
 
 const FRAMES_DEQUEUED_TIMEOUT: Duration = Duration::from_secs(10);
-const NO_VALID_FRAME_TIMEOUT: Duration = Duration::from_secs(2);
 const NO_LINK_TIMEOUT: Duration = Duration::from_secs(10);
+
+const fn default_valid_frame_timeout() -> Duration {
+    Duration::from_secs(10)
+}
 
 #[derive(Debug, Deserialize)]
 struct TestEdidDetailedTiming {
@@ -84,8 +87,13 @@ struct TestItem {
     edid: TestEdid,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 struct Test {
+    #[serde_as(as = "DurationSeconds<u64>")]
+    #[serde(default = "default_valid_frame_timeout")]
+    valid_frame_timeout: Duration,
+
     tests: Vec<TestItem>,
 }
 
@@ -276,7 +284,7 @@ fn decode_and_check_frame(
     Ok(metadata.index as usize)
 }
 
-fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &TestItem) {
+fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &Test, test: &TestItem) {
     set_edid(dev, &test.edid).expect("Couldn't setup the EDID in our bridge");
 
     wait_and_set_dv_timings(dev, test.expected_width, test.expected_height)
@@ -331,10 +339,10 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &Te
     let mut last_frame_valid = Instant::now();
     let mut last_frame_index = None;
     loop {
-        if last_frame_valid.elapsed() > NO_VALID_FRAME_TIMEOUT {
+        if last_frame_valid.elapsed() > suite.valid_frame_timeout {
             panic!(
                 "Timeout: no valid frames since {} seconds",
-                NO_VALID_FRAME_TIMEOUT.as_secs()
+                suite.valid_frame_timeout.as_secs()
             );
         }
 
@@ -459,7 +467,7 @@ fn main() {
         .get_queue(QueueType::Capture)
         .expect("Couldn't get the Capture Queue");
 
-    for test in test_config.tests {
-        test_display_one_mode(&dev, &queue, &heap, &test);
+    for test in &test_config.tests {
+        test_display_one_mode(&dev, &queue, &heap, &test_config, &test);
     }
 }
