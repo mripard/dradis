@@ -29,6 +29,7 @@ use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Rgb, Rgba
 use log::{debug, info, warn};
 use rqrr::PreparedImage;
 use serde::Deserialize;
+use serde_with::{serde_as, DurationSeconds};
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use strum_macros::Display;
 use twox_hash::XxHash64;
@@ -67,10 +68,12 @@ enum TestEdid {
     DetailedTiming(TestEdidDetailedTiming),
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 struct TestItem {
+    #[serde_as(as = "Option<DurationSeconds<u64>>")]
     #[serde(default)]
-    duration: Option<usize>,
+    duration: Option<Duration>,
 
     #[serde(rename = "expected-height")]
     expected_height: usize,
@@ -386,7 +389,7 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &Te
         queue_buffer(&dev, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
 
         if let Some(duration) = test.duration {
-            if start.elapsed() > Duration::from_secs(duration as u64) {
+            if start.elapsed() > duration {
                 info!("Test Passed");
                 break;
             }
