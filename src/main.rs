@@ -336,10 +336,11 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &T
     v4l2_start_streaming(dev, BUFFER_TYPE).expect("Couldn't start streaming");
 
     let start = Instant::now();
-    let mut last_frame_valid = Instant::now();
+    let mut first_frame_valid = None;
+    let mut last_frame_valid = None;
     let mut last_frame_index = None;
     loop {
-        if last_frame_valid.elapsed() > suite.valid_frame_timeout {
+        if last_frame_valid.is_none() && start.elapsed() > suite.valid_frame_timeout {
             panic!(
                 "Timeout: no valid frames since {} seconds",
                 suite.valid_frame_timeout.as_secs()
@@ -379,9 +380,13 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &T
             Some((last_frame_index, test.expected_width, test.expected_height)),
         ) {
             Ok(frame_index) => {
-                info!("Frame {} Valid", frame_index);
+                debug!("Frame {} Valid", frame_index);
+                if first_frame_valid.is_none() {
+                    first_frame_valid = Some(Instant::now());
+                }
+
                 last_frame_index = Some(frame_index);
-                last_frame_valid = Instant::now();
+                last_frame_valid = Some(Instant::now());
             }
             Err(_) => {
                 warn!("Frame Invalid.");
@@ -389,7 +394,7 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &T
             }
         }
 
-        info!(
+        debug!(
             "Took {} ms to process the frame",
             frame_decode_start.elapsed().as_millis()
         );
@@ -397,9 +402,11 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, suite: &T
         queue_buffer(&dev, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
 
         if let Some(duration) = test.duration {
-            if start.elapsed() > duration {
-                info!("Test Passed");
-                break;
+            if let Some(first) = first_frame_valid {
+                if first.elapsed() > duration {
+                    info!("Test Passed");
+                    break;
+                }
             }
         }
     }
