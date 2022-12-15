@@ -17,7 +17,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
 use edid::{
@@ -341,37 +341,37 @@ pub(crate) struct Dradis<'a> {
 }
 
 fn main() {
-    let matches = App::new("DRADIS DRM/KMS Test Program")
+    let matches = Command::new("DRADIS DRM/KMS Test Program")
         .arg(
-            Arg::with_name("device")
+            Arg::new("device")
                 .long("device")
-                .short("D")
+                .short('D')
                 .help("V4L2 Device File")
                 .default_value("/dev/video0"),
         )
         .arg(
-            Arg::with_name("debug")
+            Arg::new("debug")
                 .long("debug")
-                .short("d")
+                .short('d')
                 .help("Enables debug log level"),
         )
         .arg(
-            Arg::with_name("trace")
+            Arg::new("trace")
                 .long("trace")
-                .short("t")
+                .short('t')
                 .conflicts_with("debug")
                 .help("Enables trace log level"),
         )
         .arg(
-            Arg::with_name("test")
+            Arg::new("test")
                 .required(true)
                 .help("Test Configuration File"),
         )
         .get_matches();
 
-    let log_level = if matches.is_present("trace") {
+    let log_level = if matches.contains_id("trace") {
         LevelFilter::Trace
-    } else if matches.is_present("debug") {
+    } else if matches.contains_id("debug") {
         LevelFilter::Debug
     } else {
         LevelFilter::Info
@@ -386,7 +386,7 @@ fn main() {
     .expect("Couldn't initialize our logging configuration");
 
     let test_path = matches
-        .value_of("test")
+        .get_one::<String>("test")
         .expect("Couldn't get test file path.");
     let test_file = File::open(test_path).expect("Coludn't open the test file.");
 
@@ -395,7 +395,7 @@ fn main() {
 
     let heap = Heap::new(HeapKind::Cma).expect("Couldn't open the dma-buf Heap");
 
-    let dev_file = matches.value_of("device").unwrap();
+    let dev_file = matches.get_one::<String>("device").unwrap();
     let dev = Device::new(dev_file, true).expect("Couldn't open the V4L2 Device");
 
     let queue = dev
