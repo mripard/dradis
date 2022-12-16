@@ -17,6 +17,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use anyhow::Context;
 use clap::{Arg, Command};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
@@ -340,7 +341,7 @@ pub(crate) struct Dradis<'a> {
     queue: &'a Queue<'a>,
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let matches = Command::new("DRADIS DRM/KMS Test Program")
         .arg(
             Arg::new("device")
@@ -383,24 +384,28 @@ fn main() {
         TerminalMode::Mixed,
         ColorChoice::Auto,
     )
-    .expect("Couldn't initialize our logging configuration");
+    .context("Couldn't initialize our logging configuration")?;
 
     let test_path = matches
         .get_one::<String>("test")
-        .expect("Couldn't get test file path.");
-    let test_file = File::open(test_path).expect("Coludn't open the test file.");
+        .context("Couldn't get the test description path.")?;
+
+    let test_file = File::open(test_path).context("Couldn't open the test description file.")?;
 
     let test_config: Test =
-        serde_yaml::from_reader(test_file).expect("Couldn't parse the test file.");
+        serde_yaml::from_reader(test_file).context("Couldn't parse the test description file.")?;
 
-    let heap = Heap::new(HeapKind::Cma).expect("Couldn't open the dma-buf Heap");
+    let heap = Heap::new(HeapKind::Cma).context("Couldn't open the DMA-Buf Heap")?;
 
-    let dev_file = matches.get_one::<String>("device").unwrap();
-    let dev = Device::new(dev_file, true).expect("Couldn't open the V4L2 Device");
+    let dev_file = matches
+        .get_one::<String>("device")
+        .context("Couldn't get the V4L2 Device path.")?;
+
+    let dev = Device::new(dev_file, true).context("Couldn't open the V4L2 Device.")?;
 
     let queue = dev
         .get_queue(QueueType::Capture)
-        .expect("Couldn't get the Capture Queue");
+        .context("Couldn't open the V4L2 Capture Queue")?;
 
     let dradis = Dradis {
         cfg: test_config,
@@ -412,4 +417,6 @@ fn main() {
     for test in &dradis.cfg.tests {
         test_display_one_mode(&dradis, &test);
     }
+
+    Ok(())
 }
