@@ -1,6 +1,8 @@
+use strum_macros::Display;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(Display, Debug)]
 pub enum Error {
     Io(std::io::Error),
     Invalid,
@@ -8,6 +10,8 @@ pub enum Error {
     FileNotFound,
     NotSupported,
 }
+
+impl std::error::Error for Error {}
 
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
