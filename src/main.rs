@@ -9,10 +9,11 @@
 #![allow(clippy::unreadable_literal)]
 
 mod frame_check;
+mod helpers;
 
 use std::{
     fs::File,
-    os::unix::io::{AsRawFd, RawFd},
+    os::unix::io::AsRawFd,
     thread::sleep,
     time::{Duration, Instant},
 };
@@ -21,23 +22,19 @@ use anyhow::Context;
 use clap::{Arg, Command};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
-use edid::{
-    EDIDDescriptor, EDIDDetailedTiming, EDIDDetailedTimingDigitalSync, EDIDDetailedTimingSync,
-    EDIDDisplayColorEncoding, EDIDDisplayColorTypeEncoding, EDIDVersion,
-    EDIDVideoDigitalColorDepth, EDIDVideoDigitalInterface, EDIDVideoDigitalInterfaceStandard,
-    EDIDVideoInput, EDIDWeekYear, EDID,
-};
 use log::{debug, info, warn};
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use v4lise::{
-    v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_buffer,
-    v4l2_query_dv_timings, v4l2_queue_buffer, v4l2_set_dv_timings, v4l2_set_edid,
-    v4l2_start_streaming, Device, FrameFormat, MemoryType, PixelFormat, Queue, QueueType, Result,
+    v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, v4l2_start_streaming, Device,
+    FrameFormat, MemoryType, PixelFormat, Queue, QueueType,
 };
 
-use crate::frame_check::decode_and_check_frame;
+use crate::{
+    frame_check::decode_and_check_frame,
+    helpers::{dequeue_buffer, queue_buffer, set_edid, wait_and_set_dv_timings},
+};
 
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
 const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
@@ -96,108 +93,6 @@ struct Test {
     link_timeout: Duration,
 
     tests: Vec<TestItem>,
-}
-
-fn dequeue_buffer(dev: &Device) -> Result<u32> {
-    let mut raw_struct = v4l2_buffer {
-        type_: BUFFER_TYPE as u32,
-        memory: MEMORY_TYPE as u32,
-        ..v4l2_buffer::default()
-    };
-
-    raw_struct = v4l2_dequeue_buffer(dev, raw_struct)?;
-
-    Ok(raw_struct.index)
-}
-
-fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> Result<()> {
-    let mut raw_struct = v4l2_buffer {
-        index: idx,
-        type_: BUFFER_TYPE as u32,
-        memory: MEMORY_TYPE as u32,
-        ..v4l2_buffer::default()
-    };
-    raw_struct.m.fd = fd;
-
-    v4l2_queue_buffer(dev, raw_struct)?;
-
-    Ok(())
-}
-
-fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<()> {
-    let mut test_edid = EDID::new(EDIDVersion::V1R4)
-        .set_manufacturer_id("CRN")
-        .set_week_year(EDIDWeekYear::YearOfManufacture(2021))
-        .set_input(EDIDVideoInput::Digital(EDIDVideoDigitalInterface::new(
-            EDIDVideoDigitalInterfaceStandard::HDMIa,
-            EDIDVideoDigitalColorDepth::Depth8bpc,
-        )))
-        .set_display_color_type_encoding(EDIDDisplayColorTypeEncoding::ColorEncoding(
-            EDIDDisplayColorEncoding::RGB444,
-        ))
-        .set_preferred_timings_native(true);
-
-    test_edid = match edid {
-        TestEdid::DetailedTiming(dtd) => {
-            let hblanking = dtd.hfp + dtd.hsync + dtd.hbp;
-            let vblanking = dtd.vfp + dtd.vsync + dtd.vbp;
-
-            test_edid.add_descriptor(EDIDDescriptor::DetailedTiming(
-                EDIDDetailedTiming::new()
-                    .set_front_porch(dtd.hfp as u16, dtd.vfp as u16)
-                    .set_display(dtd.hdisplay as u16, dtd.vdisplay as u16)
-                    .set_sync_pulse(dtd.hsync as u16, dtd.vsync as u16)
-                    .set_blanking(hblanking as u16, vblanking as u16)
-                    .set_pixel_clock(dtd.clock as u32)
-                    .set_sync_type(EDIDDetailedTimingSync::Digital(
-                        EDIDDetailedTimingDigitalSync::Separate(true, true),
-                    )),
-            ))
-        }
-    };
-
-    v4l2_set_edid(dev, &mut test_edid.serialize())?;
-
-    Ok(())
-}
-
-fn wait_and_set_dv_timings(suite: &Dradis<'_>, width: usize, height: usize) -> Result<()> {
-    let start = Instant::now();
-
-    loop {
-        if start.elapsed() > suite.cfg.link_timeout {
-            return Err(v4lise::Error::Empty);
-        }
-
-        let timings = v4l2_query_dv_timings(suite.dev);
-
-        match timings {
-            Ok(timings) => {
-                let bt = unsafe { timings.__bindgen_anon_1.bt };
-
-                if bt.width as usize == width && bt.height as usize == height {
-                    info!("Source started to transmit the proper resolution.");
-                    let _ = v4l2_set_dv_timings(suite.dev, timings)?;
-                    return Ok(());
-                }
-            }
-
-            Err(e) => match e {
-                v4lise::Error::Io(ref io) => match io.raw_os_error() {
-                    Some(libc::ENOLCK) => {
-                        debug!("Link detected but unstable.");
-                    }
-                    Some(libc::ENOLINK) => {
-                        debug!("No link detected.")
-                    }
-                    _ => return Err(e),
-                },
-                _ => return Err(e),
-            },
-        }
-
-        sleep(Duration::from_millis(100));
-    }
 }
 
 fn test_display_one_mode(suite: &Dradis<'_>, test: &TestItem) {
