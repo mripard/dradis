@@ -46,55 +46,6 @@ const fn default_timeout() -> Duration {
     Duration::from_secs(10)
 }
 
-#[derive(Debug, Deserialize)]
-struct TestEdidDetailedTiming {
-    clock: usize,
-    hfp: usize,
-    hdisplay: usize,
-    hbp: usize,
-    hsync: usize,
-    vfp: usize,
-    vdisplay: usize,
-    vbp: usize,
-    vsync: usize,
-}
-
-#[derive(Debug, Deserialize)]
-enum TestEdid {
-    #[serde(rename = "detailed-timing")]
-    DetailedTiming(TestEdidDetailedTiming),
-}
-
-#[serde_as]
-#[derive(Debug, Deserialize)]
-struct TestItem {
-    #[serde_as(as = "Option<DurationSeconds<u64>>")]
-    #[serde(default)]
-    duration: Option<Duration>,
-
-    #[serde(rename = "expected-height")]
-    expected_height: usize,
-
-    #[serde(rename = "expected-width")]
-    expected_width: usize,
-
-    edid: TestEdid,
-}
-
-#[serde_as]
-#[derive(Debug, Deserialize)]
-struct Test {
-    #[serde_as(as = "DurationSeconds<u64>")]
-    #[serde(default = "default_timeout")]
-    valid_frame_timeout: Duration,
-
-    #[serde_as(as = "DurationSeconds<u64>")]
-    #[serde(default = "default_timeout")]
-    link_timeout: Duration,
-
-    tests: Vec<TestItem>,
-}
-
 fn test_display_one_mode(suite: &Dradis<'_>, test: &TestItem) {
     set_edid(suite.dev, &test.edid).expect("Couldn't setup the EDID in our bridge");
 
@@ -226,6 +177,55 @@ fn test_display_one_mode(suite: &Dradis<'_>, test: &TestItem) {
             }
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct TestEdidDetailedTiming {
+    clock: usize,
+    hfp: usize,
+    hdisplay: usize,
+    hbp: usize,
+    hsync: usize,
+    vfp: usize,
+    vdisplay: usize,
+    vbp: usize,
+    vsync: usize,
+}
+
+#[derive(Debug, Deserialize)]
+enum TestEdid {
+    #[serde(rename = "detailed-timing")]
+    DetailedTiming(TestEdidDetailedTiming),
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+struct TestItem {
+    #[serde_as(as = "Option<DurationSeconds<u64>>")]
+    #[serde(default)]
+    duration: Option<Duration>,
+
+    #[serde(rename = "expected-height")]
+    expected_height: usize,
+
+    #[serde(rename = "expected-width")]
+    expected_width: usize,
+
+    edid: TestEdid,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+struct Test {
+    #[serde_as(as = "DurationSeconds<u64>")]
+    #[serde(default = "default_timeout")]
+    valid_frame_timeout: Duration,
+
+    #[serde_as(as = "DurationSeconds<u64>")]
+    #[serde(default = "default_timeout")]
+    link_timeout: Duration,
+
+    tests: Vec<TestItem>,
 }
 
 #[derive(Debug)]
