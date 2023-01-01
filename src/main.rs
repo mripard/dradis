@@ -22,10 +22,11 @@ use anyhow::Context;
 use clap::{Arg, Command};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
+use thiserror::Error;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, v4l2_start_streaming, Device,
     FrameFormat, MemoryType, PixelFormat, Queue, QueueType,
@@ -46,11 +47,33 @@ const fn default_timeout() -> Duration {
     Duration::from_secs(10)
 }
 
-fn test_display_one_mode(suite: &Dradis<'_>, test: &TestItem) {
-    set_edid(suite.dev, &test.edid).expect("Couldn't setup the EDID in our bridge");
+#[derive(Debug, Error)]
+enum TestError {
+    #[error("No Frame Received")]
+    NoFrameReceived,
 
-    wait_and_set_dv_timings(suite, test.expected_width, test.expected_height)
-        .expect("Error when retrieving our timings");
+    #[error("Test Setup Failed: {}", .reason)]
+    SetupFailed {
+        reason: String,
+        source: Option<Box<dyn std::error::Error + Send + Sync>>,
+    },
+}
+
+fn test_display_one_mode(
+    suite: &Dradis<'_>,
+    test: &TestItem,
+) -> std::result::Result<(), TestError> {
+    set_edid(suite.dev, &test.edid).map_err(|e| TestError::SetupFailed {
+        reason: String::from("Couldn't set the EDID on the bridge"),
+        source: Some(Box::new(e)),
+    })?;
+
+    wait_and_set_dv_timings(suite, test.expected_width, test.expected_height).map_err(|e| {
+        TestError::SetupFailed {
+            reason: String::from("Couldn't set or retrieve the timings detected by the bridge"),
+            source: Some(Box::new(e)),
+        }
+    })?;
 
     let fmt = suite
         .queue
@@ -108,17 +131,19 @@ fn test_display_one_mode(suite: &Dradis<'_>, test: &TestItem) {
     let mut last_frame_index = None;
     loop {
         if last_frame_valid.is_none() && start.elapsed() > suite.cfg.valid_frame_timeout {
-            panic!(
+            error!(
                 "Timeout: no valid frames since {} seconds",
                 suite.cfg.valid_frame_timeout.as_secs()
             );
+
+            return Err(TestError::NoFrameReceived);
         }
 
         let frame_dequeue_start = Instant::now();
 
         let idx = loop {
             if frame_dequeue_start.elapsed() > FRAMES_DEQUEUED_TIMEOUT {
-                break Err(v4lise::Error::Empty);
+                return Err(TestError::NoFrameReceived);
             }
 
             let buffer_idx = dequeue_buffer(suite.dev);
@@ -177,6 +202,8 @@ fn test_display_one_mode(suite: &Dradis<'_>, test: &TestItem) {
             }
         }
     }
+
+    Ok(())
 }
 
 #[derive(Debug, Deserialize)]
@@ -310,7 +337,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     for test in &dradis.cfg.tests {
-        test_display_one_mode(&dradis, &test);
+        test_display_one_mode(&dradis, &test)?;
     }
 
     Ok(())
