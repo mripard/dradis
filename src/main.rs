@@ -9,7 +9,6 @@
 #![allow(clippy::unreadable_literal)]
 
 use std::{
-    convert::TryFrom,
     fs::File,
     hash::Hasher,
     os::unix::io::{AsRawFd, RawFd},
@@ -17,7 +16,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use byteorder::{ByteOrder, LittleEndian};
 use clap::{App, Arg};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
@@ -27,11 +25,13 @@ use edid::{
     EDIDVideoDigitalColorDepth, EDIDVideoDigitalInterface, EDIDVideoDigitalInterfaceStandard,
     EDIDVideoInput, EDIDWeekYear, EDID,
 };
-use log::{debug, error, info, warn};
+use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Rgb, Rgba};
+use log::{debug, info, warn};
+use rqrr::PreparedImage;
 use serde::Deserialize;
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use strum_macros::Display;
-use twox_hash::XxHash32;
+use twox_hash::XxHash64;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_buffer,
     v4l2_query_dv_timings, v4l2_queue_buffer, v4l2_set_dv_timings, v4l2_set_edid,
@@ -42,9 +42,7 @@ const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
 const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
 const NUM_BUFFERS: u32 = 5;
 
-const HEADER_VERSION_MAJOR: u8 = 1;
-const HEADER_VERSION_MINOR: u8 = 0;
-const HEADER_MAGIC: u32 = u32::from_ne_bytes(*b"CRNO");
+const HEADER_VERSION_MAJOR: u8 = 2;
 
 const FRAMES_DEQUEUED_TIMEOUT: Duration = Duration::from_secs(10);
 const NO_VALID_FRAME_TIMEOUT: Duration = Duration::from_secs(2);
@@ -197,50 +195,82 @@ enum FrameError {
 
 impl std::error::Error for FrameError {}
 
+#[derive(Deserialize)]
+struct Metadata {
+    version: (u8, u8),
+    qrcode_width: usize,
+    qrcode_height: usize,
+    width: usize,
+    height: usize,
+    hash: u64,
+    index: u64,
+}
+
 fn decode_and_check_frame(
     data: &[u8],
-    last_idx: Option<usize>,
+    args: Option<(Option<usize>, usize, usize)>,
 ) -> std::result::Result<usize, Box<dyn std::error::Error>> {
-    let major = data[0];
-    let minor = data[1];
+    let args = args.unwrap();
+    let last_frame_index = args.0;
+    let width = args.1;
+    let height = args.2;
 
-    if major != HEADER_VERSION_MAJOR || minor != HEADER_VERSION_MINOR {
-        error!(
-            "Header Version Mismatch ({}.{} vs {}.{})",
-            major, minor, HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR
-        );
+    let pixels = data.to_vec();
+    let buffer =
+        ImageBuffer::<Rgb<u8>, Vec<u8>>::from_vec(width as u32, height as u32, pixels).unwrap();
+
+    let mut image = DynamicImage::ImageRgb8(buffer);
+    let luma = image.to_luma8().view(0, 0, 128, 128).to_image();
+    let mut prepared = PreparedImage::prepare(luma);
+
+    let grids = prepared.detect_grids();
+    if grids.len() != 1 {
+        warn!("Didn't find a QR Code");
         return Err(FrameError::Invalid)?;
     }
 
-    let magic = LittleEndian::read_u32(&data[4..8]);
-    if magic != HEADER_MAGIC {
-        error!(
-            "Header Magic Mismatch ({:#06x} vs {:#06x})",
-            magic, HEADER_MAGIC
-        );
+    let grid = &grids[0];
+    let (_, content) = grid.decode().unwrap();
+
+    let metadata: Metadata = serde_json::from_str(&content).unwrap();
+
+    if metadata.version.0 != HEADER_VERSION_MAJOR {
+        warn!("Metadata Version Mismatch");
         return Err(FrameError::Invalid)?;
     }
 
-    let index = LittleEndian::read_u32(&data[8..12]) as usize;
-    if let Some(last) = last_idx {
-        if index <= last {
-            error!("Frames in invalid order: frame {}, last {}", index, last);
+    if let Some(last_index) = last_frame_index {
+        let index = metadata.index as usize;
+
+        if index < last_index {
+            warn!("Frame Index Mismatch");
             return Err(FrameError::Invalid)?;
+        } else if index == last_index {
+            debug!("Source cannot keep up?");
+        } else if index > last_index + 1 {
+            warn!("Dropped Frame!");
         }
     }
 
-    let hash = LittleEndian::read_u32(&data[12..16]);
+    for x in 0..metadata.qrcode_width {
+        for y in 0..metadata.qrcode_height {
+            image.put_pixel(x as u32, y as u32, Rgba([0, 0, 0, 255]));
+        }
+    }
 
-    let mut hasher = XxHash32::with_seed(0);
-    hasher.write(&data[16..]);
-    let computed_hash = u32::try_from(hasher.finish()).expect("Computed Hash was overflowing");
+    let mut hasher = XxHash64::with_seed(0);
+    hasher.write(&image.as_bytes());
+    let hash = hasher.finish();
 
-    if hash != computed_hash {
-        error!("Frame Corrupted: hash {:#x} vs {:#x}", hash, computed_hash);
+    if hash != metadata.hash {
+        warn!(
+            "Hash mismatch: {:#x} vs expected {:#x}",
+            hash, metadata.hash
+        );
         return Err(FrameError::Invalid)?;
     }
 
-    Ok(index)
+    Ok(metadata.index as usize)
 }
 
 fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &TestItem) {
@@ -333,7 +363,10 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &Te
         let frame_decode_start = Instant::now();
 
         let buf = &buffers[idx as usize];
-        match buf.read(decode_and_check_frame, last_frame_index) {
+        match buf.read(
+            decode_and_check_frame,
+            Some((last_frame_index, test.expected_width, test.expected_height)),
+        ) {
             Ok(frame_index) => {
                 info!("Frame {} Valid", frame_index);
                 last_frame_index = Some(frame_index);
