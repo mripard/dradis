@@ -330,6 +330,8 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &Te
         }
         .expect("Couldn't dequeue our buffer");
 
+        let frame_decode_start = Instant::now();
+
         let buf = &buffers[idx as usize];
         match buf.read(decode_and_check_frame, last_frame_index) {
             Ok(frame_index) => {
@@ -342,6 +344,11 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &Te
                 last_frame_index = None;
             }
         }
+
+        info!(
+            "Took {} ms to process the frame",
+            frame_decode_start.elapsed().as_millis()
+        );
 
         queue_buffer(&dev, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
 
