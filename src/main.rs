@@ -72,7 +72,7 @@ enum TestEdid {
 #[derive(Debug, Deserialize)]
 struct TestItem {
     #[serde(default)]
-    duration: usize,
+    duration: Option<usize>,
 
     #[serde(rename = "expected-height")]
     expected_height: usize,
@@ -294,6 +294,7 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &Te
 
     v4l2_start_streaming(dev, BUFFER_TYPE).expect("Couldn't start streaming");
 
+    let start = Instant::now();
     let mut last_frame_valid = Instant::now();
     let mut last_frame_index = None;
     loop {
@@ -343,6 +344,13 @@ fn test_display_one_mode(dev: &Device, queue: &Queue<'_>, heap: &Heap, test: &Te
         }
 
         queue_buffer(&dev, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
+
+        if let Some(duration) = test.duration {
+            if start.elapsed() > Duration::from_secs(duration as u64) {
+                info!("Test Passed");
+                break;
+            }
+        }
     }
 }
 
