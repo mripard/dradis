@@ -17,7 +17,7 @@ clap = "4.0.32"
 dma-buf = "0.3.0"
 dma-heap = "0.2.1"
 edid = { git = "https://github.com/mripard/edid-rs.git" }
-image = "0.24.5"
+image = { version = "0.24.5", default-features = false }
 libc = "0.2.139"
 log = "0.4.17"
 rqrr = "0.6.0"
