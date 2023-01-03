@@ -220,8 +220,9 @@ struct TestEdidDetailedTiming {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(tag = "type", content = "timings")]
 enum TestEdid {
-    #[serde(rename = "detailed-timing")]
+    #[serde(rename = "detailed")]
     DetailedTiming(TestEdidDetailedTiming),
 }
 
