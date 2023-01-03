@@ -44,6 +44,14 @@ pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> Result<()> {
     Ok(())
 }
 
+macro_rules! cast_panic {
+    ($x:expr) => {
+        $x.try_into().unwrap()
+    };
+}
+
+// Yes, VBLANK is similar to HBLANK
+#[allow(clippy::similar_names)]
 pub(crate) fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<()> {
     let mut test_edid = EDID::new(EDIDVersion::V1R4)
         .set_manufacturer_id("CRN")
@@ -64,11 +72,11 @@ pub(crate) fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<()> {
 
             test_edid.add_descriptor(EDIDDescriptor::DetailedTiming(
                 EDIDDetailedTiming::new()
-                    .set_front_porch(dtd.hfp as u16, dtd.vfp as u16)
-                    .set_display(dtd.hdisplay as u16, dtd.vdisplay as u16)
-                    .set_sync_pulse(dtd.hsync as u16, dtd.vsync as u16)
-                    .set_blanking(hblanking as u16, vblanking as u16)
-                    .set_pixel_clock(dtd.clock as u32)
+                    .set_front_porch(cast_panic!(dtd.hfp), cast_panic!(dtd.vfp))
+                    .set_display(cast_panic!(dtd.hdisplay), cast_panic!(dtd.vdisplay))
+                    .set_sync_pulse(cast_panic!(dtd.hsync), cast_panic!(dtd.vsync))
+                    .set_blanking(cast_panic!(hblanking), cast_panic!(vblanking))
+                    .set_pixel_clock(cast_panic!(dtd.clock))
                     .set_sync_type(EDIDDetailedTimingSync::Digital(
                         EDIDDetailedTimingDigitalSync::Separate(true, true),
                     )),
@@ -112,7 +120,7 @@ pub(crate) fn wait_and_set_dv_timings(
                         debug!("Link detected but unstable.");
                     }
                     Some(libc::ENOLINK) => {
-                        debug!("No link detected.")
+                        debug!("No link detected.");
                     }
                     _ => return Err(e),
                 },

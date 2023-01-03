@@ -59,10 +59,7 @@ enum TestError {
     },
 }
 
-fn test_display_one_mode(
-    suite: &Dradis<'_>,
-    test: &TestItem,
-) -> std::result::Result<(), TestError> {
+fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
     set_edid(suite.dev, &test.edid).map_err(|e| TestError::SetupFailed {
         reason: String::from("Couldn't set the EDID on the bridge"),
         source: Some(Box::new(e)),
@@ -91,6 +88,15 @@ fn test_display_one_mode(
                 .set_pixel_format(fmt),
         )
         .expect("Couldn't change our queue format");
+
+    Ok(())
+}
+
+fn test_display_one_mode(
+    suite: &Dradis<'_>,
+    test: &TestItem,
+) -> std::result::Result<(), TestError> {
+    test_prepare_queue(suite, test)?;
 
     suite
         .queue
@@ -167,23 +173,20 @@ fn test_display_one_mode(
         let frame_decode_start = Instant::now();
 
         let buf = &buffers[idx as usize];
-        match buf.read(
+        if let Ok(frame_index) = buf.read(
             decode_and_check_frame,
             Some((last_frame_index, test.expected_width, test.expected_height)),
         ) {
-            Ok(frame_index) => {
-                debug!("Frame {} Valid", frame_index);
-                if first_frame_valid.is_none() {
-                    first_frame_valid = Some(Instant::now());
-                }
+            debug!("Frame {} Valid", frame_index);
+            if first_frame_valid.is_none() {
+                first_frame_valid = Some(Instant::now());
+            }
 
-                last_frame_index = Some(frame_index);
-                last_frame_valid = Some(Instant::now());
-            }
-            Err(_) => {
-                warn!("Frame Invalid.");
-                last_frame_index = None;
-            }
+            last_frame_index = Some(frame_index);
+            last_frame_valid = Some(Instant::now());
+        } else {
+            warn!("Frame Invalid.");
+            last_frame_index = None;
         }
 
         debug!(
@@ -338,7 +341,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     for test in &dradis.cfg.tests {
-        test_display_one_mode(&dradis, &test)?;
+        test_display_one_mode(&dradis, test)?;
     }
 
     Ok(())
