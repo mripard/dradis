@@ -3,7 +3,6 @@
 #![deny(clippy::all)]
 #![deny(clippy::cargo)]
 #![deny(clippy::pedantic)]
-#![deny(clippy::nursery)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::cargo_common_metadata)]
 #![allow(clippy::unreadable_literal)]
