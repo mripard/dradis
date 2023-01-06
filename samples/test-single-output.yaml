@@ -1,0 +1,19 @@
+link_timeout: 60
+valid_frame_timeout: 60
+tests:
+    - duration: 10
+      expected-height: 720
+      expected-width: 1280
+      edid:
+        type: detailed
+        timings:
+            clock: 74250
+            hfp: 220
+            hdisplay: 1280
+            hbp: 110
+            hsync: 40
+            vfp: 20
+            vdisplay: 720
+            vbp: 5
+            vsync: 5
+
