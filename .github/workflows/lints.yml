@@ -23,4 +23,7 @@ jobs:
           override: true
 
       - name: Check Format
-        run: cargo fmt --all -- --check
+        uses: "actions-rs/cargo@v1"
+        with:
+          command: "fmt"
+          args: "--all -- --check"
