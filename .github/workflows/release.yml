@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v**'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            target: aarch64-unknown-linux-gnu
+            override: true
+
+      - name: Build Cargo Config
+        run: |
+          echo -e "[target.aarch64-unknown-linux-gnu]\nlinker = \"aarch64-linux-gnu-ld\"\nstrip = { path = \"aarch64-linux-gnu-strip\" }" > ~/.cargo/config
+
+      - name: Install cargo-deb
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-deb
+          version: latest
+
+      - name: Install cross
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cross
+          version: latest
+
+      - uses: actions/checkout@v2
+
+      - name: Build the Package
+        uses: actions-rs/cargo@v1
+        env:
+          RUSTFLAGS: -C target-cpu=cortex-a72
+        with:
+          use-cross: true
+          command: build
+          args: --release --target=aarch64-unknown-linux-gnu
+
+      - name: Build Debian Package
+        env:
+          RUSTFLAGS: -C target-cpu=cortex-a72
+        run: |
+          cargo deb --no-build --target=aarch64-unknown-linux-gnu
+
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "target/debian/dradis_*.deb"
