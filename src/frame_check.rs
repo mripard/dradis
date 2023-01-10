@@ -68,7 +68,7 @@ pub fn decode_and_check_frame(
     }
 
     if let Some(last_index) = last_frame_index {
-        let index = metadata.index as usize;
+        let index = metadata.index;
 
         if index < last_index {
             warn!("Frame Index Mismatch");
