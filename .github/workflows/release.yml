@@ -62,4 +62,4 @@ jobs:
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "target/debian/dradis_*.deb"
+          artifacts: "target/aarch64-unknown-linux-gnu/debian/dradis_*.deb"
