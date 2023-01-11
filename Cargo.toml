@@ -1,6 +1,6 @@
 [package]
 name = "dradis"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Maxime Ripard <maxime@cerno.tech>"]
 edition = "2021"
 description = "HDMI Test Application"
