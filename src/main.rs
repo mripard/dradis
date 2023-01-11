@@ -19,7 +19,7 @@ use std::{
 };
 
 use anyhow::Context;
-use clap::{Arg, Command};
+use clap::{crate_version, Arg, Command};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
 use log::{debug, error, info, warn};
@@ -269,6 +269,7 @@ pub(crate) struct Dradis<'a> {
 
 fn main() -> anyhow::Result<()> {
     let matches = Command::new("DRADIS DRM/KMS Test Program")
+        .version(crate_version!())
         .arg(
             Arg::new("device")
                 .long("device")
