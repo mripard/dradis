@@ -33,3 +33,8 @@ twox-hash = "1.6.3"
 
 [dependencies.v4lise]
 path = "lib/v4lise"
+
+[package.metadata.deb]
+assets = [
+	["samples/test-single-mode-720p.yaml", "usr/share/dradis/samples/", "644"],
+]
