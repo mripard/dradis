@@ -40,3 +40,15 @@ priority = "optional"
 assets = [
 	["samples/test-single-mode-720p.yaml", "usr/share/dradis/samples/", "644"],
 ]
+
+# It's a bit of a hack, but we can't run cargo deb within cross until cross
+# allows us to:
+# https://github.com/cross-rs/cross/issues/716
+#
+# Since we're not running it within the container, the host libraries are used
+# by cargo-deb and it will pick the host C library as a dependency, even though
+# it might have been built with something else entirely.
+#
+# Let's force the current container C library version.
+[package.metadata.deb.variants.arm64]
+depends = "libc6:arm64 (>= 2.17)"
