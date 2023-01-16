@@ -38,6 +38,7 @@ path = "lib/v4lise"
 section = "utility"
 priority = "optional"
 assets = [
+	["target/release/dradis", "usr/bin/", "755"],
 	["samples/test-single-mode-720p.yaml", "usr/share/dradis/samples/", "644"],
 ]
 
