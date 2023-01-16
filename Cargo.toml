@@ -51,5 +51,4 @@ assets = [
 # it might have been built with something else entirely.
 #
 # Let's force the current container C library version.
-[package.metadata.deb.variants.arm64]
 depends = "libc6:arm64 (>= 2.17)"
