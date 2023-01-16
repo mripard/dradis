@@ -281,12 +281,14 @@ fn main() -> anyhow::Result<()> {
             Arg::new("debug")
                 .long("debug")
                 .short('d')
+                .number_of_values(0)
                 .help("Enables debug log level"),
         )
         .arg(
             Arg::new("trace")
                 .long("trace")
                 .short('t')
+                .number_of_values(0)
                 .conflicts_with("debug")
                 .help("Enables trace log level"),
         )
