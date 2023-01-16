@@ -52,7 +52,7 @@ pub fn decode_and_check_frame(
 
     let grids = prepared.detect_grids();
     if grids.len() != 1 {
-        warn!("Didn't find a QR Code");
+        debug!("Didn't find a QR Code");
         return Err(FrameError::InvalidFrame)?;
     }
 

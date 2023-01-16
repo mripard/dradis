@@ -180,12 +180,13 @@ fn test_display_one_mode(
             debug!("Frame {} Valid", frame_index);
             if first_frame_valid.is_none() {
                 first_frame_valid = Some(Instant::now());
+                info!("Source started to transmit a valid frame");
             }
 
             last_frame_index = Some(frame_index);
             last_frame_valid = Some(Instant::now());
         } else {
-            warn!("Frame Invalid.");
+            debug!("Frame Invalid.");
             last_frame_index = None;
         }
 
