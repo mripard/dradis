@@ -300,9 +300,9 @@ fn main() -> anyhow::Result<()> {
         )
         .get_matches();
 
-    let log_level = if matches.contains_id("trace") {
+    let log_level = if *matches.get_one::<bool>("trace").unwrap() {
         LevelFilter::Trace
-    } else if matches.contains_id("debug") {
+    } else if *matches.get_one::<bool>("debug").unwrap() {
         LevelFilter::Debug
     } else {
         LevelFilter::Info
