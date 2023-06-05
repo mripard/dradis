@@ -20,7 +20,7 @@ dma-buf = "0.3.0"
 dma-heap = "0.2.1"
 edid = { git = "https://github.com/mripard/edid-rs.git" }
 image = { version = "0.24.6", default-features = false }
-libc = "0.2.144"
+libc = "0.2.145"
 log = "0.4.18"
 rqrr = "0.6.0"
 serde = { version = "1.0.163", features = ["derive"] }
