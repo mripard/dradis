@@ -15,7 +15,7 @@ panic = "abort"
 [dependencies]
 anyhow = "1.0.71"
 byteorder = "1.4.3"
-clap = { version = "4.3.1", features = ["cargo"] }
+clap = { version = "4.3.2", features = ["cargo"] }
 dma-buf = "0.3.0"
 dma-heap = "0.2.1"
 edid = { git = "https://github.com/mripard/edid-rs.git" }
