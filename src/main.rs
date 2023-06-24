@@ -22,6 +22,7 @@ use anyhow::Context;
 use clap::{crate_version, Arg, Command};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
+use helpers::start_streaming;
 use log::{debug, error, info, warn};
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
@@ -29,13 +30,17 @@ use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use thiserror::Error;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, v4l2_start_streaming, Device,
-    FrameFormat, MemoryType, PixelFormat, Queue, QueueType,
+    FrameFormat, MemoryType, PixelFormat, Queue, QueueType,V4L2_EVENT_SOURCE_CHANGE,
 };
 
 use crate::{
     frame_check::decode_and_check_frame,
-    helpers::{dequeue_buffer, queue_buffer, set_edid, wait_and_set_dv_timings},
+    helpers::{dequeue_buffer, queue_buffer, set_edid, wait_and_set_dv_timings, dequeue_event, subscribe_event, EventKind},
 };
+
+pub mod built_info {
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
 
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
 const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
@@ -49,6 +54,9 @@ const fn default_timeout() -> Duration {
 
 #[derive(Debug, Error)]
 enum TestError {
+    #[error("Test Needs to be Started Again")]
+    Retry,
+
     #[error("No Frame Received")]
     NoFrameReceived,
 
@@ -129,7 +137,8 @@ fn test_display_one_mode(
         buffers.push(buffer);
     }
 
-    v4l2_start_streaming(suite.dev, BUFFER_TYPE).expect("Couldn't start streaming");
+    let _stream = start_streaming(suite.dev, BUFFER_TYPE)
+        .expect("Couldn't start streaming");
 
     let start = Instant::now();
     let mut first_frame_valid = None;
@@ -150,6 +159,17 @@ fn test_display_one_mode(
         let idx = loop {
             if frame_dequeue_start.elapsed() > FRAMES_DEQUEUED_TIMEOUT {
                 return Err(TestError::NoFrameReceived);
+            }
+
+            let evt = dequeue_event(suite.dev);
+            match evt {
+                Ok(e) => {
+                    match e.kind {
+                        EventKind::SourceChange(_) => return Err(TestError::Retry),
+                        _ => debug!("Ignored Event"),
+                    }
+                },
+                _ => debug!("No Event to Dequeue."),
             }
 
             let buffer_idx = dequeue_buffer(suite.dev);
@@ -308,6 +328,16 @@ fn main() -> anyhow::Result<()> {
         LevelFilter::Info
     };
 
+    println!(
+        "Running {} {}",
+        built_info::PKG_NAME,
+        if let Some(version) = built_info::GIT_VERSION {
+            version
+        } else {
+            built_info::PKG_VERSION
+        }
+    );
+
     TermLogger::init(
         log_level,
         Config::default(),
@@ -344,8 +374,25 @@ fn main() -> anyhow::Result<()> {
         queue: &queue,
     };
 
+    subscribe_event(&dradis.dev, V4L2_EVENT_SOURCE_CHANGE)
+        .context("Couldn't subscribe to our V4L2 Events")?;
+
     for test in &dradis.cfg.tests {
-        test_display_one_mode(&dradis, test)?;
+        loop {
+            match test_display_one_mode(&dradis, test) {
+                Ok(_) => break,
+                Err(e) => {
+                    match e {
+                        TestError::Retry => {
+                            warn!("Test needs to be restarted.");
+                        },
+                        _ => {
+                            return Err(e.into());
+                        }
+                    }
+                },
+            }
+        }
     }
 
     Ok(())

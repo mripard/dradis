@@ -12,9 +12,14 @@ lto = "fat"
 opt-level = 3
 panic = "abort"
 
+[build-dependencies]
+built = { version = "0.5.2", features = ["git2"] }
+
 [dependencies]
 anyhow = "1.0.79"
+bitflags = "2.4.1"
 byteorder = "1.5.0"
+chrono = "0.4.31"
 clap = { version = "4.4.16", features = ["cargo"] }
 dma-buf = "0.3.1"
 dma-heap = "0.2.2"

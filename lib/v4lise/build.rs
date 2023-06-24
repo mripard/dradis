@@ -17,6 +17,7 @@ fn main() {
         .derive_default(true)
         .rustified_enum(".*")
         .allowlist_var("V4L2_CAP_.*")
+        .allowlist_var("V4L2_EVENT_.*")
         // This is not a v4l2_capability, but a v4l2_captureparm one
         .blocklist_item("V4L2_CAP_TIMEPERFRAME")
         .allowlist_var("V4L2_DV_BT_656_1120")
@@ -24,6 +25,8 @@ fn main() {
         .allowlist_type("v4l2_buffer")
         .allowlist_type("v4l2_capability")
         .allowlist_type("v4l2_edid")
+        .allowlist_type("v4l2_event")
+        .allowlist_type("v4l2_event_subscription")
         .allowlist_type("v4l2_dv_timings")
         .allowlist_type("v4l2_fmtdesc")
         .allowlist_type("v4l2_frmsizeenum")
