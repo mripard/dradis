@@ -24,7 +24,7 @@ libc = "0.2.147"
 log = "0.4.19"
 rqrr = "0.6.0"
 serde = { version = "1.0.171", features = ["derive"] }
-serde_json = "1.0.102"
+serde_json = "1.0.103"
 serde_with = "3.0.0"
 serde_yaml = "0.9.23"
 simplelog = "0.12.1"
