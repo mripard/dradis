@@ -13,7 +13,7 @@ opt-level = 3
 panic = "abort"
 
 [dependencies]
-anyhow = "1.0.72"
+anyhow = "1.0.74"
 byteorder = "1.4.3"
 clap = { version = "4.3.21", features = ["cargo"] }
 dma-buf = "0.3.0"
