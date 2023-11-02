@@ -11,4 +11,4 @@ nix = "0.27.1"
 strum_macros = "0.25.0"
 
 [build-dependencies]
-bindgen = "0.68.1"
+bindgen = "0.69.0"
