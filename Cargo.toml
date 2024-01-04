@@ -27,7 +27,7 @@ rqrr = "0.6.0"
 serde = { version = "1.0.194", features = ["derive"] }
 serde_json = "1.0.109"
 serde_with = "3.4.0"
-serde_yaml = "0.9.29"
+serde_yaml = "0.9.30"
 simplelog = "0.12.1"
 thiserror = "1.0.56"
 twox-hash = "1.6.3"
