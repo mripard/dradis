@@ -19,7 +19,7 @@ clap = { version = "4.4.15", features = ["cargo"] }
 dma-buf = "0.3.0"
 dma-heap = "0.2.1"
 edid = { git = "https://github.com/mripard/edid-rs.git" }
-image = { version = "0.24.7", default-features = false }
+image = { version = "0.24.8", default-features = false }
 libc = "0.2.152"
 log = "0.4.20"
 nix = { version = "0.27.1", features = ["ioctl"] }
