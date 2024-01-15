@@ -53,7 +53,7 @@ pub fn decode_and_check_frame(
     let grids = prepared.detect_grids();
     if grids.len() != 1 {
         debug!("Didn't find a QR Code");
-        return Err(FrameError::InvalidFrame)?;
+        return Err(Box::new(FrameError::InvalidFrame));
     }
 
     let grid = &grids[0];
@@ -64,7 +64,7 @@ pub fn decode_and_check_frame(
 
     if metadata.version.0 != HEADER_VERSION_MAJOR {
         warn!("Metadata Version Mismatch");
-        return Err(FrameError::IntegrityFailure)?;
+        return Err(Box::new(FrameError::IntegrityFailure));
     }
 
     if let Some(last_index) = last_frame_index {
@@ -72,7 +72,7 @@ pub fn decode_and_check_frame(
 
         if index < last_index {
             warn!("Frame Index Mismatch");
-            return Err(FrameError::IntegrityFailure)?;
+            return Err(Box::new(FrameError::IntegrityFailure));
         } else if index == last_index {
             debug!("Source cannot keep up?");
         } else if index > last_index + 1 {
@@ -100,7 +100,7 @@ pub fn decode_and_check_frame(
             "Hash mismatch: {:#x} vs expected {:#x}",
             hash, metadata.hash
         );
-        return Err(FrameError::IntegrityFailure)?;
+        return Err(Box::new(FrameError::IntegrityFailure));
     }
 
     Ok(metadata.index)
