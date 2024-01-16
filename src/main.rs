@@ -37,6 +37,10 @@ use crate::{
     helpers::{dequeue_buffer, queue_buffer, set_edid, wait_and_set_dv_timings},
 };
 
+pub mod built_info {
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
 const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
 const NUM_BUFFERS: u32 = 5;
@@ -307,6 +311,16 @@ fn main() -> anyhow::Result<()> {
     } else {
         LevelFilter::Info
     };
+
+    println!(
+        "Running {} {}",
+        built_info::PKG_NAME,
+        if let Some(version) = built_info::GIT_VERSION {
+            version
+        } else {
+            built_info::PKG_VERSION
+        }
+    );
 
     TermLogger::init(
         log_level,
