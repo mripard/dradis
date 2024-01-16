@@ -12,6 +12,9 @@ lto = "fat"
 opt-level = 3
 panic = "abort"
 
+[build-dependencies]
+built = { version = "0.5.2", features = ["git2"] }
+
 [dependencies]
 anyhow = "1.0.79"
 byteorder = "1.5.0"
