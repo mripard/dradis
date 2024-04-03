@@ -11,18 +11,21 @@
 mod frame_check;
 mod helpers;
 
+use core::fmt;
 use std::{
     fs::File,
     os::unix::io::AsRawFd,
+    path::PathBuf,
     thread::sleep,
     time::{Duration, Instant},
 };
 
 use anyhow::Context;
-use clap::{crate_version, Arg, Command};
+use clap::Parser;
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
 use log::{debug, error, info, warn};
+use redid::EdidTypeConversionError;
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
@@ -56,11 +59,34 @@ enum TestError {
     #[error("No Frame Received")]
     NoFrameReceived,
 
+    #[error("Couldn't convert our value")]
+    ValueError { reason: String },
+
     #[error("Test Setup Failed: {}", .reason)]
     SetupFailed {
         reason: String,
         source: Option<Box<dyn std::error::Error + Send + Sync>>,
     },
+}
+
+impl<T> From<EdidTypeConversionError<T>> for TestError
+where
+    T: fmt::Display,
+{
+    fn from(value: EdidTypeConversionError<T>) -> Self {
+        Self::ValueError {
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<v4lise::Error> for TestError {
+    fn from(value: v4lise::Error) -> Self {
+        Self::SetupFailed {
+            reason: String::from("Unknown Error"),
+            source: Some(Box::new(value)),
+        }
+    }
 }
 
 fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
@@ -216,15 +242,15 @@ fn test_display_one_mode(
 
 #[derive(Debug, Deserialize)]
 struct TestEdidDetailedTiming {
-    clock: usize,
-    hfp: usize,
-    hdisplay: usize,
-    hbp: usize,
-    hsync: usize,
-    vfp: usize,
-    vdisplay: usize,
-    vbp: usize,
-    vsync: usize,
+    clock_khz: u32,
+    hfp: u16,
+    hdisplay: u16,
+    hbp: u16,
+    hsync: u16,
+    vfp: u8,
+    vdisplay: u16,
+    vbp: u8,
+    vsync: u8,
 }
 
 #[derive(Debug, Deserialize)]
@@ -272,45 +298,21 @@ pub(crate) struct Dradis<'a> {
     queue: &'a Queue<'a>,
 }
 
-fn main() -> anyhow::Result<()> {
-    let matches = Command::new("DRADIS DRM/KMS Test Program")
-        .version(crate_version!())
-        .arg(
-            Arg::new("device")
-                .long("device")
-                .short('D')
-                .help("V4L2 Device File")
-                .default_value("/dev/video0"),
-        )
-        .arg(
-            Arg::new("debug")
-                .long("debug")
-                .short('d')
-                .number_of_values(0)
-                .help("Enables debug log level"),
-        )
-        .arg(
-            Arg::new("trace")
-                .long("trace")
-                .short('t')
-                .number_of_values(0)
-                .conflicts_with("debug")
-                .help("Enables trace log level"),
-        )
-        .arg(
-            Arg::new("test")
-                .required(true)
-                .help("Test Configuration File"),
-        )
-        .get_matches();
+#[derive(Parser)]
+#[command(version, about = "DRADIS DRM/KMS Test Program")]
+struct Cli {
+    #[arg(default_value = "/dev/video0", help = "V4L2 Device File", long, short)]
+    device: PathBuf,
 
-    let log_level = if *matches.get_one::<bool>("trace").unwrap() {
-        LevelFilter::Trace
-    } else if *matches.get_one::<bool>("debug").unwrap() {
-        LevelFilter::Debug
-    } else {
-        LevelFilter::Info
-    };
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    verbose: u8,
+
+    #[arg(help = "Test Configuration File")]
+    test: PathBuf,
+}
+
+fn main() -> anyhow::Result<()> {
+    let cli = Cli::parse();
 
     println!(
         "Running {} {}",
@@ -323,29 +325,25 @@ fn main() -> anyhow::Result<()> {
     );
 
     TermLogger::init(
-        log_level,
+        match cli.verbose {
+            0 => LevelFilter::Info,
+            1 => LevelFilter::Debug,
+            _ => LevelFilter::Trace,
+        },
         Config::default(),
         TerminalMode::Mixed,
         ColorChoice::Auto,
     )
     .context("Couldn't initialize our logging configuration")?;
 
-    let test_path = matches
-        .get_one::<String>("test")
-        .context("Couldn't get the test description path.")?;
-
-    let test_file = File::open(test_path).context("Couldn't open the test description file.")?;
+    let test_file = File::open(cli.test).context("Couldn't open the test description file.")?;
 
     let test_config: Test =
         serde_yaml::from_reader(test_file).context("Couldn't parse the test description file.")?;
 
     let heap = Heap::new(HeapKind::Cma).context("Couldn't open the DMA-Buf Heap")?;
 
-    let dev_file = matches
-        .get_one::<String>("device")
-        .context("Couldn't get the V4L2 Device path.")?;
-
-    let dev = Device::new(dev_file, true).context("Couldn't open the V4L2 Device.")?;
+    let dev = Device::new(&cli.device, true).context("Couldn't open the V4L2 Device.")?;
 
     let queue = dev
         .get_queue(QueueType::Capture)

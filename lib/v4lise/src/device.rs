@@ -5,6 +5,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::os::unix::io::AsRawFd;
 use std::os::unix::prelude::OpenOptionsExt;
+use std::path::Path;
 
 #[derive(Debug)]
 pub struct Device {
@@ -12,7 +13,7 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new(path: &str, blocking: bool) -> Result<Self> {
+    pub fn new(path: &Path, blocking: bool) -> Result<Self> {
         let mut options = OpenOptions::new();
         options.read(true);
         options.write(true);
