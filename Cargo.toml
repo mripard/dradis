@@ -26,7 +26,7 @@ libc = "0.2.153"
 log = "0.4.21"
 nix = { version = "0.28.0", features = ["ioctl"] }
 num-traits = "0.2.18"
-redid = { git = "https://github.com/mripard/redid.git" }
+redid = { path = "../redid" }
 rqrr = "0.7.1"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.115"
@@ -35,9 +35,7 @@ serde_yaml = "0.9.34"
 simplelog = "0.12.2"
 thiserror = "1.0.58"
 twox-hash = "1.6.3"
-
-[dependencies.v4lise]
-path = "lib/v4lise"
+v4l2r = "0.0.1"
 
 [package.metadata.deb]
 section = "utility"

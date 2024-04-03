@@ -16,6 +16,7 @@ use std::{
     fs::File,
     os::unix::io::AsRawFd,
     path::PathBuf,
+    sync::Arc,
     thread::sleep,
     time::{Duration, Instant},
 };
@@ -30,9 +31,8 @@ use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use thiserror::Error;
-use v4lise::{
-    v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, v4l2_start_streaming, Device,
-    FrameFormat, MemoryType, PixelFormat, Queue, QueueType,
+use v4l2r::{
+    device::{queue::{qbuf::{self, get_indexed::GetCaptureBufferByIndex}, Queue}, Device, DeviceConfig}, ioctl::{create_bufs, qbuf, querybuf, reqbufs, streamon, QueryBuffer}, memory::MemoryType, QueueType
 };
 
 use crate::{
@@ -44,8 +44,8 @@ pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
-const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
-const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
+const QUEUE_TYPE: QueueType = QueueType::VideoCapture;
+const MEMORY_TYPE: MemoryType = MemoryType::DmaBuf;
 const NUM_BUFFERS: u32 = 5;
 
 const FRAMES_DEQUEUED_TIMEOUT: Duration = Duration::from_secs(10);
@@ -80,15 +80,6 @@ where
     }
 }
 
-impl From<v4lise::Error> for TestError {
-    fn from(value: v4lise::Error) -> Self {
-        Self::SetupFailed {
-            reason: String::from("Unknown Error"),
-            source: Some(Box::new(value)),
-        }
-    }
-}
-
 fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
     set_edid(suite.dev, &test.edid).map_err(|e| TestError::SetupFailed {
         reason: String::from("Couldn't set the EDID on the bridge"),
@@ -102,11 +93,11 @@ fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Resul
         }
     })?;
 
-    let fmt = suite
+    let capture_format = suite
         .queue
-        .get_pixel_formats()
-        .find(|fmt| *fmt == PixelFormat::RGB24)
-        .expect("Couldn't find our format");
+        .change_format()
+        .context("Failed to get capture queue format.")?
+        .set_pixelformat(b"RGB3");
 
     suite
         .queue
@@ -126,26 +117,20 @@ fn test_display_one_mode(
     suite: &Dradis<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    test_prepare_queue(suite, test)?;
-
-    suite
-        .queue
-        .request_buffers(MemoryType::DMABUF, NUM_BUFFERS as usize)
-        .expect("Couldn't request our buffers");
+    let mut queue = Queue::get_capture_queue(Arc::clone(&suite.dev))
+        .expect("Couldn't open the V4L2 Capture Queue")
+        // Change Format, Size
+        .request_buffers_generic(MEMORY_TYPE, NUM_BUFFERS)
+        .expect("Couldn't request our buffers.");
 
     let mut buffers = Vec::with_capacity(NUM_BUFFERS as usize);
 
     for idx in 0..NUM_BUFFERS {
-        let mut rbuf = v4l2_buffer {
-            index: idx,
-            type_: BUFFER_TYPE as u32,
-            memory: MEMORY_TYPE as u32,
-            ..v4l2_buffer::default()
-        };
+        let buf = queue.try_get_buffer(idx as usize)
+            .expect("Couldn't query our buffer");
 
-        rbuf = v4l2_query_buffer(suite.dev, rbuf).expect("Couldn't query our buffer");
-
-        let len = rbuf.length as usize;
+        let len = usize::try_from(rbuf.planes[0].length)
+            .expect("Buffer Plane length doesn't fit into our type");
         let buffer = suite
             .heap
             .allocate(len)
@@ -155,11 +140,14 @@ fn test_display_one_mode(
             .memory_map()
             .expect("Couldn't map our dma-buf buffer");
 
-        queue_buffer(suite.dev, idx, buffer.as_raw_fd()).expect("Couldn't queue our buffer");
+        qbuf(suite.dev, QUEUE_TYPE, idx, test);
+
+        queue_buffer(suite.dev, u32::try_from(idx).unwrap(), buffer.as_raw_fd())
+            .expect("Couldn't queue our buffer");
         buffers.push(buffer);
     }
 
-    v4l2_start_streaming(suite.dev, BUFFER_TYPE).expect("Couldn't start streaming");
+    streamon(suite.dev, QUEUE_TYPE).expect("Couldn't start streaming");
 
     let start = Instant::now();
     let mut first_frame_valid = None;
@@ -290,12 +278,10 @@ struct Test {
     tests: Vec<TestItem>,
 }
 
-#[derive(Debug)]
 pub(crate) struct Dradis<'a> {
     cfg: Test,
-    dev: &'a Device,
+    dev: Arc<Device>,
     heap: &'a Heap,
-    queue: &'a Queue<'a>,
 }
 
 #[derive(Parser)]
@@ -343,17 +329,13 @@ fn main() -> anyhow::Result<()> {
 
     let heap = Heap::new(HeapKind::Cma).context("Couldn't open the DMA-Buf Heap")?;
 
-    let dev = Device::new(&cli.device, true).context("Couldn't open the V4L2 Device.")?;
-
-    let queue = dev
-        .get_queue(QueueType::Capture)
-        .context("Couldn't open the V4L2 Capture Queue")?;
+    let dev = Device::open(&cli.device, DeviceConfig::new().non_blocking_dqbuf())
+        .context("Couldn't open the V4L2 Device.")?;
 
     let dradis = Dradis {
         cfg: test_config,
-        dev: &dev,
+        dev: Arc::new(dev),
         heap: &heap,
-        queue: &queue,
     };
 
     for test in &dradis.cfg.tests {

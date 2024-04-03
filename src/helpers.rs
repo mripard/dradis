@@ -24,10 +24,7 @@ use redid::{
     EdidR3DisplayRangeLimits, EdidR3DisplayRangeVideoTimingsSupport, EdidR3FeatureSupport,
     EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes,
 };
-use v4lise::{
-    v4l2_buffer, v4l2_dequeue_buffer, v4l2_query_dv_timings, v4l2_queue_buffer,
-    v4l2_set_dv_timings, v4l2_set_edid, Device,
-};
+use v4l2r::bindings::v4l2_buffer;
 
 use crate::{Dradis, TestEdid, TestError, BUFFER_TYPE, MEMORY_TYPE};
 
