@@ -14,6 +14,7 @@ mod helpers;
 use std::{
     fs::File,
     os::unix::io::AsRawFd,
+    path::PathBuf,
     thread::sleep,
     time::{Duration, Instant},
 };
@@ -342,10 +343,10 @@ fn main() -> anyhow::Result<()> {
     let heap = Heap::new(HeapKind::Cma).context("Couldn't open the DMA-Buf Heap")?;
 
     let dev_file = matches
-        .get_one::<String>("device")
+        .get_one::<PathBuf>("device")
         .context("Couldn't get the V4L2 Device path.")?;
 
-    let dev = Device::new(dev_file, true).context("Couldn't open the V4L2 Device.")?;
+    let dev = Device::new(&dev_file, true).context("Couldn't open the V4L2 Device.")?;
 
     let queue = dev
         .get_queue(QueueType::Capture)
