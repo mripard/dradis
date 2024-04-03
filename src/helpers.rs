@@ -1,3 +1,4 @@
+use core::result;
 use std::{
     os::unix::io::{AsRawFd, RawFd},
     thread::sleep,
@@ -13,12 +14,12 @@ use edid::{
 use log::{debug, info};
 use v4lise::{
     v4l2_buffer, v4l2_dequeue_buffer, v4l2_query_dv_timings, v4l2_queue_buffer,
-    v4l2_set_dv_timings, v4l2_set_edid, Device, Result,
+    v4l2_set_dv_timings, v4l2_set_edid, Device,
 };
 
 use crate::{Dradis, TestEdid, BUFFER_TYPE, MEMORY_TYPE};
 
-pub(crate) fn dequeue_buffer(dev: &Device) -> Result<u32> {
+pub(crate) fn dequeue_buffer(dev: &Device) -> result::Result<u32, v4lise::Error> {
     let mut raw_struct = v4l2_buffer {
         type_: BUFFER_TYPE as u32,
         memory: MEMORY_TYPE as u32,
@@ -30,7 +31,7 @@ pub(crate) fn dequeue_buffer(dev: &Device) -> Result<u32> {
     Ok(raw_struct.index)
 }
 
-pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> Result<()> {
+pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> result::Result<(), v4lise::Error> {
     let mut raw_struct = v4l2_buffer {
         index: idx,
         type_: BUFFER_TYPE as u32,
@@ -52,7 +53,7 @@ macro_rules! cast_panic {
 
 // Yes, VBLANK is similar to HBLANK
 #[allow(clippy::similar_names)]
-pub(crate) fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<()> {
+pub(crate) fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> result::Result<(), v4lise::Error> {
     let mut test_edid = EDID::new(EDIDVersion::V1R4)
         .set_manufacturer_id("CRN")
         .set_week_year(EDIDWeekYear::YearOfManufacture(2021))
@@ -93,7 +94,7 @@ pub(crate) fn wait_and_set_dv_timings(
     suite: &Dradis<'_>,
     width: usize,
     height: usize,
-) -> Result<()> {
+) -> result::Result<(), v4lise::Error> {
     let start = Instant::now();
 
     loop {
