@@ -31,13 +31,13 @@ use serde_with::{serde_as, DurationSeconds};
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use thiserror::Error;
 use v4lise::{
-    v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, v4l2_start_streaming, Device,
-    FrameFormat, MemoryType, PixelFormat, Queue, QueueType,
+    v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, Device, FrameFormat, MemoryType,
+    PixelFormat, Queue, QueueType,
 };
 
 use crate::{
     frame_check::decode_and_check_frame,
-    helpers::{dequeue_buffer, queue_buffer, set_edid, wait_and_set_dv_timings},
+    helpers::{dequeue_buffer, queue_buffer, set_edid, start_streaming, wait_and_set_dv_timings},
 };
 
 pub mod built_info {
@@ -159,7 +159,7 @@ fn test_display_one_mode(
         buffers.push(buffer);
     }
 
-    v4l2_start_streaming(suite.dev, BUFFER_TYPE).expect("Couldn't start streaming");
+    let _stream = start_streaming(suite.dev, BUFFER_TYPE).expect("Couldn't start streaming");
 
     let start = Instant::now();
     let mut first_frame_valid = None;
