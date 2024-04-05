@@ -17,7 +17,9 @@ built = { version = "0.7.1", features = ["git2"] }
 
 [dependencies]
 anyhow = "1.0.81"
+bitflags = "2.4.1"
 byteorder = "1.5.0"
+chrono = "0.4.37"
 clap = { version = "4.5.4", features = ["cargo", "derive"] }
 dma-buf = "0.4.0"
 dma-heap = "0.4.0"
