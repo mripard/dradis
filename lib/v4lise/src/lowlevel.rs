@@ -29,6 +29,7 @@ ioctl_readwrite!(v4l2_ioctl_qbuf, V4L2_IOCTL_BASE, 15, v4l2_buffer);
 ioctl_readwrite!(v4l2_ioctl_dqbuf, V4L2_IOCTL_BASE, 17, v4l2_buffer);
 
 ioctl_write_ptr!(v4l2_ioctl_streamon, V4L2_IOCTL_BASE, 18, libc::c_int);
+ioctl_write_ptr!(v4l2_ioctl_streamoff, V4L2_IOCTL_BASE, 19, libc::c_int);
 
 ioctl_readwrite!(v4l2_ioctl_s_edid, V4L2_IOCTL_BASE, 41, v4l2_edid);
 
@@ -224,6 +225,14 @@ pub fn v4l2_start_streaming(file: &impl AsRawFd, buf_type: v4l2_buf_type) -> Res
     let arg = buf_type as libc::c_int;
 
     let _ = unsafe { v4l2_ioctl_streamon(file.as_raw_fd(), &arg as *const i32) }?;
+
+    Ok(())
+}
+
+pub fn v4l2_stop_streaming(file: &impl AsRawFd, buf_type: v4l2_buf_type) -> Result<()> {
+    let arg = buf_type as libc::c_int;
+
+    let _ = unsafe { v4l2_ioctl_streamoff(file.as_raw_fd(), &arg as *const i32) }?;
 
     Ok(())
 }
