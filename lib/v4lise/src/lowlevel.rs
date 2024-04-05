@@ -54,6 +54,15 @@ ioctl_readwrite!(
     v4l2_dv_timings
 );
 
+ioctl_read!(v4l2_ioctl_dqevent, V4L2_IOCTL_BASE, 89, v4l2_event);
+
+ioctl_write_ptr!(
+    v4l2_ioctl_subscribe_event,
+    V4L2_IOCTL_BASE,
+    90,
+    v4l2_event_subscription
+);
+
 ioctl_read!(
     v4l2_ioctl_query_dv_timings,
     V4L2_IOCTL_BASE,
@@ -132,6 +141,22 @@ bitflags! {
     const TOUCH = 0x10000000;
     const DEVICE_CAPS = 0x80000000;
     }
+}
+
+pub fn v4l2_subscribe_event(file: &impl AsRawFd, mut buf: v4l2_event_subscription) -> Result<()> {
+    let _ = unsafe { v4l2_ioctl_subscribe_event(file.as_raw_fd(), &mut buf) }?;
+
+    Ok(())
+}
+
+pub fn v4l2_dequeue_event(file: &impl AsRawFd) -> Result<v4l2_event> {
+    let mut buf = v4l2_event {
+        ..Default::default()
+    };
+
+    let _ = unsafe { v4l2_ioctl_dqevent(file.as_raw_fd(), &mut buf) }?;
+
+    Ok(buf)
 }
 
 pub fn v4l2_dequeue_buffer(file: &impl AsRawFd, mut buf: v4l2_buffer) -> Result<v4l2_buffer> {

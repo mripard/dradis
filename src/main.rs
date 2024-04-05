@@ -32,12 +32,15 @@ use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use thiserror::Error;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, Device, FrameFormat, MemoryType,
-    PixelFormat, Queue, QueueType,
+    PixelFormat, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE,
 };
 
 use crate::{
     frame_check::decode_and_check_frame,
-    helpers::{dequeue_buffer, queue_buffer, set_edid, start_streaming, wait_and_set_dv_timings},
+    helpers::{
+        dequeue_buffer, dequeue_event, queue_buffer, set_edid, start_streaming, subscribe_event,
+        wait_and_set_dv_timings, EventKind,
+    },
 };
 
 pub mod built_info {
@@ -56,6 +59,9 @@ const fn default_timeout() -> Duration {
 
 #[derive(Debug, Error)]
 enum TestError {
+    #[error("Test Needs to be Started Again")]
+    Retry,
+
     #[error("No Frame Received")]
     NoFrameReceived,
 
@@ -90,11 +96,6 @@ impl From<v4lise::Error> for TestError {
 }
 
 fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
-    set_edid(suite.dev, &test.edid).map_err(|e| TestError::SetupFailed {
-        reason: String::from("Couldn't set the EDID on the bridge"),
-        source: Some(Box::new(e)),
-    })?;
-
     wait_and_set_dv_timings(suite, test.expected_width, test.expected_height).map_err(|e| {
         TestError::SetupFailed {
             reason: String::from("Couldn't set or retrieve the timings detected by the bridge"),
@@ -122,10 +123,7 @@ fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Resul
     Ok(())
 }
 
-fn test_display_one_mode(
-    suite: &Dradis<'_>,
-    test: &TestItem,
-) -> std::result::Result<(), TestError> {
+fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
     test_prepare_queue(suite, test)?;
 
     suite
@@ -182,6 +180,16 @@ fn test_display_one_mode(
                 return Err(TestError::NoFrameReceived);
             }
 
+            let evt = dequeue_event(suite.dev);
+            if let Ok(e) = evt {
+                if let EventKind::SourceChange(v) = e.kind {
+                    debug! {"Source Changed: seq: {}, timestamp: {}, rem: {}, flags {:#?}", e.sequence, e.timestamp, e.pending, v};
+                    return Err(TestError::Retry);
+                }
+            } else {
+                debug!("No Event to Dequeue.");
+            }
+
             let buffer_idx = dequeue_buffer(suite.dev);
             match buffer_idx {
                 Ok(_) => break buffer_idx,
@@ -234,6 +242,32 @@ fn test_display_one_mode(
                     break;
                 }
             }
+        }
+    }
+
+    Ok(())
+}
+
+fn test_display_one_mode(
+    suite: &Dradis<'_>,
+    test: &TestItem,
+) -> std::result::Result<(), TestError> {
+    set_edid(suite.dev, &test.edid).map_err(|e| TestError::SetupFailed {
+        reason: String::from("Couldn't set the EDID on the bridge"),
+        source: Some(Box::new(e)),
+    })?;
+
+    loop {
+        match test_run(suite, test) {
+            Ok(()) => break,
+            Err(e) => match e {
+                TestError::Retry => {
+                    warn!("Test needs to be restarted.");
+                }
+                _ => {
+                    return Err(e);
+                }
+            },
         }
     }
 
@@ -355,6 +389,9 @@ fn main() -> anyhow::Result<()> {
         heap: &heap,
         queue: &queue,
     };
+
+    subscribe_event(dradis.dev, V4L2_EVENT_SOURCE_CHANGE)
+        .context("Couldn't subscribe to our V4L2 Events")?;
 
     for test in &dradis.cfg.tests {
         test_display_one_mode(&dradis, test)?;
