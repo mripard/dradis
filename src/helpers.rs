@@ -25,8 +25,9 @@ use redid::{
     EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes,
 };
 use v4lise::{
-    v4l2_buffer, v4l2_dequeue_buffer, v4l2_query_dv_timings, v4l2_queue_buffer,
-    v4l2_set_dv_timings, v4l2_set_edid, Device,
+    v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_memory, v4l2_query_dv_timings,
+    v4l2_queue_buffer, v4l2_request_buffers, v4l2_requestbuffers, v4l2_set_dv_timings,
+    v4l2_set_edid, v4l2_start_streaming, v4l2_stop_streaming, Device,
 };
 
 use crate::{Dradis, TestEdid, TestError, BUFFER_TYPE, MEMORY_TYPE};
@@ -300,4 +301,47 @@ pub(crate) fn wait_and_set_dv_timings(
 
         sleep(Duration::from_millis(100));
     }
+}
+
+pub(crate) fn clear_buffers(
+    device: &Device,
+    buf_type: v4l2_buf_type,
+    mem_type: v4l2_memory,
+) -> result::Result<(), v4lise::Error> {
+    let rbuf = v4l2_requestbuffers {
+        count: 0,
+        type_: buf_type as u32,
+        memory: mem_type as u32,
+        ..Default::default()
+    };
+
+    v4l2_request_buffers(device, rbuf)?;
+
+    Ok(())
+}
+
+pub(crate) struct StreamingDevice<'a> {
+    device: &'a Device,
+    buf_type: v4l2_buf_type,
+}
+
+impl Drop for StreamingDevice<'_> {
+    fn drop(&mut self) {
+        info!("Stopping Streaming");
+
+        v4l2_stop_streaming(self.device, self.buf_type).unwrap();
+
+        clear_buffers(self.device, self.buf_type, v4l2_memory::V4L2_MEMORY_DMABUF).unwrap();
+    }
+}
+
+pub(crate) fn start_streaming<'a>(
+    device: &'a Device,
+    buf_type: v4l2_buf_type,
+) -> result::Result<StreamingDevice<'a>, v4lise::Error> {
+    info!("Starting Streaming");
+
+    v4l2_start_streaming(device, buf_type)?;
+
+    Ok(StreamingDevice { device, buf_type })
 }
