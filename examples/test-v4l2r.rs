@@ -6,7 +6,10 @@ use std::{
 
 use v4l2r::{
     device::{
-        queue::{qbuf::get_free::GetFreeCaptureBuffer, Queue},
+        queue::{
+            qbuf::{get_free::GetFreeCaptureBuffer, CaptureQueueable},
+            Queue,
+        },
         AllocatedQueue, Device, DeviceConfig, Stream, TryDequeue,
     },
     memory::{DmaBufHandle, DmaBufSource, Memory, MemoryType, SelfBacked},
@@ -68,7 +71,7 @@ fn main() {
     for _idx in 0..NUM_BUFFERS {
         let buffer = queue.try_get_free_buffer().unwrap();
 
-        buffer.queue().unwrap();
+        buffer.queue_with_handles(vec![Buffer.into()]).unwrap();
     }
 
     loop {
