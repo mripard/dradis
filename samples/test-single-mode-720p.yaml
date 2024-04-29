@@ -7,7 +7,7 @@ tests:
       edid:
         type: detailed
         timings:
-            clock: 74250
+            clock_khz: 74250
             hfp: 220
             hdisplay: 1280
             hbp: 110
