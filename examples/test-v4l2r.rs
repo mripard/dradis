@@ -1,5 +1,5 @@
 use std::{
-    os::fd::{AsFd, AsRawFd, BorrowedFd, RawFd},
+    os::fd::{AsFd, AsRawFd, BorrowedFd, OwnedFd, RawFd},
     path::PathBuf,
     sync::Arc,
 };
@@ -12,30 +12,30 @@ use v4l2r::{
         },
         AllocatedQueue, Device, DeviceConfig, Stream, TryDequeue,
     },
-    memory::{DmaBufHandle, DmaBufSource, Memory, MemoryType, SelfBacked},
+    memory::{DmaBufHandle, DmaBufSource},
     Format,
 };
 
 const NUM_BUFFERS: u32 = 5;
 
-#[derive(Debug, Default)]
-pub struct Buffer;
+#[derive(Debug)]
+pub struct Buffer(OwnedFd);
 
 impl AsFd for Buffer {
     fn as_fd(&self) -> BorrowedFd<'_> {
-        todo!()
+        self.0.as_fd()
     }
 }
 
 impl AsRawFd for Buffer {
     fn as_raw_fd(&self) -> RawFd {
-        todo!()
+        self.0.as_raw_fd()
     }
 }
 
 impl DmaBufSource for Buffer {
     fn len(&self) -> u64 {
-        todo!()
+        unimplemented!()
     }
 }
 
