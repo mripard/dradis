@@ -29,6 +29,7 @@ ioctl_readwrite!(v4l2_ioctl_qbuf, V4L2_IOCTL_BASE, 15, v4l2_buffer);
 ioctl_readwrite!(v4l2_ioctl_dqbuf, V4L2_IOCTL_BASE, 17, v4l2_buffer);
 
 ioctl_write_ptr!(v4l2_ioctl_streamon, V4L2_IOCTL_BASE, 18, libc::c_int);
+ioctl_write_ptr!(v4l2_ioctl_streamoff, V4L2_IOCTL_BASE, 19, libc::c_int);
 
 ioctl_readwrite!(v4l2_ioctl_s_edid, V4L2_IOCTL_BASE, 41, v4l2_edid);
 
@@ -51,6 +52,15 @@ ioctl_readwrite!(
     V4L2_IOCTL_BASE,
     88,
     v4l2_dv_timings
+);
+
+ioctl_read!(v4l2_ioctl_dqevent, V4L2_IOCTL_BASE, 89, v4l2_event);
+
+ioctl_write_ptr!(
+    v4l2_ioctl_subscribe_event,
+    V4L2_IOCTL_BASE,
+    90,
+    v4l2_event_subscription
 );
 
 ioctl_read!(
@@ -131,6 +141,22 @@ bitflags! {
     const TOUCH = 0x10000000;
     const DEVICE_CAPS = 0x80000000;
     }
+}
+
+pub fn v4l2_subscribe_event(file: &impl AsRawFd, mut buf: v4l2_event_subscription) -> Result<()> {
+    let _ = unsafe { v4l2_ioctl_subscribe_event(file.as_raw_fd(), &mut buf) }?;
+
+    Ok(())
+}
+
+pub fn v4l2_dequeue_event(file: &impl AsRawFd) -> Result<v4l2_event> {
+    let mut buf = v4l2_event {
+        ..Default::default()
+    };
+
+    let _ = unsafe { v4l2_ioctl_dqevent(file.as_raw_fd(), &mut buf) }?;
+
+    Ok(buf)
 }
 
 pub fn v4l2_dequeue_buffer(file: &impl AsRawFd, mut buf: v4l2_buffer) -> Result<v4l2_buffer> {
@@ -224,6 +250,14 @@ pub fn v4l2_start_streaming(file: &impl AsRawFd, buf_type: v4l2_buf_type) -> Res
     let arg = buf_type as libc::c_int;
 
     let _ = unsafe { v4l2_ioctl_streamon(file.as_raw_fd(), &arg as *const i32) }?;
+
+    Ok(())
+}
+
+pub fn v4l2_stop_streaming(file: &impl AsRawFd, buf_type: v4l2_buf_type) -> Result<()> {
+    let arg = buf_type as libc::c_int;
+
+    let _ = unsafe { v4l2_ioctl_streamoff(file.as_raw_fd(), &arg as *const i32) }?;
 
     Ok(())
 }

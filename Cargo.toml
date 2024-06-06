@@ -13,27 +13,29 @@ opt-level = 3
 panic = "abort"
 
 [build-dependencies]
-built = { version = "0.7.1", features = ["git2"] }
+built = { version = "0.7.3", features = ["git2"] }
 
 [dependencies]
-anyhow = "1.0.81"
+anyhow = "1.0.86"
+bitflags = "2.5.0"
 byteorder = "1.5.0"
+chrono = "0.4.38"
 clap = { version = "4.5.4", features = ["cargo", "derive"] }
 dma-buf = "0.4.0"
 dma-heap = "0.4.0"
 image = { version = "0.25.1", default-features = false }
-libc = "0.2.153"
+libc = "0.2.155"
 log = "0.4.21"
-nix = { version = "0.28.0", features = ["ioctl"] }
-num-traits = "0.2.18"
+nix = { version = "0.29.0", features = ["ioctl"] }
+num-traits = "0.2.19"
 redid = { git = "https://github.com/mripard/redid.git" }
 rqrr = "0.7.1"
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.115"
-serde_with = "3.7.0"
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
+serde_with = "3.8.1"
 serde_yaml = "0.9.34"
 simplelog = "0.12.2"
-thiserror = "1.0.58"
+thiserror = "1.0.61"
 twox-hash = "1.6.3"
 
 [dependencies.v4lise]
