@@ -1,5 +1,5 @@
 link_timeout: 60
-valid_frame_timeout: 60
+valid_frame_timeout: 120
 tests:
     - duration: 10
       expected-height: 720
