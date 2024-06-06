@@ -314,7 +314,7 @@ struct Cli {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    println!(
+    info!(
         "Running {} {}",
         built_info::PKG_NAME,
         if let Some(version) = built_info::GIT_VERSION {
