@@ -292,6 +292,9 @@ pub(crate) fn wait_and_set_dv_timings(
                     Some(libc::ENOLINK) => {
                         debug!("No link detected.");
                     }
+                    Some(libc::ERANGE) => {
+                        debug!("Timings out of range.");
+                    }
                     _ => return Err(e),
                 },
                 _ => return Err(e),
