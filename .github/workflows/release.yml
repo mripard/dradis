@@ -14,6 +14,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -C target-cpu=cortex-a72
     steps:
       - name: Install Dependencies
         run: |
@@ -47,16 +49,12 @@ jobs:
 
       - name: Build the Package
         uses: actions-rs/cargo@v1
-        env:
-          RUSTFLAGS: -C target-cpu=cortex-a72
         with:
           use-cross: true
           command: build
           args: --release --target=aarch64-unknown-linux-gnu
 
       - name: Build Debian Package
-        env:
-          RUSTFLAGS: -C target-cpu=cortex-a72
         run: |
           cargo deb --no-build --target=aarch64-unknown-linux-gnu
 
