@@ -67,7 +67,7 @@ jobs:
       - name: Build Debian Package
         run: |
           mkdir target/packages
-          cargo deb --no-build --target=aarch64-unknown-linux-gnu -o target/packages/dradis-aarch64-raspberrypi-4.deb
+          cargo deb --no-build --target=aarch64-unknown-linux-gnu --variant rpi4
 
       - uses: ncipollo/release-action@v1
         with:

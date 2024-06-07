@@ -59,3 +59,6 @@ assets = [
 #
 # Let's force the current container C library version.
 depends = "libc6:arm64 (>= 2.17)"
+
+[package.metadata.deb.variants.rpi4]
+name = "dradis-raspberrypi4"
