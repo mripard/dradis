@@ -41,12 +41,16 @@ jobs:
 
       - name: Install cargo-deb
         uses: actions-rs/install@v0.1
+        env:
+          RUSTFLAGS:
         with:
           crate: cargo-deb
           version: latest
 
       - name: Install cross
         uses: actions-rs/install@v0.1
+        env:
+          RUSTFLAGS:
         with:
           crate: cross
           version: latest
