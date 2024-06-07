@@ -15,7 +15,13 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      RUSTFLAGS: -C target-cpu=cortex-a72
+      # We need to mangle with the target features because rustc (llvm,
+      # actually) will enable optional CPU features that aren't found on the
+      # Pi4's CPU.
+      #
+      # See https://github.com/rust-lang/rust/issues/125033
+      RUSTFLAGS: -C target-cpu=cortex-a72 -C target_feature=-aes -C target_feature=-sha2
+
     steps:
       - name: Install Dependencies
         run: |
