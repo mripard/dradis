@@ -6,6 +6,7 @@
 #![warn(clippy::multiple_crate_versions)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::cargo_common_metadata)]
+#![allow(clippy::needless_raw_string_hashes)]
 #![allow(clippy::unreadable_literal)]
 
 mod frame_check;
