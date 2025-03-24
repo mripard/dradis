@@ -56,7 +56,7 @@ jobs:
 
   dependabot:
     runs-on: ubuntu-latest
-    needs: [ build, tests ]
+    needs: [ build, tests, build_deb_pkg_test ]
 
     permissions:
       pull-requests: write
