@@ -43,6 +43,15 @@ jobs:
           command: test
           args: --all-features --verbose
 
+  build_deb_pkg_test:
+    name: Build Test Debian Package
+    needs: [ build, tests ]
+    uses: ./.github/workflows/deb_pkg.yml
+    if: ${{ github.event_name == 'pull_request'}}
+    with:
+      distribution-version: bookworm
+      package-revision: ${{ github.event.pull_request.number }}
+
   dependabot:
     runs-on: ubuntu-latest
     needs: [ build, tests ]
