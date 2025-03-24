@@ -93,6 +93,29 @@ jobs:
       distribution-version: bookworm
       package-revision: ${{ github.event.pull_request.number }}
 
+  build_deb_pkg_release:
+    name: Build Release Debian Package
+    needs: [ build, tests ]
+    uses: ./.github/workflows/deb_pkg.yml
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    with:
+      distribution-version: bookworm
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [ clippy, format, build_deb_pkg_release ]
+
+    steps:
+      - name: Download Debian Packet Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build_deb_pkg_release.outputs.artifact_name }}
+
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: ${{ needs.build_deb_pkg_release.outputs.artifact_name }}
+
   dependabot:
     runs-on: ubuntu-latest
     needs: [ build, tests, build_deb_pkg_test ]
