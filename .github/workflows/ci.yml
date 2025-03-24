@@ -28,6 +28,45 @@ jobs:
           command: build
           args: --all-features --all-targets --verbose
 
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+
+    permissions:
+      checks: write
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+          override: true
+
+      - name: Check clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
+
+  format:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: rustfmt
+          override: true
+
+      - name: Check Format
+        uses: "actions-rs/cargo@v1"
+        with:
+          command: "fmt"
+          args: "--all -- --check"
+
   tests:
     name: Tests
     runs-on: ubuntu-latest
