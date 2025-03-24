@@ -1,0 +1,77 @@
+name: Debian Package Build
+
+on:
+  workflow_call:
+    inputs:
+      distribution-name:
+        type: string
+        default: debian
+
+      distribution-version:
+        required: true
+        type: string
+
+      package-revision:
+        type: number
+        default: 0
+
+    outputs:
+      artifact_name:
+        description: "Debian package artifact name"
+        value: ${{ jobs.deb_pkg.outputs.artifact_name }}
+
+jobs:
+  deb_pkg:
+    name: ${{ inputs.distribution-name }}/${{ inputs.distribution-version }}
+    runs-on: ubuntu-24.04-arm
+    container: ${{ inputs.distribution-name }}:${{ inputs.distribution-version }}
+    env:
+      # We need to mangle with the target features because rustc (llvm,
+      # actually) will enable optional CPU features that aren't found on the
+      # Pi4's CPU.
+      #
+      # See https://github.com/rust-lang/rust/issues/125033
+      RUSTFLAGS: -C target-cpu=cortex-a72 -C target_feature=-aes -C target_feature=-sha2
+
+    outputs:
+      artifact_name: ${{ steps.deb_name_vars.outputs.deb_base_name }}
+
+    steps:
+      - name: Install Dependencies
+        run: |
+          apt-get update
+          apt-get install -y clang curl libclang-dev
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            override: true
+
+      - name: Install cargo-deb
+        uses: actions-rs/install@v0.1
+        env:
+          RUSTFLAGS:
+        with:
+          crate: cargo-deb
+          version: latest
+
+      - uses: actions/checkout@v2
+
+      - name: Build Debian Package
+        run: |
+          cargo deb --variant rpi4 --deb-revision ${{ inputs.package-revision }}
+
+      - name: Find Debian Package name
+        id: deb_name_vars
+        run: |
+          DEB_PATH="$(ls target/debian/dradis*.deb)"
+          echo "deb_path=$DEB_PATH" >> $GITHUB_OUTPUT
+          DEB_BASE_NAME="$(basename $DEB_PATH)"
+          echo "deb_base_name=$DEB_BASE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Upload Package Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.deb_name_vars.outputs.deb_base_name }}
+          path: ${{ steps.deb_name_vars.outputs.deb_path }}

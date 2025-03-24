@@ -6,6 +6,7 @@
 #![warn(clippy::multiple_crate_versions)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::cargo_common_metadata)]
+#![allow(clippy::needless_raw_string_hashes)]
 #![allow(clippy::unreadable_literal)]
 
 mod frame_check;
@@ -215,7 +216,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
             decode_and_check_frame,
             Some((last_frame_index, test.expected_width, test.expected_height)),
         ) {
-            debug!("Frame {} Valid", frame_index);
+            debug!("Frame {frame_index} Valid");
             if first_frame_valid.is_none() {
                 first_frame_valid = Some(Instant::now());
                 info!("Source started to transmit a valid frame");

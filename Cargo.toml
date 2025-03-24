@@ -13,30 +13,30 @@ opt-level = 3
 panic = "abort"
 
 [build-dependencies]
-built = { version = "0.7.3", features = ["git2"] }
+built = { version = "0.7.7", features = ["git2"] }
 
 [dependencies]
-anyhow = "1.0.86"
-bitflags = "2.5.0"
+anyhow = "1.0.97"
+bitflags = "2.9.0"
 byteorder = "1.5.0"
-chrono = "0.4.38"
-clap = { version = "4.5.4", features = ["cargo", "derive"] }
+chrono = "0.4.40"
+clap = { version = "4.5.32", features = ["cargo", "derive"] }
 dma-buf = "0.4.0"
 dma-heap = "0.4.0"
-image = { version = "0.25.1", default-features = false }
-libc = "0.2.155"
-log = "0.4.21"
+image = { version = "0.25.5", default-features = false }
+libc = "0.2.171"
+log = "0.4.26"
 nix = { version = "0.29.0", features = ["ioctl"] }
 num-traits = "0.2.19"
 redid = { git = "https://github.com/mripard/redid.git" }
-rqrr = "0.7.1"
-serde = { version = "1.0.203", features = ["derive"] }
-serde_json = "1.0.117"
-serde_with = "3.8.1"
+rqrr = "0.9.0, <0.9.1"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+serde_with = "3.12.0"
 serde_yaml = "0.9.34"
 simplelog = "0.12.2"
-thiserror = "1.0.61"
-twox-hash = "1.6.3"
+thiserror = "2.0.12"
+twox-hash = "2.1.0"
 
 [dependencies.v4lise]
 path = "lib/v4lise"
@@ -48,17 +48,6 @@ assets = [
 	["target/release/dradis", "usr/bin/", "755"],
 	["samples/test-single-mode-720p.yaml", "usr/share/dradis/samples/", "644"],
 ]
-
-# It's a bit of a hack, but we can't run cargo deb within cross until cross
-# allows us to:
-# https://github.com/cross-rs/cross/issues/716
-#
-# Since we're not running it within the container, the host libraries are used
-# by cargo-deb and it will pick the host C library as a dependency, even though
-# it might have been built with something else entirely.
-#
-# Let's force the current container C library version.
-depends = "libc6:arm64 (>= 2.17)"
 
 [package.metadata.deb.variants.rpi4]
 name = "dradis-raspberrypi4"
