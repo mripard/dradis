@@ -97,6 +97,11 @@ impl From<v4lise::Error> for TestError {
 }
 
 fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
+    set_edid(suite.dev, &test.edid).map_err(|e| TestError::SetupFailed {
+        reason: String::from("Couldn't set the EDID on the bridge"),
+        source: Some(Box::new(e)),
+    })?;
+
     wait_and_set_dv_timings(suite, test.expected_width, test.expected_height).map_err(|e| {
         TestError::SetupFailed {
             reason: String::from("Couldn't set or retrieve the timings detected by the bridge"),
@@ -253,11 +258,6 @@ fn test_display_one_mode(
     suite: &Dradis<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    set_edid(suite.dev, &test.edid).map_err(|e| TestError::SetupFailed {
-        reason: String::from("Couldn't set the EDID on the bridge"),
-        source: Some(Box::new(e)),
-    })?;
-
     loop {
         match test_run(suite, test) {
             Ok(()) => break,
