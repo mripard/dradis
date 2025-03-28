@@ -41,6 +41,10 @@ twox-hash = "2.1.0"
 [dependencies.v4lise]
 path = "lib/v4lise"
 
+[[bin]]
+name = "dradis"
+bench = false
+
 [[bench]]
 name = "bench_decode"
 path = "benches/bench_decode.rs"
