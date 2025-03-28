@@ -50,17 +50,19 @@ pub fn decode_and_check_frame(
         Ok::<DynamicImage, FrameError>(DynamicImage::ImageRgb8(buffer))
     })?;
 
-    let luma = image.to_luma8().view(0, 0, 128, 128).to_image();
-    let mut prepared = PreparedImage::prepare(luma);
+    let (_, content) = debug_span!("QRCode Detection").in_scope(|| {
+        let luma = image.to_luma8().view(0, 0, 128, 128).to_image();
+        let mut prepared = PreparedImage::prepare(luma);
 
-    let grids = prepared.detect_grids();
-    if grids.len() != 1 {
-        debug!("Didn't find a QR Code");
-        return Err(Box::new(FrameError::InvalidFrame));
-    }
+        let grids = prepared.detect_grids();
+        if grids.len() != 1 {
+            debug!("Didn't find a QR Code");
+            return Err(Box::new(FrameError::InvalidFrame));
+        }
 
-    let grid = &grids[0];
-    let (_, content) = grid.decode().map_err(|_| FrameError::InvalidFrame)?;
+        let grid = &grids[0];
+        Ok(grid.decode().map_err(|_| FrameError::InvalidFrame)?)
+    })?;
 
     let metadata: Metadata =
         serde_json::from_str(&content).map_err(|_| FrameError::IntegrityFailure)?;
