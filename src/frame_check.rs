@@ -22,21 +22,21 @@ enum FrameError {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize)]
-struct Metadata {
-    version: (u8, u8),
-    qrcode_width: usize,
-    qrcode_height: usize,
-    width: usize,
-    height: usize,
-    hash: u64,
-    index: usize,
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct Metadata {
+    pub version: (u8, u8),
+    pub qrcode_width: usize,
+    pub qrcode_height: usize,
+    pub width: usize,
+    pub height: usize,
+    pub hash: u64,
+    pub index: usize,
 }
 
 pub fn decode_and_check_frame(
     data: &[u8],
     args: Option<(Option<usize>, usize, usize)>,
-) -> std::result::Result<usize, Box<dyn std::error::Error>> {
+) -> std::result::Result<Metadata, Box<dyn std::error::Error>> {
     let args = args.expect("Missing arguments");
     let last_frame_index = args.0;
     let width = u32::try_from(args.1).expect("Width doesn't fit into a u32");
@@ -103,5 +103,5 @@ pub fn decode_and_check_frame(
         return Err(Box::new(FrameError::IntegrityFailure));
     }
 
-    Ok(metadata.index)
+    Ok(metadata)
 }

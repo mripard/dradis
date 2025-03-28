@@ -212,17 +212,17 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
         let frame_decode_start = Instant::now();
 
         let buf = &buffers[idx as usize];
-        if let Ok(frame_index) = buf.read(
+        if let Ok(metadata) = buf.read(
             decode_and_check_frame,
             Some((last_frame_index, test.expected_width, test.expected_height)),
         ) {
-            debug!("Frame {frame_index} Valid");
+            debug!("Frame {} Valid", metadata.index);
             if first_frame_valid.is_none() {
                 first_frame_valid = Some(Instant::now());
                 info!("Source started to transmit a valid frame");
             }
 
-            last_frame_index = Some(frame_index);
+            last_frame_index = Some(metadata.index);
             last_frame_valid = Some(Instant::now());
         } else {
             debug!("Frame Invalid.");
