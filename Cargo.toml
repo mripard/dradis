@@ -25,7 +25,6 @@ dma-buf = "0.4.0"
 dma-heap = "0.4.0"
 image = { version = "0.25.5", default-features = false }
 libc = "0.2.171"
-log = "0.4.26"
 nix = { version = "0.29.0", features = ["ioctl"] }
 num-traits = "0.2.19"
 redid = { git = "https://github.com/mripard/redid.git" }
@@ -34,8 +33,9 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 serde_with = "3.12.0"
 serde_yaml = "0.9.34"
-simplelog = "0.12.2"
 thiserror = "2.0.12"
+tracing = { version = "0.1.41", default-features = false }
+tracing-subscriber = { version = "0.3.19", default-features = false, features = ["ansi", "fmt", "std"] }
 twox-hash = "2.1.0"
 
 [dependencies.v4lise]

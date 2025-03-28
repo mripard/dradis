@@ -25,12 +25,11 @@ use anyhow::Context;
 use clap::Parser;
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
-use log::{debug, error, info, warn};
 use redid::EdidTypeConversionError;
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
-use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use thiserror::Error;
+use tracing::{debug, error, info, warn, Level};
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, Device, FrameFormat, MemoryType,
     PixelFormat, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE,
@@ -359,17 +358,14 @@ fn main() -> anyhow::Result<()> {
         }
     );
 
-    TermLogger::init(
-        match cli.verbose {
-            0 => LevelFilter::Info,
-            1 => LevelFilter::Debug,
-            _ => LevelFilter::Trace,
-        },
-        Config::default(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )
-    .context("Couldn't initialize our logging configuration")?;
+    tracing_subscriber::fmt()
+        .with_ansi(true)
+        .with_max_level(match cli.verbose {
+            0 => Level::INFO,
+            1 => Level::DEBUG,
+            _ => Level::TRACE,
+        })
+        .init();
 
     let test_file = File::open(cli.test).context("Couldn't open the test description file.")?;
 

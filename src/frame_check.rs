@@ -1,10 +1,10 @@
 use std::hash::Hasher;
 
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Rgb, Rgba};
-use log::{debug, warn};
 use rqrr::PreparedImage;
 use serde::Deserialize;
 use thiserror::Error;
+use tracing::{debug, warn};
 use twox_hash::XxHash64;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
