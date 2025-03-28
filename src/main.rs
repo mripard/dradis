@@ -29,7 +29,8 @@ use redid::EdidTypeConversionError;
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
 use thiserror::Error;
-use tracing::{debug, error, info, warn, Level};
+use tracing::{debug, debug_span, error, info, warn, Level};
+use tracing_subscriber::fmt::format::FmtSpan;
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, Device, FrameFormat, MemoryType,
     PixelFormat, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE,
@@ -208,30 +209,25 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
         }
         .expect("Couldn't dequeue our buffer");
 
-        let frame_decode_start = Instant::now();
-
         let buf = &buffers[idx as usize];
-        if let Ok(metadata) = buf.read(
-            decode_and_check_frame,
-            Some((last_frame_index, test.expected_width, test.expected_height)),
-        ) {
-            debug!("Frame {} Valid", metadata.index);
-            if first_frame_valid.is_none() {
-                first_frame_valid = Some(Instant::now());
-                info!("Source started to transmit a valid frame");
+        debug_span!("Frame Processing").in_scope(|| {
+            if let Ok(metadata) = buf.read(
+                decode_and_check_frame,
+                Some((last_frame_index, test.expected_width, test.expected_height)),
+            ) {
+                debug!("Frame {} Valid", metadata.index);
+                if first_frame_valid.is_none() {
+                    first_frame_valid = Some(Instant::now());
+                    info!("Source started to transmit a valid frame");
+                }
+
+                last_frame_index = Some(metadata.index);
+                last_frame_valid = Some(Instant::now());
+            } else {
+                debug!("Frame Invalid.");
+                last_frame_index = None;
             }
-
-            last_frame_index = Some(metadata.index);
-            last_frame_valid = Some(Instant::now());
-        } else {
-            debug!("Frame Invalid.");
-            last_frame_index = None;
-        }
-
-        debug!(
-            "Took {} ms to process the frame",
-            frame_decode_start.elapsed().as_millis()
-        );
+        });
 
         queue_buffer(suite.dev, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
 
@@ -359,6 +355,7 @@ fn main() -> anyhow::Result<()> {
     );
 
     tracing_subscriber::fmt()
+        .with_span_events(FmtSpan::CLOSE)
         .with_ansi(true)
         .with_max_level(match cli.verbose {
             0 => Level::INFO,
