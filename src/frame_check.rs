@@ -64,8 +64,8 @@ pub fn decode_and_check_frame(
         Ok(grid.decode().map_err(|_| FrameError::InvalidFrame)?)
     })?;
 
-    let metadata: Metadata =
-        serde_json::from_str(&content).map_err(|_| FrameError::IntegrityFailure)?;
+    let metadata: Metadata = trace_span!("JSON Payload Parsing")
+        .in_scope(|| serde_json::from_str(&content).map_err(|_| FrameError::IntegrityFailure))?;
 
     if metadata.version.0 != HEADER_VERSION_MAJOR {
         warn!("Metadata Version Mismatch");
