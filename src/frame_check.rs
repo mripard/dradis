@@ -1,7 +1,6 @@
 use std::hash::Hasher;
 
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Rgb, Rgba};
-use rqrr::PreparedImage;
 use serde::Deserialize;
 use thiserror::Error;
 use tracing::{debug, debug_span, trace_span, warn};
@@ -50,18 +49,18 @@ pub fn decode_and_check_frame(
         Ok::<DynamicImage, FrameError>(DynamicImage::ImageRgb8(buffer))
     })?;
 
-    let (_, content) = debug_span!("QRCode Detection").in_scope(|| {
+    let content = debug_span!("QRCode Detection").in_scope(|| {
         let luma = image.to_luma8().view(0, 0, 128, 128).to_image();
-        let mut prepared = PreparedImage::prepare(luma);
 
-        let grids = prepared.detect_grids();
-        if grids.len() != 1 {
+        let results = rxing::helpers::detect_multiple_in_luma(luma.into_vec(), 128, 128)
+            .map_err(|_| FrameError::InvalidFrame)?;
+
+        if results.len() != 1 {
             debug!("Didn't find a QR Code");
             return Err(Box::new(FrameError::InvalidFrame));
         }
 
-        let grid = &grids[0];
-        Ok(grid.decode().map_err(|_| FrameError::InvalidFrame)?)
+        Ok(results[0].getText().to_string())
     })?;
 
     let metadata: Metadata = trace_span!("JSON Payload Parsing")
