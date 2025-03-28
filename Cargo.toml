@@ -41,6 +41,11 @@ twox-hash = "2.1.0"
 [dependencies.v4lise]
 path = "lib/v4lise"
 
+[[bench]]
+name = "bench_decode"
+path = "benches/bench_decode.rs"
+harness = false
+
 [package.metadata.deb]
 section = "utility"
 priority = "optional"
@@ -51,3 +56,6 @@ assets = [
 
 [package.metadata.deb.variants.rpi4]
 name = "dradis-raspberrypi4"
+
+[dev-dependencies]
+criterion = { version = "0.5.1", default-features = false, features = ["cargo_bench_support", "plotters"] }
