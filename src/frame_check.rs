@@ -4,7 +4,7 @@ use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Rgb, Rgba
 use rqrr::PreparedImage;
 use serde::Deserialize;
 use thiserror::Error;
-use tracing::{debug, debug_span, warn};
+use tracing::{debug, debug_span, trace_span, warn};
 use twox_hash::XxHash64;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
@@ -42,11 +42,14 @@ pub fn decode_and_check_frame(
     let width = u32::try_from(args.1).expect("Width doesn't fit into a u32");
     let height = u32::try_from(args.2).expect("Height doesn't fit into a u32");
 
-    let pixels = data.to_vec();
-    let buffer = ImageBuffer::<Rgb<u8>, Vec<u8>>::from_vec(width, height, pixels)
-        .ok_or(FrameError::NotEnoughMemory)?;
+    let mut image = trace_span!("Framebuffer Importation").in_scope(|| {
+        let pixels = data.to_vec();
+        let buffer = ImageBuffer::<Rgb<u8>, Vec<u8>>::from_vec(width, height, pixels)
+            .ok_or(FrameError::NotEnoughMemory)?;
 
-    let mut image = DynamicImage::ImageRgb8(buffer);
+        Ok::<DynamicImage, FrameError>(DynamicImage::ImageRgb8(buffer))
+    })?;
+
     let luma = image.to_luma8().view(0, 0, 128, 128).to_image();
     let mut prepared = PreparedImage::prepare(luma);
 
