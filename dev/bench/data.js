@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1743168886661,
+  "lastUpdate": 1743169905764,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -29,6 +29,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 8459380,
             "range": "± 9153",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ea81c8032a34dd1223c33928a29f0ec308ac91d4",
+          "message": "Merge pull request #202 from mripard/switch-to-rxing\n\ndradis: Switch to rxing",
+          "timestamp": "2025-03-28T14:47:11+01:00",
+          "tree_id": "c2f21fd5efe03596a77dd05a9d3a69323488c8cf",
+          "url": "https://github.com/mripard/dradis/commit/ea81c8032a34dd1223c33928a29f0ec308ac91d4"
+        },
+        "date": 1743169905075,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 853738,
+            "range": "± 8699",
             "unit": "ns/iter"
           }
         ]
