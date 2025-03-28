@@ -11,7 +11,6 @@ use std::{
 
 use bitflags::bitflags;
 use chrono::{DateTime, Local, LocalResult, TimeZone};
-use log::{debug, info};
 use num_traits::{One, ToPrimitive, Zero};
 use redid::{
     EdidChromaticityPoint, EdidChromaticityPoints, EdidDescriptorDetailedTiming,
@@ -26,6 +25,7 @@ use redid::{
     EdidR3DisplayRangeLimits, EdidR3DisplayRangeVideoTimingsSupport, EdidR3FeatureSupport,
     EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes,
 };
+use tracing::{debug, info};
 use v4lise::{
     v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_dequeue_event, v4l2_event,
     v4l2_event_src_change, v4l2_event_subscription, v4l2_memory, v4l2_query_dv_timings,
