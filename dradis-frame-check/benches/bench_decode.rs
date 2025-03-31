@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main};
-use dradis_frame_check::{decode_and_check_frame, Metadata};
+use dradis_frame_check::{decode_and_check_frame, DecodeCheckArgs, Metadata};
 
 const FRAME_WIDTH: usize = 1280;
 const FRAME_HEIGHT: usize = 720;
@@ -12,8 +12,15 @@ fn bench_frame_detect(c: &mut criterion::Criterion) {
     group.sampling_mode(criterion::SamplingMode::Flat);
     group.bench_function("whole", |b| {
         b.iter(|| {
-            let data =
-                decode_and_check_frame(FRAME, Some((None, FRAME_WIDTH, FRAME_HEIGHT))).unwrap();
+            let data = decode_and_check_frame(
+                FRAME,
+                Some(DecodeCheckArgs {
+                    previous_frame_idx: None,
+                    width: FRAME_WIDTH,
+                    height: FRAME_HEIGHT,
+                }),
+            )
+            .unwrap();
             assert_eq!(
                 data,
                 Metadata {

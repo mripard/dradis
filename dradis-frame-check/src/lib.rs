@@ -32,14 +32,19 @@ pub struct Metadata {
     pub index: usize,
 }
 
+pub struct DecodeCheckArgs {
+    pub previous_frame_idx: Option<usize>,
+    pub width: usize,
+    pub height: usize,
+}
 pub fn decode_and_check_frame(
     data: &[u8],
-    args: Option<(Option<usize>, usize, usize)>,
+    args: Option<DecodeCheckArgs>,
 ) -> std::result::Result<Metadata, Box<dyn std::error::Error>> {
     let args = args.expect("Missing arguments");
-    let last_frame_index = args.0;
-    let width = u32::try_from(args.1).expect("Width doesn't fit into a u32");
-    let height = u32::try_from(args.2).expect("Height doesn't fit into a u32");
+    let last_frame_index = args.previous_frame_idx;
+    let width = u32::try_from(args.width).expect("Width doesn't fit into a u32");
+    let height = u32::try_from(args.height).expect("Height doesn't fit into a u32");
 
     let mut image = trace_span!("Framebuffer Importation").in_scope(|| {
         let pixels = data.to_vec();

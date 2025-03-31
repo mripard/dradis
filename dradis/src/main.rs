@@ -24,7 +24,7 @@ use anyhow::Context;
 use clap::Parser;
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
-use frame_check::decode_and_check_frame;
+use frame_check::{decode_and_check_frame, DecodeCheckArgs};
 use redid::EdidTypeConversionError;
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
@@ -121,6 +121,7 @@ fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Resul
     Ok(())
 }
 
+#[expect(clippy::too_many_lines)]
 fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
     test_prepare_queue(suite, test)?;
 
@@ -210,7 +211,11 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
         debug_span!("Frame Processing").in_scope(|| {
             if let Ok(metadata) = buf.read(
                 decode_and_check_frame,
-                Some((last_frame_index, test.expected_width, test.expected_height)),
+                Some(DecodeCheckArgs {
+                    previous_frame_idx: last_frame_index,
+                    width: test.expected_width,
+                    height: test.expected_height,
+                }),
             ) {
                 debug!("Frame {} Valid", metadata.index);
                 if first_frame_valid.is_none() {
