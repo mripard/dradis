@@ -7,11 +7,11 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = { version = "^1.0", default-features = false, features = ["std"] }
-byteorder = { version = "^1.3", default-features = false, features = ["std"] }
-clap = { version = "^2.33", default-features = false }
-image = { version = "^0.23", default-features = false, features = ["png"] }
-log = { version = "^0.4", default-features = false, features = ["std"] }
+anyhow = { version = "1.0.97", default-features = false, features = ["std"] }
+byteorder = { version = "1.5.0", default-features = false, features = ["std"] }
+clap = { version = "4.5.34", default-features = false, features = ["derive", "std"] }
+image = { version = "0.25.6", default-features = false, features = ["png"] }
+log = { version = "0.4.27", default-features = false, features = ["std"] }
 nucleid = { git = "https://github.com/mripard/nucleid.git" }
-simplelog = { version = "^0.10", default-features = false, features = ["termcolor"] }
-twox-hash = { version = "^1.5", default-features = false, features = ["std"] }
+simplelog = { version = "0.12.2", default-features = false, features = ["termcolor"] }
+twox-hash = { version = "2.1.0", default-features = false, features = ["std", "xxhash32"] }

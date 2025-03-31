@@ -6,15 +6,15 @@
 use anyhow::{Context, Result};
 use byteorder::ByteOrder;
 use byteorder::LittleEndian;
-use clap::App;
-use clap::Arg;
 use image::imageops::FilterType;
+use clap::Parser;
 use nucleid::{
     BufferType, ConnectorStatus, ConnectorUpdate, Device, Format, ObjectUpdate, PlaneType,
     PlaneUpdate,
 };
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
 use std::hash::Hasher;
+use std::path::PathBuf;
 use twox_hash::XxHash32;
 
 const HEADER_VERSION_MAJOR: u8 = 1;
@@ -25,47 +25,38 @@ const NUM_BUFFERS: u32 = 3;
 
 const PATTERN: &[u8] = include_bytes!("../resources/smpte-color-bars.png");
 
-fn main() -> Result<()> {
-    let matches = App::new("KMS Crash Test Pattern")
-        .arg(
-            Arg::with_name("device")
-                .short("D")
-                .help("DRM Device Path")
-                .default_value("/dev/dri/card0"),
-        )
-        .arg(
-            Arg::with_name("debug")
-                .long("debug")
-                .short("d")
-                .help("Enables debug log level"),
-        )
-        .arg(
-            Arg::with_name("trace")
-                .long("trace")
-                .short("t")
-                .conflicts_with("debug")
-                .help("Enables trace log level"),
-        )
-        .get_matches();
 
-    let log_level = if matches.is_present("trace") {
-        LevelFilter::Trace
-    } else if matches.is_present("debug") {
-        LevelFilter::Debug
-    } else {
-        LevelFilter::Info
-    };
+#[derive(Parser)]
+#[command(about = "KMS Crash Test Pattern", version)]
+struct CliArgs {
+    #[arg(
+        short = 'D',
+        long,
+        help = "DRM Device Path",
+        default_value = "/dev/dri/card0"
+    )]
+    device: PathBuf,
+
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    verbose: u8,
+}
+
+fn main() -> Result<()> {
+    let args = CliArgs::parse();
 
     TermLogger::init(
-        log_level,
+        match args.verbose {
+            0 => LevelFilter::Info,
+            1 => LevelFilter::Debug,
+            _ => LevelFilter::Trace,
+        },
         Config::default(),
         TerminalMode::Mixed,
         ColorChoice::Auto,
     )
     .context("Couldn't setup our logger.")?;
 
-    let dev_path = matches.value_of("device").unwrap();
-    let device = Device::new(dev_path).unwrap();
+    let device = Device::new(args.device.to_str().unwrap()).unwrap();
 
     let connector = device
         .connectors()
@@ -92,7 +83,7 @@ fn main() -> Result<()> {
         .planes()
         .into_iter()
         .find(|plane| {
-            plane.formats().any(|fmt| fmt == Format::RGB888)
+            plane.formats().any(|fmt| fmt == Format::BGR888)
                 && plane.plane_type() == PlaneType::Overlay
         })
         .context("Couldn't find a plane with the proper format")?;
@@ -100,7 +91,7 @@ fn main() -> Result<()> {
     let img = image::load_from_memory(PATTERN)
         .context("Couldn't load our image")?
         .resize_exact(width as u32, height as u32, FilterType::Nearest);
-    let img_data = img.to_bgr8().into_vec();
+    let img_data = img.to_rgb8().into_vec();
 
     let mut hasher = XxHash32::with_seed(0);
     hasher.write(&img_data[16..]);
@@ -113,7 +104,7 @@ fn main() -> Result<()> {
         let mut buffer = device
             .allocate_buffer(BufferType::Dumb, width, height, 24)
             .unwrap()
-            .into_framebuffer(Format::RGB888)
+            .into_framebuffer(Format::BGR888)
             .unwrap();
 
         let data = buffer.data();
