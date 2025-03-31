@@ -8,10 +8,12 @@ version.workspace = true
 
 [dependencies]
 pix.workspace = true
+png.workspace = true
 rxing.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+threads_pool.workspace = true
 tracing.workspace = true
 twox-hash.workspace = true
 

@@ -1,9 +1,19 @@
-use std::{hash::Hasher, ops::Deref};
+use std::{
+    cell::RefCell,
+    fs::{self, File},
+    hash::Hasher,
+    io::{self, BufWriter},
+    ops::Deref,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 use pix::{gray::Gray8, rgb::Rgb8, Raster, Region};
+use png::{BitDepth, ColorType, Encoder};
 use serde::Deserialize;
 use thiserror::Error;
-use tracing::{debug, debug_span, trace_span, warn};
+use threads_pool::ThreadPool;
+use tracing::{debug, debug_span, error, trace_span, warn};
 use twox_hash::XxHash64;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
@@ -53,6 +63,24 @@ impl FrameInner {
 
     fn to_luma(&self) -> Raster<Gray8> {
         Raster::with_raster(&self.0)
+    }
+
+    pub fn write_to_png(&self, path: &Path) -> Result<(), io::Error> {
+        let file = File::create(path)?;
+        let writer = BufWriter::new(file);
+
+        let mut encoder = Encoder::new(writer, self.0.width(), self.0.height());
+        encoder.set_color(ColorType::Rgb);
+        encoder.set_depth(BitDepth::Eight);
+
+        let mut writer = encoder.write_header()?;
+        writer.write_image_data(self.0.as_u8_slice())?;
+
+        Ok(())
+    }
+
+    pub fn write_to_raw(&self, path: &Path) -> Result<(), io::Error> {
+        fs::write(path, self.0.as_u8_slice())
     }
 }
 
@@ -136,10 +164,50 @@ impl Deref for ClearedDradisFrame {
     }
 }
 
+pub struct DecodeCheckArgsDumpOptions {
+    pub threads_pool: Rc<RefCell<ThreadPool<()>>>,
+    pub dump_on_corrupted_frame: bool,
+    pub dump_on_valid_frame: bool,
+}
+
+pub enum DecodeCheckArgsDump {
+    Dump(DecodeCheckArgsDumpOptions),
+    Ignore,
+}
+
 pub struct DecodeCheckArgs {
     pub previous_frame_idx: Option<usize>,
     pub width: usize,
     pub height: usize,
+    pub dump: DecodeCheckArgsDump,
+}
+
+pub fn dump_image_to_file(
+    frame_with_qr: DradisFrame,
+    frame_without_qr: ClearedDradisFrame,
+    valid: bool,
+    idx: usize,
+) {
+    let base_path = PathBuf::from(format!(
+        "dumped-buffer-{}-{idx}",
+        if valid { "valid" } else { "broken" }
+    ));
+
+    if let Err(e) = frame_with_qr.write_to_raw(&base_path.with_extension("with.rgb888.raw")) {
+        error!("Error writing file: {e}");
+    }
+
+    if let Err(e) = frame_without_qr.write_to_raw(&base_path.with_extension("without.rgb888.raw")) {
+        error!("Error writing file: {e}");
+    }
+
+    if let Err(e) = frame_with_qr.write_to_png(&base_path.with_extension("with.png")) {
+        error!("Error writing file: {e}");
+    }
+
+    if let Err(e) = frame_without_qr.write_to_raw(&base_path.with_extension("without.png")) {
+        error!("Error writing file: {e}");
+    }
 }
 
 pub fn decode_and_check_frame(
@@ -173,11 +241,21 @@ pub fn decode_and_check_frame(
 
     let cleared = image.cleared_frame_with_metadata(&metadata);
     let hash = debug_span!("Checksum Computation").in_scope(|| cleared.compute_checksum());
+
+    if let DecodeCheckArgsDump::Dump(o) = args.dump {
+        if o.dump_on_corrupted_frame {
+            o.threads_pool.borrow_mut().spawn_and_queue(move || {
+                dump_image_to_file(image, cleared, hash == metadata.hash, metadata.index)
+            });
+        }
+    }
+
     if hash != metadata.hash {
         warn!(
             "Hash mismatch: {:#x} vs expected {:#x}",
             hash, metadata.hash
         );
+
         return Err(Box::new(FrameError::IntegrityFailure));
     }
 

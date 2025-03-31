@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main};
-use dradis_frame_check::{decode_and_check_frame, DecodeCheckArgs, Metadata};
+use dradis_frame_check::{decode_and_check_frame, DecodeCheckArgs, DecodeCheckArgsDump, Metadata};
 
 const FRAME_WIDTH: usize = 1280;
 const FRAME_HEIGHT: usize = 720;
@@ -18,6 +18,7 @@ fn bench_frame_detect(c: &mut criterion::Criterion) {
                     previous_frame_idx: None,
                     width: FRAME_WIDTH,
                     height: FRAME_HEIGHT,
+                    dump: DecodeCheckArgsDump::Ignore,
                 }),
             )
             .unwrap();

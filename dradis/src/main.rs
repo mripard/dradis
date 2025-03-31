@@ -13,9 +13,11 @@ mod helpers;
 
 use core::fmt;
 use std::{
+    cell::RefCell,
     fs::File,
     os::unix::io::AsRawFd,
     path::PathBuf,
+    rc::Rc,
     thread::sleep,
     time::{Duration, Instant},
 };
@@ -24,11 +26,14 @@ use anyhow::Context;
 use clap::Parser;
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
-use frame_check::{decode_and_check_frame, DecodeCheckArgs};
+use frame_check::{
+    decode_and_check_frame, DecodeCheckArgs, DecodeCheckArgsDump, DecodeCheckArgsDumpOptions,
+};
 use redid::EdidTypeConversionError;
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
 use thiserror::Error;
+use threads_pool::ThreadPool;
 use tracing::{debug, debug_span, error, info, warn, Level};
 use tracing_subscriber::fmt::format::FmtSpan;
 use v4lise::{
@@ -131,6 +136,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
         .expect("Couldn't request our buffers");
 
     let mut buffers = Vec::with_capacity(NUM_BUFFERS as usize);
+    let pool = Rc::new(RefCell::new(ThreadPool::new(Some(10))));
 
     for idx in 0..NUM_BUFFERS {
         let mut rbuf = v4l2_buffer {
@@ -215,6 +221,11 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
                     previous_frame_idx: last_frame_index,
                     width: test.expected_width,
                     height: test.expected_height,
+                    dump: DecodeCheckArgsDump::Dump(DecodeCheckArgsDumpOptions {
+                        threads_pool: pool.clone(),
+                        dump_on_corrupted_frame: true,
+                        dump_on_valid_frame: true,
+                    }),
                 }),
             ) {
                 debug!("Frame {} Valid", metadata.index);
