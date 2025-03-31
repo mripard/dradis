@@ -12,7 +12,7 @@ byteorder = { version = "1.5.0", default-features = false, features = ["std"] }
 clap = { version = "4.5.34", default-features = false, features = ["cargo", "derive", "help", "std"] }
 image = { version = "0.25.6", default-features = false, features = ["png"] }
 log = { version = "0.4.27", default-features = false, features = ["std"] }
-nucleid = { git = "https://github.com/mripard/nucleid.git" }
+nucleid = { git = "https://github.com/mripard/nucleid.git", rev = "b084a0fb0dc998c68b1ca660c7ac876a00a815fd" }
 qrcode = { version = "0.14.1", default-features = false, features = ["image"] }
 serde = { version = "1.0.219", default-features = false, features = ["derive", "std"] }
 serde_json = { version = "1.0.140", default-features = false, features = ["std"] }
