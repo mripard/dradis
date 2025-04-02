@@ -9,7 +9,7 @@ use twox_hash::XxHash64;
 const HEADER_VERSION_MAJOR: u8 = 2;
 
 #[derive(Debug, Error)]
-enum FrameError {
+pub enum FrameError {
     #[error("Frame Integrity Check Failed.")]
     IntegrityFailure,
 

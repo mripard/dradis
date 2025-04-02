@@ -1,0 +1,26 @@
+[package]
+authors.workspace = true
+edition.workspace = true
+license-file.workspace = true
+name = "dradis-frame-check"
+version.workspace = true
+
+[dependencies]
+image.workspace = true
+rxing.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+twox-hash.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[lib]
+bench = false
+
+[[bench]]
+name = "bench_decode"
+path = "benches/bench_decode.rs"
+harness = false

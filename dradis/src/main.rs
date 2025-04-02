@@ -9,7 +9,6 @@
 #![allow(clippy::needless_raw_string_hashes)]
 #![allow(clippy::unreadable_literal)]
 
-mod frame_check;
 mod helpers;
 
 use core::fmt;
@@ -25,6 +24,7 @@ use anyhow::Context;
 use clap::Parser;
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
+use frame_check::decode_and_check_frame;
 use redid::EdidTypeConversionError;
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
@@ -36,12 +36,9 @@ use v4lise::{
     PixelFormat, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE,
 };
 
-use crate::{
-    frame_check::decode_and_check_frame,
-    helpers::{
-        dequeue_buffer, dequeue_event, queue_buffer, set_edid, start_streaming, subscribe_event,
-        wait_and_set_dv_timings, EventKind,
-    },
+use crate::helpers::{
+    dequeue_buffer, dequeue_event, queue_buffer, set_edid, start_streaming, subscribe_event,
+    wait_and_set_dv_timings, EventKind,
 };
 
 pub mod built_info {

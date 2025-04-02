@@ -1,8 +1,9 @@
 [package]
+authors.workspace = true
+edition.workspace = true
+license-file.workspace = true
 name = "v4lise"
 version = "0.1.0"
-authors = ["Maxime Ripard <maxime@cerno.tech>"]
-edition = "2021"
 
 [dependencies]
 bitflags = "2.5.0"
@@ -12,3 +13,6 @@ strum_macros = "0.26.4"
 
 [build-dependencies]
 bindgen = "0.69.4"
+
+[lib]
+bench = false
