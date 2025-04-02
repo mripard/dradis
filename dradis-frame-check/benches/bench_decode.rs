@@ -18,6 +18,7 @@ fn bench_frame_detect(c: &mut criterion::Criterion) {
                     previous_frame_idx: None,
                     width: FRAME_WIDTH,
                     height: FRAME_HEIGHT,
+                    swap_channels: false,
                     dump: DecodeCheckArgsDump::Ignore,
                 }),
             )

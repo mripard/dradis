@@ -8,7 +8,7 @@ use std::{
     rc::Rc,
 };
 
-use pix::{gray::Gray8, rgb::Rgb8, Raster, Region};
+use pix::{bgr::Bgr8, gray::Gray8, rgb::Rgb8, Raster, Region};
 use png::{BitDepth, ColorType, Encoder};
 use serde::Deserialize;
 use thiserror::Error;
@@ -95,6 +95,12 @@ impl DradisFrame {
         Self(FrameInner::from_raw_bytes(width, height, bytes))
     }
 
+    pub fn from_raw_bytes_with_swapped_channels(width: usize, height: usize, bytes: &[u8]) -> Self {
+        let bgr = Raster::<Bgr8>::with_u8_buffer(width as u32, height as u32, bytes.to_vec());
+
+        Self(FrameInner(Raster::with_raster(&bgr)))
+    }
+
     pub fn qrcode_content(&self) -> Result<String, FrameError> {
         debug_span!("QRCode Detection").in_scope(|| {
             let cropped = self.0.crop(128, 128);
@@ -179,6 +185,7 @@ pub struct DecodeCheckArgs {
     pub previous_frame_idx: Option<usize>,
     pub width: usize,
     pub height: usize,
+    pub swap_channels: bool,
     pub dump: DecodeCheckArgsDump,
 }
 
@@ -217,8 +224,13 @@ pub fn decode_and_check_frame(
     let args = args.expect("Missing arguments");
     let last_frame_index = args.previous_frame_idx;
 
-    let image = trace_span!("Framebuffer Importation")
-        .in_scope(|| DradisFrame::from_raw_bytes(args.width, args.height, data));
+    let image = trace_span!("Framebuffer Importation").in_scope(|| {
+        if args.swap_channels {
+            DradisFrame::from_raw_bytes_with_swapped_channels(args.width, args.height, data)
+        } else {
+            DradisFrame::from_raw_bytes(args.width, args.height, data)
+        }
+    });
 
     let metadata = image.metadata()?;
     if metadata.version.0 != HEADER_VERSION_MAJOR {

@@ -221,6 +221,10 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
                     previous_frame_idx: last_frame_index,
                     width: test.expected_width,
                     height: test.expected_height,
+                    // The RaspberryPi driver advertises the RGB24 v4l2 format (Red first), but
+                    // actually stores the CSI format (blue first). We need to
+                    // do a conversion to make it meaningful to us.
+                    swap_channels: true,
                     dump: DecodeCheckArgsDump::Dump(DecodeCheckArgsDumpOptions {
                         threads_pool: pool.clone(),
                         dump_on_corrupted_frame: true,
