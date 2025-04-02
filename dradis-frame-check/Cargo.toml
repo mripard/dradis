@@ -7,7 +7,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-image.workspace = true
+pix.workspace = true
 rxing.workspace = true
 serde.workspace = true
 serde_json.workspace = true

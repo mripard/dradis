@@ -1,6 +1,6 @@
 use std::hash::Hasher;
 
-use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Rgb, Rgba};
+use pix::{bgr::Bgr8, gray::Gray8, Raster, Region};
 use serde::Deserialize;
 use thiserror::Error;
 use tracing::{debug, debug_span, trace_span, warn};
@@ -15,9 +15,6 @@ pub enum FrameError {
 
     #[error("Frame Header is Invalid.")]
     InvalidFrame,
-
-    #[error("Not Enough Memory.")]
-    NotEnoughMemory,
 }
 
 #[allow(dead_code)]
@@ -37,6 +34,7 @@ pub struct DecodeCheckArgs {
     pub width: usize,
     pub height: usize,
 }
+
 pub fn decode_and_check_frame(
     data: &[u8],
     args: Option<DecodeCheckArgs>,
@@ -48,17 +46,20 @@ pub fn decode_and_check_frame(
 
     let mut image = trace_span!("Framebuffer Importation").in_scope(|| {
         let pixels = data.to_vec();
-        let buffer = ImageBuffer::<Rgb<u8>, Vec<u8>>::from_vec(width, height, pixels)
-            .ok_or(FrameError::NotEnoughMemory)?;
 
-        Ok::<DynamicImage, FrameError>(DynamicImage::ImageRgb8(buffer))
-    })?;
+        Raster::<Bgr8>::with_u8_buffer(width, height, pixels)
+    });
 
     let content = debug_span!("QRCode Detection").in_scope(|| {
-        let luma = image.to_luma8().view(0, 0, 128, 128).to_image();
+        let region = Region::new(0, 0, 128, 128);
 
-        let results = rxing::helpers::detect_multiple_in_luma(luma.into_vec(), 128, 128)
-            .map_err(|_| FrameError::InvalidFrame)?;
+        let mut qr_raster = Raster::with_clear(128, 128);
+        qr_raster.copy_raster((), &image, region);
+
+        let luma = Raster::<Gray8>::with_raster(&qr_raster);
+        let results =
+            rxing::helpers::detect_multiple_in_luma(luma.as_u8_slice().to_vec(), 128, 128)
+                .map_err(|_| FrameError::InvalidFrame)?;
 
         if results.len() != 1 {
             debug!("Didn't find a QR Code");
@@ -94,15 +95,16 @@ pub fn decode_and_check_frame(
     let qrcode_height =
         u32::try_from(metadata.qrcode_height).expect("QR Code Height doesn't fit into a u32");
 
-    for x in 0..qrcode_width {
-        for y in 0..qrcode_height {
-            image.put_pixel(x, y, Rgba([0, 0, 0, 255]));
-        }
-    }
+    let empty_raster = Raster::<Bgr8>::with_color(qrcode_width, qrcode_height, Bgr8::new(0, 0, 0));
+    image.copy_raster(
+        Region::new(0, 0, qrcode_width, qrcode_height),
+        &empty_raster,
+        (),
+    );
 
     let hash = debug_span!("Checksum Computation").in_scope(|| {
         let mut hasher = XxHash64::with_seed(0);
-        hasher.write(image.as_bytes());
+        hasher.write(image.as_u8_slice());
         hasher.finish()
     });
 
