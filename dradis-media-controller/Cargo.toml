@@ -1,0 +1,17 @@
+[package]
+authors.workspace = true
+description = "Linux Media Controller Library"
+edition.workspace = true
+license-file.workspace = true
+name = "dradis-media-controller"
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+bitflags.workspace = true
+rustix.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+clap.workspace = true
