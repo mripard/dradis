@@ -52,6 +52,10 @@ impl FrameInner {
         ))
     }
 
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_u8_slice()
+    }
+
     fn crop(&self, width: usize, height: usize) -> Self {
         let region = Region::new(0, 0, 128, 128);
 
@@ -61,8 +65,20 @@ impl FrameInner {
         Self(smaller)
     }
 
+    pub fn pixel(&self, x: usize, y: usize) -> Rgb8 {
+        self.0.pixel(x as i32, y as i32)
+    }
+
     fn to_luma(&self) -> Raster<Gray8> {
         Raster::with_raster(&self.0)
+    }
+
+    pub fn height(&self) -> usize {
+        self.0.height() as usize
+    }
+
+    pub fn width(&self) -> usize {
+        self.0.width() as usize
     }
 
     pub fn write_to_png(&self, path: &Path) -> Result<(), io::Error> {
@@ -126,20 +142,21 @@ impl DradisFrame {
             .in_scope(|| serde_json::from_str(&content).map_err(|_| FrameError::IntegrityFailure))
     }
 
-    pub fn cleared_frame_with_metadata(&self, metadata: &Metadata) -> ClearedDradisFrame {
+    pub fn cleared_frame(&self, clear_width: usize, clear_height: usize) -> ClearedDradisFrame {
         let mut cleared = self.0.0.clone();
-        let empty = Raster::<Rgb8>::with_color(
-            metadata.qrcode_width as u32,
-            metadata.qrcode_height as u32,
-            Rgb8::new(0, 0, 0),
-        );
+        let empty =
+            Raster::<Rgb8>::with_color(clear_width as u32, clear_height as u32, Rgb8::new(0, 0, 0));
         cleared.copy_raster(
-            Region::new(0, 0, metadata.width as u32, metadata.height as u32),
+            Region::new(0, 0, self.0.0.width(), self.0.0.height()),
             &empty,
             (),
         );
 
         ClearedDradisFrame(FrameInner(cleared))
+    }
+
+    pub fn cleared_frame_with_metadata(&self, metadata: &Metadata) -> ClearedDradisFrame {
+        self.cleared_frame(metadata.qrcode_width, metadata.qrcode_height)
     }
 }
 

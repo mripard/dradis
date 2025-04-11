@@ -30,6 +30,10 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 v4lise.workspace = true
 
+[dev-dependencies]
+pix.workspace = true
+tracelimit.workspace = true
+
 [[bin]]
 name = "dradis"
 bench = false
