@@ -361,16 +361,6 @@ struct Cli {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    info!(
-        "Running {} {}",
-        built_info::PKG_NAME,
-        if let Some(version) = built_info::GIT_VERSION {
-            version
-        } else {
-            built_info::PKG_VERSION
-        }
-    );
-
     tracing_subscriber::fmt()
         .with_span_events(FmtSpan::CLOSE)
         .with_ansi(true)
@@ -380,6 +370,16 @@ fn main() -> anyhow::Result<()> {
             _ => Level::TRACE,
         })
         .init();
+
+    info!(
+        "Running {} {}",
+        built_info::PKG_NAME,
+        if let Some(version) = built_info::GIT_VERSION {
+            version
+        } else {
+            built_info::PKG_VERSION
+        }
+    );
 
     let test_file = File::open(cli.test).context("Couldn't open the test description file.")?;
 
