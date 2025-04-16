@@ -284,6 +284,23 @@ fn test_run(
         "Missing V4L2 Root Device",
     )))?;
 
+    let PipelineItem(_, bridge, _) =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
+
+    let bridge_device = bridge
+        .device
+        .as_ref()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing V4L2 HDMI Bridge Device",
+        )))?;
+
     test_prepare_queue(suite, queue, test)?;
 
     queue
@@ -340,7 +357,7 @@ fn test_run(
                 return Err(TestError::NoFrameReceived);
             }
 
-            let evt = v4l2_ioctl_dqevent(root_device.as_fd());
+            let evt = v4l2_ioctl_dqevent(bridge_device.as_fd());
             if let Ok(e) = evt {
                 if let v4l2_event_type::SourceChange(_) = e.kind() {
                     debug! {"Source Changed: seq: {}, rem: {}", e.sequence(), e.pending()};
@@ -442,12 +459,20 @@ fn test_display_one_mode(
                 "Missing HDMI Bridge Entity",
             )))?;
 
+    let bridge_device = bridge
+        .device
+        .as_ref()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing V4L2 HDMI Bridge Device",
+        )))?;
+
     let queue = root_device
         .get_queue(QueueType::Capture)
         .map_err(SetupError::from)?;
 
     v4l2_ioctl_subscribe_event(
-        root_device.as_fd(),
+        bridge_device.as_fd(),
         v4l2_event_subscription::new(v4l2_event_subscription_type::SourceChange),
     )
     .map_err(SetupError::from)?;
