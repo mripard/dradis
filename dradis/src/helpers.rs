@@ -268,6 +268,8 @@ pub(crate) fn wait_and_set_dv_timings(
     width: u32,
     height: u32,
 ) -> result::Result<(), SetupError> {
+    let (_, root, _) = suite.pipeline.first().unwrap();
+    let root_device = root.device.as_ref().unwrap();
     let start = Instant::now();
 
     loop {
@@ -277,13 +279,13 @@ pub(crate) fn wait_and_set_dv_timings(
             )));
         }
 
-        let timings = v4l2_ioctl_query_dv_timings(suite.dev.as_fd());
+        let timings = v4l2_ioctl_query_dv_timings(root_device.as_fd());
         match timings {
             Ok(timings) => {
                 if let v4l2_dv_timings::Bt_656_1120(bt) = timings {
                     if bt.width == width && bt.height == height {
                         info!("Source started to transmit the proper resolution.");
-                        v4l2_ioctl_s_dv_timings(suite.dev.as_fd(), timings)?;
+                        v4l2_ioctl_s_dv_timings(root_device.as_fd(), timings)?;
                         return Ok(());
                     }
                 }
