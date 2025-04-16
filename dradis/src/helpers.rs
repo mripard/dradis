@@ -34,7 +34,7 @@ use v4l2_raw::{
 };
 use v4lise::{Device, v4l2_buffer, v4l2_requestbuffers};
 
-use crate::{BUFFER_TYPE, Dradis, MEMORY_TYPE, SetupError, TestEdid};
+use crate::{BUFFER_TYPE, Dradis, MEMORY_TYPE, PipelineItem, SetupError, TestEdid};
 
 const HFREQ_TOLERANCE_KHZ: u32 = 5;
 const VFREQ_TOLERANCE_HZ: u32 = 1;
@@ -269,6 +269,20 @@ pub(crate) fn wait_and_set_dv_timings(
     width: u32,
     height: u32,
 ) -> Result<(), SetupError> {
+    let PipelineItem(_, root, _) =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
+
+    let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
+        Errno::NODEV.kind(),
+        "Missing V4L2 Root Device",
+    )))?;
+
     let start = Instant::now();
 
     loop {
@@ -278,13 +292,13 @@ pub(crate) fn wait_and_set_dv_timings(
             )));
         }
 
-        let timings = v4l2_ioctl_query_dv_timings(suite.dev.as_fd());
+        let timings = v4l2_ioctl_query_dv_timings(root_device.as_fd());
         match timings {
             Ok(timings) => {
                 if let v4l2_dv_timings::Bt_656_1120(bt) = timings {
                     if bt.width == width && bt.height == height {
                         info!("Source started to transmit the proper resolution.");
-                        v4l2_ioctl_s_dv_timings(suite.dev.as_fd(), timings)?;
+                        v4l2_ioctl_s_dv_timings(root_device.as_fd(), timings)?;
                         return Ok(());
                     }
                 }

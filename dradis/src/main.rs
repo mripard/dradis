@@ -30,6 +30,7 @@ use dma_heap::{Heap, HeapKind};
 use frame_check::{
     DecodeCheckArgs, DecodeCheckArgsDump, DecodeCheckArgsDumpOptions, decode_and_check_frame,
 };
+use linux_mc::{MediaController, MediaControllerEntity, MediaControllerPad, media_entity_function};
 use redid::EdidTypeConversionError;
 use rustix::io::Errno;
 use serde::Deserialize;
@@ -99,17 +100,152 @@ enum TestError {
     SetupFailed(#[from] SetupError),
 }
 
-fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), SetupError> {
+fn find_endpoint_predicate(
+    entity: MediaControllerEntity,
+) -> Option<Result<MediaControllerEntity, io::Error>> {
+    if entity.function().valid() != media_entity_function::MEDIA_ENT_F_VID_IF_BRIDGE {
+        return None;
+    }
+
+    match entity.num_pads().valid() {
+        Ok(num_pads) => {
+            if num_pads > 1 {
+                return None;
+            }
+        }
+        Err(e) => return Some(Err(e)),
+    }
+
+    match entity.pad(0).valid() {
+        Ok(Some(p)) => {
+            if p.is_source().valid() {
+                Some(Ok(entity))
+            } else {
+                None
+            }
+        }
+        Ok(None) => None,
+        Err(e) => Some(Err(e)),
+    }
+}
+
+fn find_internal_routed_pad(
+    entity: &MediaControllerEntity,
+    pad: &MediaControllerPad,
+) -> Result<Option<MediaControllerPad>, io::Error> {
+    let other = pad.kind().valid().other();
+
+    let mut other_pads = entity
+        .pads()
+        .valid()?
+        .into_iter()
+        .filter(|p| p.kind().valid() == other)
+        .collect::<Vec<_>>();
+
+    Ok(match other_pads.len() {
+        0 => None,
+        1 => Some(other_pads.remove(0)),
+        2.. => {
+            // If it's a subdev, we should be calling g_routing. It's not enabled by default though,
+            // so we'll just take the first pad in the list, and hope for the best.
+            Some(other_pads.remove(0))
+        }
+    })
+}
+
+#[derive(Debug)]
+struct MediaPipelineItem(
+    Option<MediaControllerPad>,
+    MediaControllerEntity,
+    Option<MediaControllerPad>,
+);
+
+fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, io::Error> {
+    let mut outputs = Vec::new();
+    let entities = mc.entities()?;
+
+    debug!("Starting to discover our pipeline.");
+
+    let mut endpoints = entities.into_iter().filter_map(find_endpoint_predicate);
+    let hdmi_bridge = endpoints
+        .next()
+        .transpose()?
+        .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
+    assert!(endpoints.next().is_none());
+
+    debug!("Found an HDMI bridge: {}", hdmi_bridge.name());
+
+    let hdmi_bridge_pad = hdmi_bridge
+        .pad(0)
+        .valid()?
+        .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
+
+    debug!(
+        "Found our pipeline source: {}, pad {}",
+        hdmi_bridge.name(),
+        hdmi_bridge_pad.index()
+    );
+
+    outputs.push(MediaPipelineItem(
+        None,
+        hdmi_bridge,
+        Some(hdmi_bridge_pad.clone()),
+    ));
+
+    let mut prev_source_pad = hdmi_bridge_pad;
+    loop {
+        let sink_pad = prev_source_pad
+            .remote_pad()
+            .valid()?
+            .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
+
+        let entity = sink_pad.entity().valid()?;
+
+        let source_pad = find_internal_routed_pad(&entity, &sink_pad)?;
+
+        outputs.push(MediaPipelineItem(
+            Some(sink_pad.clone()),
+            entity.clone(),
+            source_pad.clone(),
+        ));
+
+        // Should we test whether it's a v4l2 device and / or a default controller?
+        if let Some(source_pad) = source_pad {
+            debug!(
+                "Found an intermediate entity {}, input pad {}, output pad {}",
+                entity.name(),
+                sink_pad.index(),
+                source_pad.index()
+            );
+            prev_source_pad = source_pad;
+        } else {
+            debug!(
+                "Found the root entity {}, input pad {}",
+                entity.name(),
+                sink_pad.index()
+            );
+
+            break;
+        }
+    }
+
+    outputs.reverse();
+    Ok(outputs)
+}
+
+fn test_prepare_queue(
+    suite: &Dradis<'_>,
+    queue: &Queue<'_>,
+    test: &TestItem,
+) -> std::result::Result<(), SetupError> {
     wait_and_set_dv_timings(suite, test.expected_width, test.expected_height)?;
 
-    let _ = suite
-        .queue
+    let _ = queue
         .get_pixel_formats()
         .find(|fmt| *fmt == v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
         .expect("Couldn't find our format");
 
-    let pix_fmt = if let v4l2_format::VideoCapture(pix_fmt) = suite
-        .queue
+    let pix_fmt = if let v4l2_format::VideoCapture(pix_fmt) = queue
         .get_current_format()
         .expect("Couldn't get our queue format")
     {
@@ -121,8 +257,7 @@ fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Resul
         unreachable!()
     };
 
-    suite
-        .queue
+    queue
         .set_format(v4l2_format::VideoCapture(pix_fmt))
         .expect("Couldn't change our queue format");
 
@@ -130,11 +265,28 @@ fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Resul
 }
 
 #[expect(clippy::too_many_lines)]
-fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
-    test_prepare_queue(suite, test)?;
+fn test_run(
+    suite: &Dradis<'_>,
+    queue: &Queue<'_>,
+    test: &TestItem,
+) -> std::result::Result<(), TestError> {
+    let PipelineItem(_, root, _) =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
 
-    suite
-        .queue
+    let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
+        Errno::NODEV.kind(),
+        "Missing V4L2 Root Device",
+    )))?;
+
+    test_prepare_queue(suite, queue, test)?;
+
+    queue
         .request_buffers(MemoryType::DMABUF, NUM_BUFFERS as usize)
         .expect("Couldn't request our buffers");
 
@@ -149,7 +301,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
             ..v4l2_buffer::default()
         };
 
-        rbuf = v4l2_ioctl_querybuf(suite.dev.as_fd(), rbuf).expect("Couldn't query our buffer");
+        rbuf = v4l2_ioctl_querybuf(root_device.as_fd(), rbuf).expect("Couldn't query our buffer");
 
         let len = rbuf.length as usize;
         let buffer = suite
@@ -161,11 +313,11 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
             .memory_map()
             .expect("Couldn't map our dma-buf buffer");
 
-        queue_buffer(suite.dev, idx, buffer.as_raw_fd()).expect("Couldn't queue our buffer");
+        queue_buffer(root_device, idx, buffer.as_raw_fd()).expect("Couldn't queue our buffer");
         buffers.push(buffer);
     }
 
-    let _stream = start_streaming(suite.dev, BUFFER_TYPE).expect("Couldn't start streaming");
+    let _stream = start_streaming(root_device, BUFFER_TYPE).expect("Couldn't start streaming");
 
     let start = Instant::now();
     let mut first_frame_valid = None;
@@ -188,7 +340,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
                 return Err(TestError::NoFrameReceived);
             }
 
-            let evt = v4l2_ioctl_dqevent(suite.dev.as_fd());
+            let evt = v4l2_ioctl_dqevent(root_device.as_fd());
             if let Ok(e) = evt {
                 if let v4l2_event_type::SourceChange(_) = e.kind() {
                     debug! {"Source Changed: seq: {}, rem: {}", e.sequence(), e.pending()};
@@ -200,7 +352,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
                 debug!("No Event to Dequeue.");
             }
 
-            let buffer_idx = dequeue_buffer(suite.dev);
+            let buffer_idx = dequeue_buffer(root_device);
             match buffer_idx {
                 Ok(_) => break buffer_idx,
                 Err(ref e) => match Errno::from_io_error(e) {
@@ -248,7 +400,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
             }
         });
 
-        queue_buffer(suite.dev, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
+        queue_buffer(root_device, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
 
         if let Some(duration) = test.duration {
             if let Some(first) = first_frame_valid {
@@ -267,10 +419,34 @@ fn test_display_one_mode(
     suite: &Dradis<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    set_edid(suite.dev, &test.edid)?;
+    let PipelineItem(_, root, _) =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
+
+    let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
+        Errno::NODEV.kind(),
+        "Missing V4L2 Root Device",
+    )))?;
+
+    let queue = root_device
+        .get_queue(QueueType::Capture)
+        .map_err(SetupError::from)?;
+
+    v4l2_ioctl_subscribe_event(
+        root_device.as_fd(),
+        v4l2_event_subscription::new(v4l2_event_subscription_type::SourceChange),
+    )
+    .map_err(SetupError::from)?;
+
+    set_edid(root_device, &test.edid)?;
 
     loop {
-        match test_run(suite, test) {
+        match test_run(suite, &queue, test) {
             Ok(()) => break,
             Err(e) => match e {
                 TestError::Retry => {
@@ -337,17 +513,36 @@ struct Test {
 }
 
 #[derive(Debug)]
+#[expect(dead_code, reason = "We're not done yet")]
+struct V4l2EntityWrapper {
+    entity: MediaControllerEntity,
+    device: Option<Device>,
+}
+
+#[derive(Debug)]
+#[expect(dead_code, reason = "We're not done yet")]
+struct PipelineItem(
+    Option<MediaControllerPad>,
+    V4l2EntityWrapper,
+    Option<MediaControllerPad>,
+);
+
+#[derive(Debug)]
 pub(crate) struct Dradis<'a> {
     cfg: Test,
-    dev: &'a Device,
+    pipeline: Vec<PipelineItem>,
     heap: &'a Heap,
-    queue: &'a Queue<'a>,
 }
 
 #[derive(Parser)]
 #[command(version, about = "DRADIS DRM/KMS Test Program")]
 struct Cli {
-    #[arg(default_value = "/dev/video0", help = "V4L2 Device File", long, short)]
+    #[arg(
+        default_value = "/dev/media0",
+        help = "Media Controller Device File",
+        long,
+        short
+    )]
     device: PathBuf,
 
     #[arg(short, long, action = clap::ArgAction::Count)]
@@ -387,24 +582,37 @@ fn main() -> anyhow::Result<()> {
 
     let heap = Heap::new(HeapKind::Cma).context("Couldn't open the DMA-Buf Heap")?;
 
-    let dev = Device::new(&cli.device, true).context("Couldn't open the V4L2 Device.")?;
+    debug!("Running from media controller {}", cli.device.display());
+    let mc = MediaController::new(&cli.device)?;
+    let pipeline = find_dev_and_subdev(&mc)?
+        .into_iter()
+        .map(|MediaPipelineItem(source, dev, sink)| {
+            let node = if let Some(itf) = dev.interfaces().valid()?.first() {
+                if let Some(node) = itf.device_node().valid()? {
+                    Some(Device::new(node.path(), true)?)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
 
-    let queue = dev
-        .get_queue(QueueType::Capture)
-        .context("Couldn't open the V4L2 Capture Queue")?;
+            Ok(PipelineItem(
+                source,
+                V4l2EntityWrapper {
+                    entity: dev,
+                    device: node,
+                },
+                sink,
+            ))
+        })
+        .collect::<Result<Vec<_>, io::Error>>()?;
 
     let dradis = Dradis {
         cfg: test_config,
-        dev: &dev,
+        pipeline,
         heap: &heap,
-        queue: &queue,
     };
-
-    v4l2_ioctl_subscribe_event(
-        dradis.dev.as_fd(),
-        v4l2_event_subscription::new(v4l2_event_subscription_type::SourceChange),
-    )
-    .context("Couldn't subscribe to our V4L2 Events")?;
 
     for test in &dradis.cfg.tests {
         test_display_one_mode(&dradis, test)?;
