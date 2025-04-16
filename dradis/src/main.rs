@@ -265,6 +265,9 @@ fn test_run(
     let (_, root, _) = suite.pipeline.first().unwrap();
     let root_device = root.device.as_ref().unwrap();
 
+    let (_, bridge, _) = suite.pipeline.last().unwrap();
+    let bridge_device = bridge.device.as_ref().unwrap();
+
     test_prepare_queue(suite, queue, test)?;
 
     queue
@@ -321,7 +324,7 @@ fn test_run(
                 return Err(TestError::NoFrameReceived);
             }
 
-            let evt = v4l2_ioctl_dqevent(root_device.as_fd());
+            let evt = v4l2_ioctl_dqevent(bridge_device.as_fd());
             if let Ok(e) = evt {
                 if let v4l2_event_type::SourceChange(_) = e.kind() {
                     debug! {"Source Changed: seq: {}, rem: {}", e.sequence(), e.pending()};
@@ -407,6 +410,7 @@ fn test_display_one_mode(
     let root_device = root.device.as_ref().unwrap();
 
     let (_, bridge, _) = suite.pipeline.last().unwrap();
+    let bridge_device = bridge.device.as_ref().unwrap();
 
     let queue = root_device
         .get_queue(QueueType::Capture)
@@ -414,7 +418,7 @@ fn test_display_one_mode(
         .unwrap();
 
     v4l2_ioctl_subscribe_event(
-        root_device.as_fd(),
+        bridge_device.as_fd(),
         v4l2_event_subscription::new(v4l2_event_subscription_type::SourceChange),
     )
     .unwrap();
