@@ -7,6 +7,7 @@ members = [
     "dradis-threads-pool",
     "facet-enum-repr",
     "facet-enum-repr-derive",
+    "v4l2-raw",
     "v4lise",
 ]
 
@@ -56,7 +57,10 @@ pix = { version = "0.14.0", default-features = false }
 png = { version = "0.17.16", default-features = false }
 redid = { git = "https://github.com/mripard/redid.git" }
 rxing = { version = "0.7.1", default-features = false }
-rustix = { version = "1.0.5", default-features = false, features = ["std"] }
+rustix = { version = "1.0.5", default-features = false, features = [
+    "std",
+    "time",
+] }
 serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.140", default-features = false, features = [
     "std",
@@ -70,7 +74,9 @@ strum_macros = { version = "0.27.1", default-features = false }
 thiserror = { version = "2.0.12", default-features = false }
 threads_pool = { package = "dradis-threads-pool", path = "./dradis-threads-pool" }
 tracelimit = { git = "https://github.com/microsoft/openvmm.git", default-features = false }
-tracing = { version = "0.1.41", default-features = false }
+tracing = { version = "0.1.41", default-features = false, features = [
+    "attributes",
+] }
 tracing-subscriber = { version = "0.3.19", default-features = false, features = [
     "ansi",
     "fmt",
@@ -80,6 +86,7 @@ twox-hash = { version = "2.1.0", default-features = false, features = [
     "xxhash64",
 ] }
 unsynn = { version = "0.0.26", default-features = false }
+v4l2-raw = { path = "./v4l2-raw" }
 v4lise = { path = "./v4lise" }
 
 [workspace.lints.rust]
