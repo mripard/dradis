@@ -50,7 +50,7 @@ use v4l2_raw::{
 use v4lise::{Device, MemoryType, Queue, QueueType, v4l2_buffer};
 
 use crate::helpers::{
-    dequeue_buffer, queue_buffer, set_edid, start_streaming, wait_and_set_dv_timings,
+    bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
 };
 
 pub mod built_info {
@@ -443,7 +443,7 @@ fn test_display_one_mode(
     )
     .map_err(SetupError::from)?;
 
-    set_edid(root_device, &test.edid)?;
+    bridge_set_edid(root, &test.edid)?;
 
     loop {
         match test_run(suite, &queue, test) {

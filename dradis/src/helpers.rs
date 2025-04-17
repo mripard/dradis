@@ -4,7 +4,7 @@ use core::{
 };
 use std::{
     io,
-    os::{fd::AsFd, unix::io::RawFd},
+    os::{fd::AsFd as _, unix::io::RawFd},
     thread::sleep,
     time::{Duration, Instant},
 };
@@ -34,7 +34,9 @@ use v4l2_raw::{
 };
 use v4lise::{Device, v4l2_buffer, v4l2_requestbuffers};
 
-use crate::{BUFFER_TYPE, Dradis, MEMORY_TYPE, PipelineItem, SetupError, TestEdid};
+use crate::{
+    BUFFER_TYPE, Dradis, MEMORY_TYPE, PipelineItem, SetupError, TestEdid, V4l2EntityWrapper,
+};
 
 const HFREQ_TOLERANCE_KHZ: u32 = 5;
 const VFREQ_TOLERANCE_HZ: u32 = 1;
@@ -123,7 +125,7 @@ mod tests_round_down {
 
 // Yes, VBLANK is similar to HBLANK
 #[allow(clippy::too_many_lines, clippy::similar_names)]
-pub(crate) fn set_edid(dev: &impl AsFd, edid: &TestEdid) -> Result<(), SetupError> {
+pub(crate) fn bridge_set_edid(dev: &V4l2EntityWrapper, edid: &TestEdid) -> Result<(), SetupError> {
     let TestEdid::DetailedTiming(ref dtd) = edid;
 
     let mode_hfreq_khz: u32 =
@@ -259,7 +261,9 @@ pub(crate) fn set_edid(dev: &impl AsFd, edid: &TestEdid) -> Result<(), SetupErro
 
     let mut bytes = test_edid.into_bytes();
 
-    v4l2_ioctl_s_edid(dev.as_fd(), &mut bytes)?;
+    if let Some(device) = &dev.device {
+        v4l2_ioctl_s_edid(device.as_fd(), &mut bytes)?;
+    }
 
     Ok(())
 }
