@@ -1,6 +1,9 @@
 use std::{
     fs::{File, OpenOptions},
-    os::unix::{io::AsRawFd, prelude::OpenOptionsExt},
+    os::{
+        fd::{AsFd, BorrowedFd},
+        unix::{io::AsRawFd, prelude::OpenOptionsExt},
+    },
     path::Path,
 };
 
@@ -31,6 +34,12 @@ impl Device {
 
     pub fn get_queue(&self, queue_type: QueueType) -> Result<Queue<'_>> {
         Queue::new(self, queue_type)
+    }
+}
+
+impl AsFd for Device {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        self.file.as_fd()
     }
 }
 
