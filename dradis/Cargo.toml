@@ -30,6 +30,7 @@ thiserror.workspace = true
 threads_pool.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+v4l2-raw.workspace = true
 v4lise.workspace = true
 
 [dev-dependencies]
