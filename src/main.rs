@@ -203,7 +203,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
                     },
                     _ => break buffer_idx,
                 },
-            };
+            }
 
             sleep(Duration::from_millis(5));
         }
