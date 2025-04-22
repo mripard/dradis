@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745313971074,
+  "lastUpdate": 1745328280710,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -119,6 +119,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 489497,
             "range": "± 2195",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0a127170345ae551c9a2e3092739267bce7f70e4",
+          "message": "Merge pull request #207 from mripard/update-v4lise\n\nConsolidate v4lise crates",
+          "timestamp": "2025-04-22T15:21:09+02:00",
+          "tree_id": "e0b3c519dce52ba50430fe2bc1e62deeff3ee098",
+          "url": "https://github.com/mripard/dradis/commit/0a127170345ae551c9a2e3092739267bce7f70e4"
+        },
+        "date": 1745328279869,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 492471,
+            "range": "± 4155",
             "unit": "ns/iter"
           }
         ]
