@@ -1,10 +1,6 @@
-[package]
-name = "dradis"
-version = "0.4.4"
-authors = ["Maxime Ripard <maxime@cerno.tech>"]
-edition = "2021"
-description = "HDMI Test Application"
-license-file = "LICENSE"
+[workspace]
+resolver = "2"
+members = ["dradis", "dradis-frame-check", "dradis-threads-pool", "v4lise"]
 
 [profile.release]
 codegen-units = 1
@@ -12,21 +8,32 @@ lto = "fat"
 opt-level = 3
 panic = "abort"
 
-[build-dependencies]
-built = { version = "0.7.7", features = ["git2"] }
+[workspace.package]
+authors = ["Maxime Ripard <mripard@kernel.org>"]
+edition = "2021"
+license-file = "./LICENSE"
+repository = "https://github.com/mripard/dradis.git"
+version = "0.4.4"
 
-[dependencies]
+[workspace.dependencies]
 anyhow = "1.0.97"
 bitflags = "2.9.0"
+built = { version = "0.7.7", features = ["git2"] }
 byteorder = "1.5.0"
 chrono = "0.4.40"
 clap = { version = "4.5.32", features = ["cargo", "derive"] }
+criterion = { version = "0.5.1", default-features = false, features = [
+    "cargo_bench_support",
+    "plotters",
+] }
 dma-buf = "0.4.0"
 dma-heap = "0.4.0"
-image = { version = "0.25.5", default-features = false }
+frame_check = { package = "dradis-frame-check", path = "./dradis-frame-check" }
 libc = "0.2.171"
 nix = { version = "0.29.0", features = ["ioctl"] }
 num-traits = "0.2.19"
+pix = { version = "0.14.0", default-features = false }
+png = { version = "0.17.16", default-features = false }
 redid = { git = "https://github.com/mripard/redid.git" }
 rxing = { version = "0.7.1", default-features = false }
 serde = { version = "1.0.219", features = ["derive"] }
@@ -34,32 +41,13 @@ serde_json = "1.0.140"
 serde_with = "3.12.0"
 serde_yaml = "0.9.34"
 thiserror = "2.0.12"
+threads_pool = { package = "dradis-threads-pool", path = "./dradis-threads-pool" }
+tracelimit = { git = "https://github.com/microsoft/openvmm.git", default-features = false }
 tracing = { version = "0.1.41", default-features = false }
-tracing-subscriber = { version = "0.3.19", default-features = false, features = ["ansi", "fmt", "std"] }
+tracing-subscriber = { version = "0.3.19", default-features = false, features = [
+    "ansi",
+    "fmt",
+    "std",
+] }
 twox-hash = "2.1.0"
-
-[dependencies.v4lise]
-path = "lib/v4lise"
-
-[[bin]]
-name = "dradis"
-bench = false
-
-[[bench]]
-name = "bench_decode"
-path = "benches/bench_decode.rs"
-harness = false
-
-[package.metadata.deb]
-section = "utility"
-priority = "optional"
-assets = [
-	["target/release/dradis", "usr/bin/", "755"],
-	["samples/test-single-mode-720p.yaml", "usr/share/dradis/samples/", "644"],
-]
-
-[package.metadata.deb.variants.rpi4]
-name = "dradis-raspberrypi4"
-
-[dev-dependencies]
-criterion = { version = "0.5.1", default-features = false, features = ["cargo_bench_support", "plotters"] }
+v4lise = { path = "./v4lise" }

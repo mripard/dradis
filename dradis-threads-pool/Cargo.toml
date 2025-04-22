@@ -1,0 +1,13 @@
+[package]
+authors.workspace = true
+edition.workspace = true
+license-file.workspace = true
+name = "dradis-threads-pool"
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+tracing.workspace = true
+
+[lib]
+bench = false

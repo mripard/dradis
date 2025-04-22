@@ -60,7 +60,7 @@ jobs:
 
       - name: Build Debian Package
         run: |
-          cargo deb --variant rpi4 --deb-revision ${{ inputs.package-revision }}
+          cargo deb -p dradis --variant rpi4 --deb-revision ${{ inputs.package-revision }}
 
       - name: Find Debian Package name
         id: deb_name_vars

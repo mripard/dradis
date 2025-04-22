@@ -1,0 +1,58 @@
+[package]
+authors.workspace = true
+description = "HDMI Test Application"
+edition.workspace = true
+license-file.workspace = true
+name = "dradis"
+version.workspace = true
+
+[build-dependencies]
+built.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+bitflags.workspace = true
+chrono.workspace = true
+clap.workspace = true
+dma-buf.workspace = true
+dma-heap.workspace = true
+frame_check.workspace = true
+libc.workspace = true
+num-traits.workspace = true
+redid.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_with.workspace = true
+serde_yaml.workspace = true
+thiserror.workspace = true
+threads_pool.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+v4lise.workspace = true
+
+[dev-dependencies]
+pix.workspace = true
+tracelimit.workspace = true
+
+[[bin]]
+name = "dradis"
+bench = false
+
+[package.metadata.deb]
+section = "utility"
+priority = "optional"
+assets = [
+	[
+		"target/release/dradis",
+		"usr/bin/",
+		"755",
+	],
+	[
+		"samples/test-single-mode-720p.yaml",
+		"usr/share/dradis/samples/",
+		"644",
+	],
+]
+
+[package.metadata.deb.variants.rpi4]
+name = "dradis-raspberrypi4"

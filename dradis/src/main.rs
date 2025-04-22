@@ -9,14 +9,15 @@
 #![allow(clippy::needless_raw_string_hashes)]
 #![allow(clippy::unreadable_literal)]
 
-mod frame_check;
 mod helpers;
 
 use core::fmt;
 use std::{
+    cell::RefCell,
     fs::File,
     os::unix::io::AsRawFd,
     path::PathBuf,
+    rc::Rc,
     thread::sleep,
     time::{Duration, Instant},
 };
@@ -25,10 +26,14 @@ use anyhow::Context;
 use clap::Parser;
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
+use frame_check::{
+    decode_and_check_frame, DecodeCheckArgs, DecodeCheckArgsDump, DecodeCheckArgsDumpOptions,
+};
 use redid::EdidTypeConversionError;
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
 use thiserror::Error;
+use threads_pool::ThreadPool;
 use tracing::{debug, debug_span, error, info, warn, Level};
 use tracing_subscriber::fmt::format::FmtSpan;
 use v4lise::{
@@ -36,12 +41,9 @@ use v4lise::{
     PixelFormat, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE,
 };
 
-use crate::{
-    frame_check::decode_and_check_frame,
-    helpers::{
-        dequeue_buffer, dequeue_event, queue_buffer, set_edid, start_streaming, subscribe_event,
-        wait_and_set_dv_timings, EventKind,
-    },
+use crate::helpers::{
+    dequeue_buffer, dequeue_event, queue_buffer, set_edid, start_streaming, subscribe_event,
+    wait_and_set_dv_timings, EventKind,
 };
 
 pub mod built_info {
@@ -124,6 +126,7 @@ fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Resul
     Ok(())
 }
 
+#[expect(clippy::too_many_lines)]
 fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
     test_prepare_queue(suite, test)?;
 
@@ -133,6 +136,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
         .expect("Couldn't request our buffers");
 
     let mut buffers = Vec::with_capacity(NUM_BUFFERS as usize);
+    let pool = Rc::new(RefCell::new(ThreadPool::new(Some(10))));
 
     for idx in 0..NUM_BUFFERS {
         let mut rbuf = v4l2_buffer {
@@ -203,7 +207,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
                     },
                     _ => break buffer_idx,
                 },
-            };
+            }
 
             sleep(Duration::from_millis(5));
         }
@@ -213,7 +217,20 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
         debug_span!("Frame Processing").in_scope(|| {
             if let Ok(metadata) = buf.read(
                 decode_and_check_frame,
-                Some((last_frame_index, test.expected_width, test.expected_height)),
+                Some(DecodeCheckArgs {
+                    previous_frame_idx: last_frame_index,
+                    width: test.expected_width,
+                    height: test.expected_height,
+                    // The RaspberryPi driver advertises the RGB24 v4l2 format (Red first), but
+                    // actually stores the CSI format (blue first). We need to
+                    // do a conversion to make it meaningful to us.
+                    swap_channels: true,
+                    dump: DecodeCheckArgsDump::Dump(DecodeCheckArgsDumpOptions {
+                        threads_pool: pool.clone(),
+                        dump_on_corrupted_frame: true,
+                        dump_on_valid_frame: true,
+                    }),
+                }),
             ) {
                 debug!("Frame {} Valid", metadata.index);
                 if first_frame_valid.is_none() {
