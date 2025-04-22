@@ -1,10 +1,10 @@
 use criterion::{criterion_group, criterion_main};
 use dradis_frame_check::{DecodeCheckArgs, DecodeCheckArgsDump, Metadata, decode_and_check_frame};
 
-const FRAME_WIDTH: usize = 1280;
-const FRAME_HEIGHT: usize = 720;
-const QRCODE_WIDTH: usize = 128;
-const QRCODE_HEIGHT: usize = 128;
+const FRAME_WIDTH: u32 = 1280;
+const FRAME_HEIGHT: u32 = 720;
+const QRCODE_WIDTH: u32 = 128;
+const QRCODE_HEIGHT: u32 = 128;
 const FRAME: &[u8] = include_bytes!("./data//test-qrcode-detection.rgb888.raw");
 
 fn bench_frame_detect(c: &mut criterion::Criterion) {

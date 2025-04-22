@@ -357,8 +357,8 @@ pub(crate) fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<(), crate:
 
 pub(crate) fn wait_and_set_dv_timings(
     suite: &Dradis<'_>,
-    width: usize,
-    height: usize,
+    width: u32,
+    height: u32,
 ) -> result::Result<(), v4lise::Error> {
     let start = Instant::now();
 
@@ -373,7 +373,7 @@ pub(crate) fn wait_and_set_dv_timings(
             Ok(timings) => {
                 let bt = unsafe { timings.__bindgen_anon_1.bt };
 
-                if bt.width as usize == width && bt.height as usize == height {
+                if bt.width == width && bt.height == height {
                     info!("Source started to transmit the proper resolution.");
                     let _ = v4l2_set_dv_timings(suite.dev, timings)?;
                     return Ok(());

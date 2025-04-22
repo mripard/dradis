@@ -315,10 +315,10 @@ struct TestItem {
     duration: Option<Duration>,
 
     #[serde(rename = "expected-height")]
-    expected_height: usize,
+    expected_height: u32,
 
     #[serde(rename = "expected-width")]
-    expected_width: usize,
+    expected_width: u32,
 
     edid: TestEdid,
 }

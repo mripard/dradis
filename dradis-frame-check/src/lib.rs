@@ -31,10 +31,10 @@ pub enum FrameError {
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Metadata {
     pub version: (u8, u8),
-    pub qrcode_width: usize,
-    pub qrcode_height: usize,
-    pub width: usize,
-    pub height: usize,
+    pub qrcode_width: u32,
+    pub qrcode_height: u32,
+    pub width: u32,
+    pub height: u32,
     pub hash: u64,
     pub index: usize,
 }
@@ -44,29 +44,28 @@ pub struct Metadata {
 pub struct FrameInner(Raster<Rgb8>);
 
 impl FrameInner {
-    fn from_raw_bytes(width: usize, height: usize, bytes: &[u8]) -> Self {
-        Self(Raster::with_u8_buffer(
-            width as u32,
-            height as u32,
-            bytes.to_vec(),
-        ))
+    fn from_raw_bytes(width: u32, height: u32, bytes: &[u8]) -> Self {
+        Self(Raster::with_u8_buffer(width, height, bytes.to_vec()))
     }
 
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_u8_slice()
     }
 
-    fn crop(&self, width: usize, height: usize) -> Self {
+    fn crop(&self, width: u32, height: u32) -> Self {
         let region = Region::new(0, 0, 128, 128);
 
-        let mut smaller = Raster::with_clear(width as u32, height as u32);
+        let mut smaller = Raster::with_clear(width, height);
         smaller.copy_raster((), &self.0, region);
 
         Self(smaller)
     }
 
-    pub fn pixel(&self, x: usize, y: usize) -> Rgb8 {
-        self.0.pixel(x as i32, y as i32)
+    pub fn pixel(&self, x: u32, y: u32) -> Rgb8 {
+        self.0.pixel(
+            i32::try_from(x).expect("Can't convert i32 to u32"),
+            i32::try_from(y).expect("Can't convert i32 to u32"),
+        )
     }
 
     fn to_luma(&self) -> Raster<Gray8> {
@@ -107,12 +106,12 @@ impl FrameInner {
 pub struct DradisFrame(FrameInner);
 
 impl DradisFrame {
-    pub fn from_raw_bytes(width: usize, height: usize, bytes: &[u8]) -> Self {
+    pub fn from_raw_bytes(width: u32, height: u32, bytes: &[u8]) -> Self {
         Self(FrameInner::from_raw_bytes(width, height, bytes))
     }
 
-    pub fn from_raw_bytes_with_swapped_channels(width: usize, height: usize, bytes: &[u8]) -> Self {
-        let bgr = Raster::<Bgr8>::with_u8_buffer(width as u32, height as u32, bytes.to_vec());
+    pub fn from_raw_bytes_with_swapped_channels(width: u32, height: u32, bytes: &[u8]) -> Self {
+        let bgr = Raster::<Bgr8>::with_u8_buffer(width, height, bytes.to_vec());
 
         Self(FrameInner(Raster::with_raster(&bgr)))
     }
@@ -142,10 +141,9 @@ impl DradisFrame {
             .in_scope(|| serde_json::from_str(&content).map_err(|_| FrameError::IntegrityFailure))
     }
 
-    pub fn cleared_frame(&self, clear_width: usize, clear_height: usize) -> ClearedDradisFrame {
+    pub fn cleared_frame(&self, clear_width: u32, clear_height: u32) -> ClearedDradisFrame {
         let mut cleared = self.0.0.clone();
-        let empty =
-            Raster::<Rgb8>::with_color(clear_width as u32, clear_height as u32, Rgb8::new(0, 0, 0));
+        let empty = Raster::<Rgb8>::with_color(clear_width, clear_height, Rgb8::new(0, 0, 0));
         cleared.copy_raster(
             Region::new(0, 0, self.0.0.width(), self.0.0.height()),
             &empty,
@@ -200,8 +198,8 @@ pub enum DecodeCheckArgsDump {
 
 pub struct DecodeCheckArgs {
     pub previous_frame_idx: Option<usize>,
-    pub width: usize,
-    pub height: usize,
+    pub width: u32,
+    pub height: u32,
     pub swap_channels: bool,
     pub dump: DecodeCheckArgsDump,
 }
