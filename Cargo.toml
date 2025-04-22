@@ -17,6 +17,7 @@ version = "0.4.4"
 
 [workspace.dependencies]
 anyhow = "1.0.97"
+bindgen = "0.69.4"
 bitflags = "2.9.0"
 built = { version = "0.7.7", features = ["git2"] }
 byteorder = "1.5.0"

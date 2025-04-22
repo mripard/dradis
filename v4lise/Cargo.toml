@@ -13,7 +13,7 @@ nix = { version = "0.29.0", features = ["ioctl"] }
 strum_macros = "0.26.4"
 
 [build-dependencies]
-bindgen = "0.69.4"
+bindgen.workspace = true
 
 [lib]
 bench = false
