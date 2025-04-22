@@ -235,7 +235,7 @@ pub fn dump_image_to_file(
 pub fn decode_and_check_frame(
     data: &[u8],
     args: Option<DecodeCheckArgs>,
-) -> std::result::Result<Metadata, Box<dyn std::error::Error>> {
+) -> Result<Metadata, FrameError> {
     let args = args.expect("Missing arguments");
     let last_frame_index = args.previous_frame_idx;
 
@@ -250,7 +250,7 @@ pub fn decode_and_check_frame(
     let metadata = image.metadata()?;
     if metadata.version.0 != HEADER_VERSION_MAJOR {
         warn!("Metadata Version Mismatch");
-        return Err(Box::new(FrameError::IntegrityFailure));
+        return Err(FrameError::IntegrityFailure);
     }
 
     if let Some(last_index) = last_frame_index {
@@ -258,7 +258,7 @@ pub fn decode_and_check_frame(
 
         if index < last_index {
             warn!("Frame Index Mismatch");
-            return Err(Box::new(FrameError::IntegrityFailure));
+            return Err(FrameError::IntegrityFailure);
         } else if index == last_index {
             debug!("Source cannot keep up?");
         } else if index > last_index + 1 {
@@ -283,7 +283,7 @@ pub fn decode_and_check_frame(
             hash, metadata.hash
         );
 
-        return Err(Box::new(FrameError::IntegrityFailure));
+        return Err(FrameError::IntegrityFailure);
     }
 
     Ok(metadata)
