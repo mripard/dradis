@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745328280710,
+  "lastUpdate": 1745329250968,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -149,6 +149,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 492471,
             "range": "± 4155",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fafe765cc543c92c15849ad593026896a5e7589c",
+          "message": "Merge pull request #208 from mripard/update-v4lise\n\ndradis: Update crates",
+          "timestamp": "2025-04-22T15:37:39+02:00",
+          "tree_id": "9df648e72138d61bd63680d9357de137b665650f",
+          "url": "https://github.com/mripard/dradis/commit/fafe765cc543c92c15849ad593026896a5e7589c"
+        },
+        "date": 1745329250293,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 490399,
+            "range": "± 1635",
             "unit": "ns/iter"
           }
         ]
