@@ -15,7 +15,7 @@ fn within_limited_rgb_bounds(ch: u8) -> bool {
 
 fn limited_to_full_channel(ch: Ch8) -> Ch8 {
     let lim_u8 = <Ch8 as Into<u8>>::into(ch);
-    if lim_u8 < LIMITED_RGB_LO_LEVEL || lim_u8 > LIMITED_RGB_HI_LEVEL {
+    if !(LIMITED_RGB_LO_LEVEL..=LIMITED_RGB_HI_LEVEL).contains(&lim_u8) {
         return ch;
     }
 
@@ -93,7 +93,7 @@ fn eq_ignore_limited_threshold(a: FullRangeRgb8, b: FullRangeRgb8) -> bool {
         }
     }
 
-    return true;
+    true
 }
 
 /// Check that a Boomer frame is correct.

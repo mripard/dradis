@@ -38,7 +38,7 @@ where
 impl<T> Drop for ThreadPool<T> {
     fn drop(&mut self) {
         while let Some(th) = self.queue.pop_front() {
-            if let Err(_) = th.join() {
+            if th.join().is_err() {
                 warn!("Error joining frame dumps threads.");
             }
         }
