@@ -12,7 +12,7 @@ fn main() {
         .header("src/wrapper.h")
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .derive_debug(true)
         .derive_default(true)
         .rustified_enum(".*")
@@ -33,7 +33,6 @@ fn main() {
         .allowlist_type("v4l2_format")
         .allowlist_type("v4l2_memory")
         .allowlist_type("v4l2_requestbuffers")
-        .rustfmt_bindings(true)
         .generate()
         .expect("Unable to generate bindings");
 

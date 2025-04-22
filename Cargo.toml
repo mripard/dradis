@@ -17,6 +17,7 @@ version = "0.4.4"
 
 [workspace.dependencies]
 anyhow = "1.0.97"
+bindgen = "0.71.1"
 bitflags = "2.9.0"
 built = { version = "0.7.7", features = ["git2"] }
 byteorder = "1.5.0"
@@ -40,6 +41,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 serde_with = "3.12.0"
 serde_yaml = "0.9.34"
+strum_macros = "0.27.1"
 thiserror = "2.0.12"
 threads_pool = { package = "dradis-threads-pool", path = "./dradis-threads-pool" }
 tracelimit = { git = "https://github.com/microsoft/openvmm.git", default-features = false }
