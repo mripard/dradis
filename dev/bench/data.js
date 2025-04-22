@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1743177115648,
+  "lastUpdate": 1745313971074,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -89,6 +89,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 1775181,
             "range": "± 16006",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5d36d070ced7df710f6935a449bb32fb746e5311",
+          "message": "Merge pull request #206 from mripard/dump-faulty-frames\n\nDump Faulty Frames",
+          "timestamp": "2025-04-22T11:22:57+02:00",
+          "tree_id": "dffe64b58a99e97f04c1e9fce70fd44d7ef2e06f",
+          "url": "https://github.com/mripard/dradis/commit/5d36d070ced7df710f6935a449bb32fb746e5311"
+        },
+        "date": 1745313970432,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 489497,
+            "range": "± 2195",
             "unit": "ns/iter"
           }
         ]
