@@ -15,6 +15,8 @@ pub use crate::device::Device;
 pub use crate::error::Error;
 pub use crate::error::Result;
 pub use crate::formats::PixelFormat;
+pub use crate::lowlevel::BufferFlags;
+pub use crate::lowlevel::CapabilitiesFlags;
 pub use crate::lowlevel::v4l2_buf_type;
 pub use crate::lowlevel::v4l2_buffer;
 pub use crate::lowlevel::v4l2_capability;
@@ -43,8 +45,6 @@ pub use crate::lowlevel::v4l2_set_format;
 pub use crate::lowlevel::v4l2_start_streaming;
 pub use crate::lowlevel::v4l2_stop_streaming;
 pub use crate::lowlevel::v4l2_subscribe_event;
-pub use crate::lowlevel::BufferFlags;
-pub use crate::lowlevel::CapabilitiesFlags;
 pub use crate::lowlevel::{
     V4L2_EVENT_CTRL, V4L2_EVENT_EOS, V4L2_EVENT_FRAME_SYNC, V4L2_EVENT_MOTION_DET,
     V4L2_EVENT_PRIVATE_START, V4L2_EVENT_SOURCE_CHANGE, V4L2_EVENT_VSYNC,

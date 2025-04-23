@@ -3,19 +3,21 @@ use crate::device::Device;
 use crate::error::Error;
 use crate::error::Result;
 use crate::formats::PixelFormat;
+use crate::lowlevel::CapabilitiesFlags;
 use crate::lowlevel::v4l2_buf_type;
 use crate::lowlevel::v4l2_enum_formats;
 use crate::lowlevel::v4l2_enum_framesizes;
 use crate::lowlevel::v4l2_fmtdesc;
 use crate::lowlevel::v4l2_format;
+use crate::lowlevel::v4l2_format__bindgen_ty_1;
 use crate::lowlevel::v4l2_frmsizeenum;
 use crate::lowlevel::v4l2_get_format;
 use crate::lowlevel::v4l2_memory;
+use crate::lowlevel::v4l2_pix_format;
 use crate::lowlevel::v4l2_query_cap;
 use crate::lowlevel::v4l2_request_buffers;
 use crate::lowlevel::v4l2_requestbuffers;
 use crate::lowlevel::v4l2_set_format;
-use crate::lowlevel::CapabilitiesFlags;
 
 #[derive(Clone, Copy, Debug)]
 pub enum MemoryType {
@@ -23,9 +25,9 @@ pub enum MemoryType {
     DMABUF,
 }
 
-impl Into<v4l2_memory> for MemoryType {
-    fn into(self) -> v4l2_memory {
-        match self {
+impl From<MemoryType> for v4l2_memory {
+    fn from(val: MemoryType) -> Self {
+        match val {
             MemoryType::DMABUF => v4l2_memory::V4L2_MEMORY_DMABUF,
             MemoryType::MMAP => v4l2_memory::V4L2_MEMORY_MMAP,
         }
@@ -38,18 +40,18 @@ pub enum QueueType {
     Output,
 }
 
-impl Into<CapabilitiesFlags> for QueueType {
-    fn into(self) -> CapabilitiesFlags {
-        match self {
+impl From<QueueType> for CapabilitiesFlags {
+    fn from(val: QueueType) -> Self {
+        match val {
             QueueType::Capture => CapabilitiesFlags::VIDEO_CAPTURE,
             QueueType::Output => CapabilitiesFlags::VIDEO_OUTPUT,
         }
     }
 }
 
-impl Into<v4l2_buf_type> for QueueType {
-    fn into(self) -> v4l2_buf_type {
-        match self {
+impl From<QueueType> for v4l2_buf_type {
+    fn from(val: QueueType) -> Self {
+        match val {
             QueueType::Capture => v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE,
             QueueType::Output => v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_OUTPUT,
         }
@@ -65,6 +67,7 @@ pub trait FrameFormat {
         Self: Sized;
 }
 
+#[expect(dead_code)]
 #[derive(Debug)]
 pub struct SinglePlanarCaptureFrameFormat<'a> {
     queue: &'a Queue<'a>,
@@ -141,12 +144,14 @@ impl<'a> Queue<'a> {
     pub fn get_current_format(&self) -> Result<QueueFrameFormat<'_>> {
         let buf_type: v4l2_buf_type = self.queue_type.into();
 
-        let mut raw_fmt: v4l2_format = Default::default();
-        raw_fmt.type_ = buf_type as u32;
+        let raw_fmt = v4l2_format {
+            type_: buf_type as u32,
+            ..Default::default()
+        };
 
         let raw_fmt = v4l2_get_format(self.dev, raw_fmt)?;
 
-        let buf_type = unsafe { std::mem::transmute(raw_fmt.type_) };
+        let buf_type = unsafe { std::mem::transmute::<u32, v4l2_buf_type>(raw_fmt.type_) };
         match buf_type {
             v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE => {
                 let fmt = unsafe { &raw_fmt.fmt.pix };
@@ -180,10 +185,12 @@ impl<'a> Queue<'a> {
     pub fn request_buffers(&self, mem_type: MemoryType, num: usize) -> Result<()> {
         let buf_type: v4l2_buf_type = self.queue_type.into();
         let mem_type: v4l2_memory = mem_type.into();
-        let mut rbuf: v4l2_requestbuffers = Default::default();
-        rbuf.count = num as u32;
-        rbuf.type_ = buf_type as u32;
-        rbuf.memory = mem_type as u32;
+        let rbuf = v4l2_requestbuffers {
+            count: num as u32,
+            type_: buf_type as u32,
+            memory: mem_type as u32,
+            ..Default::default()
+        };
 
         v4l2_request_buffers(self.dev, rbuf)?;
 
@@ -192,16 +199,19 @@ impl<'a> Queue<'a> {
 
     pub fn set_format(&self, fmt: QueueFrameFormat<'_>) -> Result<()> {
         let buf_type: v4l2_buf_type = self.queue_type.into();
-        let mut raw_fmt: v4l2_format = Default::default();
-
-        raw_fmt.type_ = buf_type as u32;
-        match fmt {
-            QueueFrameFormat::SinglePlanarCapture(inner) => {
-                raw_fmt.fmt.pix.width = inner.width as u32;
-                raw_fmt.fmt.pix.height = inner.height as u32;
-                raw_fmt.fmt.pix.pixelformat = inner.pixel_format as u32;
-            }
-        }
+        let raw_fmt = v4l2_format {
+            type_: buf_type as u32,
+            fmt: match fmt {
+                QueueFrameFormat::SinglePlanarCapture(inner) => v4l2_format__bindgen_ty_1 {
+                    pix: v4l2_pix_format {
+                        width: inner.width as u32,
+                        height: inner.height as u32,
+                        pixelformat: inner.pixel_format as u32,
+                        ..Default::default()
+                    },
+                },
+            },
+        };
 
         v4l2_set_format(self.dev, raw_fmt)?;
 
@@ -221,19 +231,22 @@ impl Iterator for QueuePixelFormatIter<'_> {
     fn next(&mut self) -> Option<PixelFormat> {
         let buf_type: v4l2_buf_type = self.queue.queue_type.into();
 
-        let mut raw_desc: v4l2_fmtdesc = Default::default();
-        raw_desc.type_ = buf_type as u32;
-        raw_desc.index = self.curr as u32;
+        let raw_desc = v4l2_fmtdesc {
+            type_: buf_type as u32,
+            index: self.curr as u32,
+            ..Default::default()
+        };
+
         let fmt = match v4l2_enum_formats(self.queue.dev, raw_desc) {
             Ok(ret) => {
-                let cvt: PixelFormat = unsafe { std::mem::transmute(ret.pixelformat as u32) };
+                let cvt: PixelFormat = unsafe { std::mem::transmute(ret.pixelformat) };
                 cvt
             }
 
             Err(_) => return None,
         };
 
-        self.curr = self.curr + 1;
+        self.curr += 1;
         Some(fmt)
     }
 }
@@ -249,9 +262,11 @@ impl Iterator for QueueSizeIter<'_> {
     type Item = (usize, usize);
 
     fn next(&mut self) -> Option<(usize, usize)> {
-        let mut raw_struct: v4l2_frmsizeenum = Default::default();
-        raw_struct.pixel_format = self.fmt as u32;
-        raw_struct.index = self.curr as u32;
+        let raw_struct = v4l2_frmsizeenum {
+            pixel_format: self.fmt as u32,
+            index: self.curr as u32,
+            ..Default::default()
+        };
 
         let size = match v4l2_enum_framesizes(self.queue.dev, raw_struct) {
             Ok(ret) => {
@@ -263,7 +278,7 @@ impl Iterator for QueueSizeIter<'_> {
             Err(_) => return None,
         };
 
-        self.curr = self.curr + 1;
+        self.curr += 1;
         Some(size)
     }
 }

@@ -1,8 +1,10 @@
 [package]
 authors.workspace = true
+description = "Dradis Framebuffer Validation Library"
 edition.workspace = true
 license-file.workspace = true
 name = "dradis-frame-check"
+publish = false
 repository.workspace = true
 version.workspace = true
 
@@ -22,6 +24,9 @@ criterion.workspace = true
 
 [lib]
 bench = false
+
+[lints]
+workspace = true
 
 [[bench]]
 name = "bench_decode"

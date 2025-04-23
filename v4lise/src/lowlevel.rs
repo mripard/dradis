@@ -12,17 +12,17 @@ use crate::error::Result;
 
 const V4L2_IOCTL_BASE: u32 = 'V' as u32;
 
-ioctl_read!(v4l2_ioctl_querycap, V4L2_IOCTL_BASE, 00, v4l2_capability);
+ioctl_read!(v4l2_ioctl_querycap, V4L2_IOCTL_BASE, 0, v4l2_capability);
 
-ioctl_readwrite!(v4l2_ioctl_enum_fmt, V4L2_IOCTL_BASE, 02, v4l2_fmtdesc);
+ioctl_readwrite!(v4l2_ioctl_enum_fmt, V4L2_IOCTL_BASE, 2, v4l2_fmtdesc);
 
-ioctl_readwrite!(v4l2_ioctl_g_fmt, V4L2_IOCTL_BASE, 04, v4l2_format);
+ioctl_readwrite!(v4l2_ioctl_g_fmt, V4L2_IOCTL_BASE, 4, v4l2_format);
 
-ioctl_readwrite!(v4l2_ioctl_s_fmt, V4L2_IOCTL_BASE, 05, v4l2_format);
+ioctl_readwrite!(v4l2_ioctl_s_fmt, V4L2_IOCTL_BASE, 5, v4l2_format);
 
-ioctl_readwrite!(v4l2_ioctl_reqbufs, V4L2_IOCTL_BASE, 08, v4l2_requestbuffers);
+ioctl_readwrite!(v4l2_ioctl_reqbufs, V4L2_IOCTL_BASE, 8, v4l2_requestbuffers);
 
-ioctl_readwrite!(v4l2_ioctl_querybuf, V4L2_IOCTL_BASE, 09, v4l2_buffer);
+ioctl_readwrite!(v4l2_ioctl_querybuf, V4L2_IOCTL_BASE, 9, v4l2_buffer);
 
 ioctl_readwrite!(v4l2_ioctl_qbuf, V4L2_IOCTL_BASE, 15, v4l2_buffer);
 
@@ -143,8 +143,8 @@ bitflags! {
     }
 }
 
-pub fn v4l2_subscribe_event(file: &impl AsRawFd, mut buf: v4l2_event_subscription) -> Result<()> {
-    let _ = unsafe { v4l2_ioctl_subscribe_event(file.as_raw_fd(), &mut buf) }?;
+pub fn v4l2_subscribe_event(file: &impl AsRawFd, buf: v4l2_event_subscription) -> Result<()> {
+    let _ = unsafe { v4l2_ioctl_subscribe_event(file.as_raw_fd(), &buf) }?;
 
     Ok(())
 }
@@ -263,9 +263,11 @@ pub fn v4l2_stop_streaming(file: &impl AsRawFd, buf_type: v4l2_buf_type) -> Resu
 }
 
 pub fn v4l2_set_edid(file: &impl AsRawFd, edid: &mut [u8]) -> Result<()> {
-    let mut arg = v4l2_edid::default();
-    arg.blocks = (edid.len() / 128) as u32;
-    arg.edid = edid.as_mut_ptr();
+    let mut arg = v4l2_edid {
+        blocks: (edid.len() / 128) as u32,
+        edid: edid.as_mut_ptr(),
+        ..Default::default()
+    };
 
     let _ = unsafe { v4l2_ioctl_s_edid(file.as_raw_fd(), &mut arg) }?;
 

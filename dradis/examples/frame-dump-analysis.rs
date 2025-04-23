@@ -4,7 +4,7 @@ use clap::Parser;
 use frame_check::{DradisFrame, FrameError};
 use pix::{chan::Ch8, el::Pixel, rgb::Rgb8};
 use tracelimit::{error_ratelimited, warn_ratelimited};
-use tracing::{debug, error, info, Level};
+use tracing::{Level, debug, error, info};
 
 const LIMITED_RGB_LO_LEVEL: u8 = 16;
 const LIMITED_RGB_HI_LEVEL: u8 = 235;
@@ -15,7 +15,7 @@ fn within_limited_rgb_bounds(ch: u8) -> bool {
 
 fn limited_to_full_channel(ch: Ch8) -> Ch8 {
     let lim_u8 = <Ch8 as Into<u8>>::into(ch);
-    if lim_u8 < LIMITED_RGB_LO_LEVEL || lim_u8 > LIMITED_RGB_HI_LEVEL {
+    if !(LIMITED_RGB_LO_LEVEL..=LIMITED_RGB_HI_LEVEL).contains(&lim_u8) {
         return ch;
     }
 
@@ -93,18 +93,14 @@ fn eq_ignore_limited_threshold(a: FullRangeRgb8, b: FullRangeRgb8) -> bool {
         }
     }
 
-    return true;
+    true
 }
 
 /// Check that a Boomer frame is correct.
 ///
 /// We expect the bytes to be stored with RGB left-to-right (ie, RGB24 for v4l2, BGR24 for KMS),
 /// and with pixels left-to-right, scanlines being top to bottom.
-fn check_frame(
-    bytes: &[u8],
-    width: usize,
-    height: usize,
-) -> Result<u64, Box<dyn std::error::Error>> {
+fn check_frame(bytes: &[u8], width: u32, height: u32) -> Result<u64, Box<dyn std::error::Error>> {
     let frame = DradisFrame::from_raw_bytes(width, height, bytes);
 
     let _content = match frame.qrcode_content() {
@@ -144,7 +140,7 @@ fn check_frame(
     Ok(hash)
 }
 
-fn scan_different_pixels(bytes_a: &[u8], bytes_b: &[u8], width: usize, height: usize) {
+fn scan_different_pixels(bytes_a: &[u8], bytes_b: &[u8], width: u32, height: u32) {
     let frame_a = DradisFrame::from_raw_bytes(width, height, bytes_a);
     let frame_b = DradisFrame::from_raw_bytes(width, height, bytes_b);
 
@@ -183,7 +179,7 @@ fn scan_different_pixels(bytes_a: &[u8], bytes_b: &[u8], width: usize, height: u
     }
 }
 
-fn compare_two_frames(bytes_a: &[u8], bytes_b: &[u8], width: usize, height: usize) {
+fn compare_two_frames(bytes_a: &[u8], bytes_b: &[u8], width: u32, height: u32) {
     let hash_a = check_frame(bytes_a, width, height).ok();
     let hash_b = check_frame(bytes_b, width, height).ok();
 
@@ -219,10 +215,10 @@ struct CliArgs {
     frame_b: Option<PathBuf>,
 
     #[arg(short = 'H', long)]
-    height: usize,
+    height: u32,
 
     #[arg(short, long)]
-    width: usize,
+    width: u32,
 
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,

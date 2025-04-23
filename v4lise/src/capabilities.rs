@@ -1,6 +1,7 @@
-use crate::lowlevel::v4l2_capability;
 use crate::lowlevel::CapabilitiesFlags;
+use crate::lowlevel::v4l2_capability;
 
+#[expect(dead_code)]
 pub struct Capability {
     pub driver: String,
     pub card: String,

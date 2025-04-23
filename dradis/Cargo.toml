@@ -4,6 +4,8 @@ description = "HDMI Test Application"
 edition.workspace = true
 license-file.workspace = true
 name = "dradis"
+publish = false
+repository.workspace = true
 version.workspace = true
 
 [build-dependencies]
