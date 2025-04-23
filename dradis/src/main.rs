@@ -433,6 +433,15 @@ fn test_display_one_mode(
         "Missing V4L2 Root Device",
     )))?;
 
+    let PipelineItem(_, bridge, _) =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
+
     let queue = root_device
         .get_queue(QueueType::Capture)
         .map_err(SetupError::from)?;
@@ -443,7 +452,7 @@ fn test_display_one_mode(
     )
     .map_err(SetupError::from)?;
 
-    bridge_set_edid(root, &test.edid)?;
+    bridge_set_edid(bridge, &test.edid)?;
 
     loop {
         match test_run(suite, &queue, test) {
