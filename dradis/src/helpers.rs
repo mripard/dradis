@@ -349,6 +349,15 @@ pub(crate) fn wait_and_set_dv_timings(
                 "Missing Root Entity",
             )))?;
 
+    let PipelineItem(_, bridge, _) =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
+
     let start = Instant::now();
 
     let timings = loop {
@@ -358,7 +367,7 @@ pub(crate) fn wait_and_set_dv_timings(
             )));
         }
 
-        let timings = mc_wrapper_v4l2_query_dv_timings(root);
+        let timings = mc_wrapper_v4l2_query_dv_timings(bridge);
         match timings {
             Ok(timings) => {
                 if let v4l2_dv_timings::Bt_656_1120(bt) = timings {
@@ -385,7 +394,17 @@ pub(crate) fn wait_and_set_dv_timings(
         sleep(Duration::from_millis(100));
     };
 
-    Ok(mc_wrapper_v4l2_s_dv_timings(root, timings)?)
+    let res = mc_wrapper_v4l2_s_dv_timings(bridge, timings);
+    match res {
+        Ok(()) => Ok(()),
+        Err(e) => match Errno::from_io_error(&e) {
+            Some(Errno::PERM) => {
+                debug!("Bridge is read-only. Trying on the main device.");
+                mc_wrapper_v4l2_s_dv_timings(root, timings).map_err(Into::into)
+            }
+            _ => Err(e.into()),
+        },
+    }
 }
 
 pub(crate) fn clear_buffers(
