@@ -27,23 +27,23 @@ use clap::Parser;
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
 use frame_check::{
-    decode_and_check_frame, DecodeCheckArgs, DecodeCheckArgsDump, DecodeCheckArgsDumpOptions,
+    DecodeCheckArgs, DecodeCheckArgsDump, DecodeCheckArgsDumpOptions, decode_and_check_frame,
 };
 use redid::EdidTypeConversionError;
 use serde::Deserialize;
-use serde_with::{serde_as, DurationSeconds};
+use serde_with::{DurationSeconds, serde_as};
 use thiserror::Error;
 use threads_pool::ThreadPool;
-use tracing::{debug, debug_span, error, info, warn, Level};
+use tracing::{Level, debug, debug_span, error, info, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
 use v4lise::{
-    v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, Device, FrameFormat, MemoryType,
-    PixelFormat, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE,
+    Device, FrameFormat, MemoryType, PixelFormat, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE,
+    v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer,
 };
 
 use crate::helpers::{
-    dequeue_buffer, dequeue_event, queue_buffer, set_edid, start_streaming, subscribe_event,
-    wait_and_set_dv_timings, EventKind,
+    EventKind, dequeue_buffer, dequeue_event, queue_buffer, set_edid, start_streaming,
+    subscribe_event, wait_and_set_dv_timings,
 };
 
 pub mod built_info {

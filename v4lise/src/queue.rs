@@ -3,6 +3,7 @@ use crate::device::Device;
 use crate::error::Error;
 use crate::error::Result;
 use crate::formats::PixelFormat;
+use crate::lowlevel::CapabilitiesFlags;
 use crate::lowlevel::v4l2_buf_type;
 use crate::lowlevel::v4l2_enum_formats;
 use crate::lowlevel::v4l2_enum_framesizes;
@@ -17,7 +18,6 @@ use crate::lowlevel::v4l2_query_cap;
 use crate::lowlevel::v4l2_request_buffers;
 use crate::lowlevel::v4l2_requestbuffers;
 use crate::lowlevel::v4l2_set_format;
-use crate::lowlevel::CapabilitiesFlags;
 
 #[derive(Clone, Copy, Debug)]
 pub enum MemoryType {

@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main};
-use dradis_frame_check::{decode_and_check_frame, DecodeCheckArgs, DecodeCheckArgsDump, Metadata};
+use dradis_frame_check::{DecodeCheckArgs, DecodeCheckArgsDump, Metadata, decode_and_check_frame};
 
 const FRAME_WIDTH: usize = 1280;
 const FRAME_HEIGHT: usize = 720;

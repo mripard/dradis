@@ -27,15 +27,15 @@ use redid::{
 };
 use tracing::{debug, info};
 use v4lise::{
-    v4l2_buf_type, v4l2_buffer, v4l2_dequeue_buffer, v4l2_dequeue_event, v4l2_event,
-    v4l2_event_src_change, v4l2_event_subscription, v4l2_memory, v4l2_query_dv_timings,
-    v4l2_queue_buffer, v4l2_request_buffers, v4l2_requestbuffers, v4l2_set_dv_timings,
-    v4l2_set_edid, v4l2_start_streaming, v4l2_stop_streaming, v4l2_subscribe_event, Device,
-    V4L2_EVENT_CTRL, V4L2_EVENT_EOS, V4L2_EVENT_FRAME_SYNC, V4L2_EVENT_MOTION_DET,
-    V4L2_EVENT_PRIVATE_START, V4L2_EVENT_SOURCE_CHANGE, V4L2_EVENT_VSYNC,
+    Device, V4L2_EVENT_CTRL, V4L2_EVENT_EOS, V4L2_EVENT_FRAME_SYNC, V4L2_EVENT_MOTION_DET,
+    V4L2_EVENT_PRIVATE_START, V4L2_EVENT_SOURCE_CHANGE, V4L2_EVENT_VSYNC, v4l2_buf_type,
+    v4l2_buffer, v4l2_dequeue_buffer, v4l2_dequeue_event, v4l2_event, v4l2_event_src_change,
+    v4l2_event_subscription, v4l2_memory, v4l2_query_dv_timings, v4l2_queue_buffer,
+    v4l2_request_buffers, v4l2_requestbuffers, v4l2_set_dv_timings, v4l2_set_edid,
+    v4l2_start_streaming, v4l2_stop_streaming, v4l2_subscribe_event,
 };
 
-use crate::{Dradis, TestEdid, TestError, BUFFER_TYPE, MEMORY_TYPE};
+use crate::{BUFFER_TYPE, Dradis, MEMORY_TYPE, TestEdid, TestError};
 
 const HFREQ_TOLERANCE_KHZ: u32 = 5;
 const VFREQ_TOLERANCE_HZ: u32 = 1;

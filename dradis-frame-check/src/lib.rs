@@ -8,7 +8,7 @@ use std::{
     rc::Rc,
 };
 
-use pix::{bgr::Bgr8, gray::Gray8, rgb::Rgb8, Raster, Region};
+use pix::{Raster, Region, bgr::Bgr8, gray::Gray8, rgb::Rgb8};
 use png::{BitDepth, ColorType, Encoder};
 use serde::Deserialize;
 use thiserror::Error;

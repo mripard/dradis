@@ -4,7 +4,7 @@ use clap::Parser;
 use frame_check::{DradisFrame, FrameError};
 use pix::{chan::Ch8, el::Pixel, rgb::Rgb8};
 use tracelimit::{error_ratelimited, warn_ratelimited};
-use tracing::{debug, error, info, Level};
+use tracing::{Level, debug, error, info};
 
 const LIMITED_RGB_LO_LEVEL: u8 = 16;
 const LIMITED_RGB_HI_LEVEL: u8 = 235;
