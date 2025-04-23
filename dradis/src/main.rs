@@ -406,6 +406,8 @@ fn test_display_one_mode(
     let (_, root, _) = suite.pipeline.first().unwrap();
     let root_device = root.device.as_ref().unwrap();
 
+    let (_, bridge, _) = suite.pipeline.last().unwrap();
+
     let queue = root_device
         .get_queue(QueueType::Capture)
         .context("Couldn't open the V4L2 Capture Queue")
@@ -417,7 +419,7 @@ fn test_display_one_mode(
     )
     .unwrap();
 
-    bridge_set_edid(root, &test.edid)?;
+    bridge_set_edid(bridge, &test.edid)?;
 
     loop {
         match test_run(suite, &queue, test) {
