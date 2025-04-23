@@ -216,7 +216,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
         let buf = &buffers[idx as usize];
         debug_span!("Frame Processing").in_scope(|| {
             if let Ok(metadata) = buf.read(
-                |b, a| decode_and_check_frame(b, a).map_err(Into::into),
+                |b, a| decode_and_check_frame(b, a.expect("Missing arguments")).map_err(Into::into),
                 Some(DecodeCheckArgs {
                     previous_frame_idx: last_frame_index,
                     width: test.expected_width,

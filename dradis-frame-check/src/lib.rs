@@ -232,11 +232,7 @@ pub fn dump_image_to_file(
     }
 }
 
-pub fn decode_and_check_frame(
-    data: &[u8],
-    args: Option<DecodeCheckArgs>,
-) -> Result<Metadata, FrameError> {
-    let args = args.expect("Missing arguments");
+pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Metadata, FrameError> {
     let last_frame_index = args.previous_frame_idx;
 
     let image = trace_span!("Framebuffer Importation").in_scope(|| {

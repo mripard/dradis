@@ -14,13 +14,13 @@ fn bench_frame_detect(c: &mut criterion::Criterion) {
         b.iter(|| {
             let data = decode_and_check_frame(
                 FRAME,
-                Some(DecodeCheckArgs {
+                DecodeCheckArgs {
                     previous_frame_idx: None,
                     width: FRAME_WIDTH,
                     height: FRAME_HEIGHT,
                     swap_channels: false,
                     dump: DecodeCheckArgsDump::Ignore,
-                }),
+                },
             )
             .unwrap();
             assert_eq!(
