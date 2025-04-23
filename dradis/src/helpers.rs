@@ -29,7 +29,8 @@ use v4l2_raw::{
     raw::{v4l2_buf_type, v4l2_ioctl_dqbuf, v4l2_ioctl_qbuf, v4l2_ioctl_reqbufs, v4l2_memory},
     wrapper::{
         v4l2_dv_timings, v4l2_ioctl_query_dv_timings, v4l2_ioctl_s_dv_timings, v4l2_ioctl_s_edid,
-        v4l2_ioctl_streamoff, v4l2_ioctl_streamon,
+        v4l2_ioctl_streamoff, v4l2_ioctl_streamon, v4l2_ioctl_subdev_query_dv_timings,
+        v4l2_ioctl_subdev_s_dv_timings, v4l2_ioctl_subdev_s_edid,
     },
 };
 use v4lise::{Device, v4l2_buffer, v4l2_requestbuffers};
@@ -120,6 +121,74 @@ mod tests_round_down {
     #[test]
     fn test_aligned() {
         assert_eq!(round_down(40, 5), 35);
+    }
+}
+
+fn mc_wrapper_v4l2_s_edid(dev: &V4l2EntityWrapper, edid: &mut [u8]) -> io::Result<()> {
+    if let Some(device) = &dev.device {
+        if dev.entity.is_v4l2_device().valid()? {
+            debug!("Running VIDIOC_S_EDID on entity {}", dev.entity.name());
+            v4l2_ioctl_s_edid(device.as_fd(), edid)
+        } else if dev.entity.is_v4l2_sub_device().valid()? {
+            debug!(
+                "Running VIDIOC_SUBDEV_S_EDID on entity {}",
+                dev.entity.name()
+            );
+            v4l2_ioctl_subdev_s_edid(device.as_fd(), edid)
+        } else {
+            unreachable!()
+        }
+    } else {
+        Ok(())
+    }
+}
+
+pub(crate) fn mc_wrapper_v4l2_query_dv_timings(
+    dev: &V4l2EntityWrapper,
+) -> io::Result<v4l2_dv_timings> {
+    if let Some(device) = &dev.device {
+        if dev.entity.is_v4l2_device().valid()? {
+            debug!(
+                "Running VIDIOC_QUERY_DV_TIMINGS on entity {}",
+                dev.entity.name()
+            );
+            v4l2_ioctl_query_dv_timings(device.as_fd())
+        } else if dev.entity.is_v4l2_sub_device().valid()? {
+            debug!(
+                "Running VIDIOC_SUBDEV_QUERY_DV_TIMINGS on entity {}",
+                dev.entity.name()
+            );
+            v4l2_ioctl_subdev_query_dv_timings(device.as_fd())
+        } else {
+            unreachable!()
+        }
+    } else {
+        unimplemented!()
+    }
+}
+
+pub(crate) fn mc_wrapper_v4l2_s_dv_timings(
+    dev: &V4l2EntityWrapper,
+    timings: v4l2_dv_timings,
+) -> io::Result<()> {
+    if let Some(device) = &dev.device {
+        if dev.entity.is_v4l2_device().valid()? {
+            debug!(
+                "Running VIDIOC_S_DV_TIMINGS on entity {}",
+                dev.entity.name()
+            );
+            v4l2_ioctl_s_dv_timings(device.as_fd(), timings)
+        } else if dev.entity.is_v4l2_sub_device().valid()? {
+            debug!(
+                "Running VIDIOC_SUBDEV_S_DV_TIMINGS on entity {}",
+                dev.entity.name()
+            );
+            v4l2_ioctl_subdev_s_dv_timings(device.as_fd(), timings)
+        } else {
+            unreachable!()
+        }
+    } else {
+        Ok(())
     }
 }
 
@@ -261,9 +330,7 @@ pub(crate) fn bridge_set_edid(dev: &V4l2EntityWrapper, edid: &TestEdid) -> Resul
 
     let mut bytes = test_edid.into_bytes();
 
-    if let Some(device) = &dev.device {
-        v4l2_ioctl_s_edid(device.as_fd(), &mut bytes)?;
-    }
+    mc_wrapper_v4l2_s_edid(dev, &mut bytes)?;
 
     Ok(())
 }
@@ -282,11 +349,6 @@ pub(crate) fn wait_and_set_dv_timings(
                 "Missing Root Entity",
             )))?;
 
-    let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
-        Errno::NODEV.kind(),
-        "Missing V4L2 Root Device",
-    )))?;
-
     let start = Instant::now();
 
     loop {
@@ -296,13 +358,13 @@ pub(crate) fn wait_and_set_dv_timings(
             )));
         }
 
-        let timings = v4l2_ioctl_query_dv_timings(root_device.as_fd());
+        let timings = mc_wrapper_v4l2_query_dv_timings(root);
         match timings {
             Ok(timings) => {
                 if let v4l2_dv_timings::Bt_656_1120(bt) = timings {
                     if bt.width == width && bt.height == height {
                         info!("Source started to transmit the proper resolution.");
-                        v4l2_ioctl_s_dv_timings(root_device.as_fd(), timings)?;
+                        mc_wrapper_v4l2_s_dv_timings(root, timings)?;
                         return Ok(());
                     }
                 }

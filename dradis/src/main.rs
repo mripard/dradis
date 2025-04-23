@@ -513,7 +513,6 @@ struct Test {
 }
 
 #[derive(Debug)]
-#[expect(dead_code, reason = "We're not done yet")]
 struct V4l2EntityWrapper {
     entity: MediaControllerEntity,
     device: Option<Device>,
