@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745329250968,
+  "lastUpdate": 1745398373368,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -179,6 +179,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 490399,
             "range": "± 1635",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "29d61b25bd3bafc201fef14eb97466744f676f16",
+          "message": "Merge pull request #209 from mripard/lints-dradis\n\nEnable More Lints",
+          "timestamp": "2025-04-23T10:49:43+02:00",
+          "tree_id": "89ed05a49902a5544102bbd7e18eebc02125cee0",
+          "url": "https://github.com/mripard/dradis/commit/29d61b25bd3bafc201fef14eb97466744f676f16"
+        },
+        "date": 1745398373007,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 501844,
+            "range": "± 4836",
             "unit": "ns/iter"
           }
         ]
