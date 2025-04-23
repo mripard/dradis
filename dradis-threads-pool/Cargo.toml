@@ -1,8 +1,10 @@
 [package]
 authors.workspace = true
+description = "Dradis Limited Threads Spawner Library"
 edition.workspace = true
 license-file.workspace = true
 name = "dradis-threads-pool"
+publish = false
 repository.workspace = true
 version.workspace = true
 
@@ -11,3 +13,6 @@ tracing.workspace = true
 
 [lib]
 bench = false
+
+[lints]
+workspace = true
