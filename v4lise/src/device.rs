@@ -15,12 +15,12 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new(path: &Path, blocking: bool) -> Result<Self> {
+    pub fn new(path: &Path, non_blocking: bool) -> Result<Self> {
         let mut options = OpenOptions::new();
         options.read(true);
         options.write(true);
 
-        if blocking {
+        if non_blocking {
             options.custom_flags(libc::O_NONBLOCK);
         }
 
