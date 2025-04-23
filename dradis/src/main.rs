@@ -488,7 +488,7 @@ struct Test {
 
 #[derive(Debug)]
 struct V4l2EntityWrapper {
-    _entity: MediaControllerEntity,
+    entity: MediaControllerEntity,
     device: Option<Device>,
 }
 
@@ -573,7 +573,7 @@ fn main() -> anyhow::Result<()> {
             >((
                 source,
                 V4l2EntityWrapper {
-                    _entity: dev,
+                    entity: dev,
                     device: node,
                 },
                 sink,
