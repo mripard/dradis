@@ -338,7 +338,7 @@ pub(crate) fn wait_and_set_dv_timings(
     width: u32,
     height: u32,
 ) -> result::Result<(), SetupError> {
-    let (_, root, _) = suite.pipeline.first().unwrap();
+    let (_, bridge, _) = suite.pipeline.last().unwrap();
 
     let start = Instant::now();
 
@@ -349,7 +349,7 @@ pub(crate) fn wait_and_set_dv_timings(
             )));
         }
 
-        let timings = mc_wrapper_v4l2_query_dv_timings(root);
+        let timings = mc_wrapper_v4l2_query_dv_timings(bridge);
         match timings {
             Ok(timings) => {
                 if let v4l2_dv_timings::Bt_656_1120(bt) = timings {
@@ -377,7 +377,7 @@ pub(crate) fn wait_and_set_dv_timings(
         sleep(Duration::from_millis(100));
     };
 
-    Ok(mc_wrapper_v4l2_s_dv_timings(root, timings)?)
+    Ok(mc_wrapper_v4l2_s_dv_timings(bridge, timings)?)
 }
 
 pub(crate) fn clear_buffers(
