@@ -16,32 +16,42 @@ repository = "https://github.com/mripard/dradis.git"
 version = "0.4.4"
 
 [workspace.dependencies]
-anyhow = "1.0.98"
-bindgen = "0.71.1"
-bitflags = "2.9.0"
-built = { version = "0.7.7", features = ["git2"] }
-chrono = "0.4.40"
-clap = { version = "4.5.37", features = ["cargo", "derive"] }
+anyhow = { version = "1.0.98", default-features = false }
+bindgen = { version = "0.71.1", default-features = false }
+bitflags = { version = "2.9.0", default-features = false }
+built = { version = "0.7.7", default-features = false, features = ["git2"] }
+chrono = { version = "0.4.40", default-features = false }
+clap = { version = "4.5.37", default-features = false, features = [
+    "cargo",
+    "derive",
+    "help",
+    "std",
+] }
 criterion = { version = "0.5.1", default-features = false, features = [
     "cargo_bench_support",
     "plotters",
 ] }
-dma-buf = "0.4.0"
-dma-heap = "0.4.0"
+dma-buf = { version = "0.4.0", default-features = false }
+dma-heap = { version = "0.4.0", default-features = false }
 frame_check = { package = "dradis-frame-check", path = "./dradis-frame-check" }
-libc = "0.2.172"
-nix = { version = "0.30.0", features = ["ioctl"] }
-num-traits = "0.2.19"
+libc = { version = "0.2.172", default-features = false }
+nix = { version = "0.30.0", default-features = false, features = ["ioctl"] }
+num-traits = { version = "0.2.19", default-features = false }
 pix = { version = "0.14.0", default-features = false }
 png = { version = "0.17.16", default-features = false }
 redid = { git = "https://github.com/mripard/redid.git" }
 rxing = { version = "0.7.1", default-features = false }
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"
-serde_with = "3.12.0"
-serde_yaml = "0.9.34"
-strum_macros = "0.27.1"
-thiserror = "2.0.12"
+serde = { version = "1.0.219", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0.140", default-features = false, features = [
+    "std",
+] }
+serde_with = { version = "3.12.0", default-features = false, features = [
+    "macros",
+    "std",
+] }
+serde_yaml = { version = "0.9.34", default-features = false }
+strum_macros = { version = "0.27.1", default-features = false }
+thiserror = { version = "2.0.12", default-features = false }
 threads_pool = { package = "dradis-threads-pool", path = "./dradis-threads-pool" }
 tracelimit = { git = "https://github.com/microsoft/openvmm.git", default-features = false }
 tracing = { version = "0.1.41", default-features = false }
@@ -50,7 +60,9 @@ tracing-subscriber = { version = "0.3.19", default-features = false, features = 
     "fmt",
     "std",
 ] }
-twox-hash = "2.1.0"
+twox-hash = { version = "2.1.0", default-features = false, features = [
+    "xxhash64",
+] }
 v4lise = { path = "./v4lise" }
 
 [workspace.lints.rust]
