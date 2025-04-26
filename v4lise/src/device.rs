@@ -1,11 +1,13 @@
-use crate::error::Result;
-use crate::queue::Queue;
-use crate::queue::QueueType;
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::os::unix::io::AsRawFd;
-use std::os::unix::prelude::OpenOptionsExt;
-use std::path::Path;
+use std::{
+    fs::{File, OpenOptions},
+    os::unix::{io::AsRawFd, prelude::OpenOptionsExt},
+    path::Path,
+};
+
+use crate::{
+    error::Result,
+    queue::{Queue, QueueType},
+};
 
 #[derive(Debug)]
 pub struct Device {
