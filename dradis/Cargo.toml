@@ -13,8 +13,6 @@ built.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-bitflags.workspace = true
-chrono.workspace = true
 clap.workspace = true
 dma-buf.workspace = true
 dma-heap.workspace = true

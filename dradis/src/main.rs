@@ -16,7 +16,7 @@ use std::{
     cell::RefCell,
     fs::File,
     io,
-    os::unix::io::AsRawFd,
+    os::{fd::AsFd, unix::io::AsRawFd},
     path::PathBuf,
     rc::Rc,
     thread::sleep,
@@ -36,17 +36,20 @@ use serde::Deserialize;
 use serde_with::{DurationSeconds, serde_as};
 use thiserror::Error;
 use threads_pool::ThreadPool;
-use tracing::{Level, debug, debug_span, error, info, warn};
+use tracing::{Level, debug, debug_span, error, info, trace, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
-use v4l2_raw::{format::v4l2_pix_fmt, wrapper::v4l2_format};
-use v4lise::{
-    Device, MemoryType, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE, v4l2_buf_type, v4l2_buffer,
-    v4l2_memory, v4l2_query_buffer,
+use v4l2_raw::{
+    format::v4l2_pix_fmt,
+    raw::{v4l2_buf_type, v4l2_ioctl_querybuf, v4l2_memory},
+    wrapper::{
+        v4l2_event_subscription, v4l2_event_subscription_type, v4l2_event_type, v4l2_format,
+        v4l2_ioctl_dqevent, v4l2_ioctl_subscribe_event,
+    },
 };
+use v4lise::{Device, MemoryType, Queue, QueueType, v4l2_buffer};
 
 use crate::helpers::{
-    EventKind, dequeue_buffer, dequeue_event, queue_buffer, set_edid, start_streaming,
-    subscribe_event, wait_and_set_dv_timings,
+    dequeue_buffer, queue_buffer, set_edid, start_streaming, wait_and_set_dv_timings,
 };
 
 pub mod built_info {
@@ -141,12 +144,12 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
     for idx in 0..NUM_BUFFERS {
         let mut rbuf = v4l2_buffer {
             index: idx,
-            type_: BUFFER_TYPE as u32,
-            memory: MEMORY_TYPE as u32,
+            type_: BUFFER_TYPE.into(),
+            memory: MEMORY_TYPE.into(),
             ..v4l2_buffer::default()
         };
 
-        rbuf = v4l2_query_buffer(suite.dev, rbuf).expect("Couldn't query our buffer");
+        rbuf = v4l2_ioctl_querybuf(suite.dev.as_fd(), rbuf).expect("Couldn't query our buffer");
 
         let len = rbuf.length as usize;
         let buffer = suite
@@ -185,12 +188,14 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
                 return Err(TestError::NoFrameReceived);
             }
 
-            let evt = dequeue_event(suite.dev);
+            let evt = v4l2_ioctl_dqevent(suite.dev.as_fd());
             if let Ok(e) = evt {
-                if let EventKind::SourceChange(v) = e.kind {
-                    debug! {"Source Changed: seq: {}, timestamp: {}, rem: {}, flags {:#?}", e.sequence, e.timestamp, e.pending, v};
+                if let v4l2_event_type::SourceChange(_) = e.kind() {
+                    debug! {"Source Changed: seq: {}, rem: {}", e.sequence(), e.pending()};
                     return Err(TestError::Retry);
                 }
+
+                trace!("Igoring event {e:#?}");
             } else {
                 debug!("No Event to Dequeue.");
             }
@@ -201,9 +206,9 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
                 Err(ref e) => match Errno::from_io_error(e) {
                     Some(Errno::AGAIN) => {
                         debug!("No buffer to dequeue.");
-                    },
+                    }
                     _ => break buffer_idx,
-                }
+                },
             }
 
             sleep(Duration::from_millis(5));
@@ -395,8 +400,11 @@ fn main() -> anyhow::Result<()> {
         queue: &queue,
     };
 
-    subscribe_event(dradis.dev, V4L2_EVENT_SOURCE_CHANGE)
-        .context("Couldn't subscribe to our V4L2 Events")?;
+    v4l2_ioctl_subscribe_event(
+        dradis.dev.as_fd(),
+        v4l2_event_subscription::new(v4l2_event_subscription_type::SourceChange),
+    )
+    .context("Couldn't subscribe to our V4L2 Events")?;
 
     for test in &dradis.cfg.tests {
         test_display_one_mode(&dradis, test)?;
