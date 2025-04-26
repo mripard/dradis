@@ -1,23 +1,15 @@
-use crate::capabilities::Capability;
-use crate::device::Device;
-use crate::error::Error;
-use crate::error::Result;
-use crate::formats::PixelFormat;
-use crate::lowlevel::CapabilitiesFlags;
-use crate::lowlevel::v4l2_buf_type;
-use crate::lowlevel::v4l2_enum_formats;
-use crate::lowlevel::v4l2_enum_framesizes;
-use crate::lowlevel::v4l2_fmtdesc;
-use crate::lowlevel::v4l2_format;
-use crate::lowlevel::v4l2_format__bindgen_ty_1;
-use crate::lowlevel::v4l2_frmsizeenum;
-use crate::lowlevel::v4l2_get_format;
-use crate::lowlevel::v4l2_memory;
-use crate::lowlevel::v4l2_pix_format;
-use crate::lowlevel::v4l2_query_cap;
-use crate::lowlevel::v4l2_request_buffers;
-use crate::lowlevel::v4l2_requestbuffers;
-use crate::lowlevel::v4l2_set_format;
+use crate::{
+    capabilities::Capability,
+    device::Device,
+    error::{Error, Result},
+    formats::PixelFormat,
+    lowlevel::{
+        CapabilitiesFlags, v4l2_buf_type, v4l2_enum_formats, v4l2_enum_framesizes, v4l2_fmtdesc,
+        v4l2_format, v4l2_format__bindgen_ty_1, v4l2_frmsizeenum, v4l2_get_format, v4l2_memory,
+        v4l2_pix_format, v4l2_query_cap, v4l2_request_buffers, v4l2_requestbuffers,
+        v4l2_set_format,
+    },
+};
 
 #[derive(Clone, Copy, Debug)]
 pub enum MemoryType {
