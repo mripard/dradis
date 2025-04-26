@@ -1,0 +1,18 @@
+[package]
+authors.workspace = true
+description = "Macro to derive TryFrom and Into from the enum representation"
+edition.workspace = true
+license-file.workspace = true
+name = "facet-enum-repr"
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+facet.workspace = true
+facet-enum-repr-derive.workspace = true
+facet-reflect.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true
