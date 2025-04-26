@@ -26,13 +26,14 @@ use redid::{
     EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes,
 };
 use tracing::{debug, info};
+use v4l2_raw::raw::{v4l2_buf_type, v4l2_memory};
 use v4lise::{
     Device, V4L2_EVENT_CTRL, V4L2_EVENT_EOS, V4L2_EVENT_FRAME_SYNC, V4L2_EVENT_MOTION_DET,
-    V4L2_EVENT_PRIVATE_START, V4L2_EVENT_SOURCE_CHANGE, V4L2_EVENT_VSYNC, v4l2_buf_type,
-    v4l2_buffer, v4l2_dequeue_buffer, v4l2_dequeue_event, v4l2_event, v4l2_event_src_change,
-    v4l2_event_subscription, v4l2_memory, v4l2_query_dv_timings, v4l2_queue_buffer,
-    v4l2_request_buffers, v4l2_requestbuffers, v4l2_set_dv_timings, v4l2_set_edid,
-    v4l2_start_streaming, v4l2_stop_streaming, v4l2_subscribe_event,
+    V4L2_EVENT_PRIVATE_START, V4L2_EVENT_SOURCE_CHANGE, V4L2_EVENT_VSYNC, v4l2_buffer,
+    v4l2_dequeue_buffer, v4l2_dequeue_event, v4l2_event, v4l2_event_src_change,
+    v4l2_event_subscription, v4l2_query_dv_timings, v4l2_queue_buffer, v4l2_request_buffers,
+    v4l2_requestbuffers, v4l2_set_dv_timings, v4l2_set_edid, v4l2_start_streaming,
+    v4l2_stop_streaming, v4l2_subscribe_event,
 };
 
 use crate::{BUFFER_TYPE, Dradis, MEMORY_TYPE, SetupError, TestEdid};
@@ -135,8 +136,8 @@ pub(crate) fn dequeue_event(dev: &Device) -> result::Result<Event, v4lise::Error
 
 pub(crate) fn dequeue_buffer(dev: &Device) -> result::Result<u32, v4lise::Error> {
     let mut raw_struct = v4l2_buffer {
-        type_: BUFFER_TYPE as u32,
-        memory: MEMORY_TYPE as u32,
+        type_: BUFFER_TYPE.into(),
+        memory: MEMORY_TYPE.into(),
         ..v4l2_buffer::default()
     };
 
@@ -148,8 +149,8 @@ pub(crate) fn dequeue_buffer(dev: &Device) -> result::Result<u32, v4lise::Error>
 pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> result::Result<(), v4lise::Error> {
     let mut raw_struct = v4l2_buffer {
         index: idx,
-        type_: BUFFER_TYPE as u32,
-        memory: MEMORY_TYPE as u32,
+        type_: BUFFER_TYPE.into(),
+        memory: MEMORY_TYPE.into(),
         ..v4l2_buffer::default()
     };
     raw_struct.m.fd = fd;
@@ -410,8 +411,8 @@ pub(crate) fn clear_buffers(
 ) -> result::Result<(), v4lise::Error> {
     let rbuf = v4l2_requestbuffers {
         count: 0,
-        type_: buf_type as u32,
-        memory: mem_type as u32,
+        type_: buf_type.into(),
+        memory: mem_type.into(),
         ..Default::default()
     };
 

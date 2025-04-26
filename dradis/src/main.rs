@@ -37,10 +37,13 @@ use thiserror::Error;
 use threads_pool::ThreadPool;
 use tracing::{Level, debug, debug_span, error, info, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
-use v4l2_raw::{format::v4l2_pix_fmt, wrapper::v4l2_format};
+use v4l2_raw::{
+    format::v4l2_pix_fmt,
+    raw::{v4l2_buf_type, v4l2_memory},
+    wrapper::v4l2_format,
+};
 use v4lise::{
-    Device, MemoryType, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE, v4l2_buf_type, v4l2_buffer,
-    v4l2_memory, v4l2_query_buffer,
+    Device, MemoryType, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE, v4l2_buffer, v4l2_query_buffer,
 };
 
 use crate::helpers::{
@@ -149,8 +152,8 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
     for idx in 0..NUM_BUFFERS {
         let mut rbuf = v4l2_buffer {
             index: idx,
-            type_: BUFFER_TYPE as u32,
-            memory: MEMORY_TYPE as u32,
+            type_: BUFFER_TYPE.into(),
+            memory: MEMORY_TYPE.into(),
             ..v4l2_buffer::default()
         };
 
