@@ -15,6 +15,7 @@ use core::fmt;
 use std::{
     cell::RefCell,
     fs::File,
+    io,
     os::unix::io::AsRawFd,
     path::PathBuf,
     rc::Rc,
@@ -61,6 +62,27 @@ const fn default_timeout() -> Duration {
     Duration::from_secs(10)
 }
 
+#[derive(Error, Debug)]
+enum SetupError {
+    #[error("I/O Error {0}")]
+    Io(#[from] io::Error),
+
+    #[error("Timeout: {0}")]
+    Timeout(String),
+
+    #[error("Value Error: {0}")]
+    Value(String),
+}
+
+impl<T> From<EdidTypeConversionError<T>> for SetupError
+where
+    T: fmt::Display,
+{
+    fn from(value: EdidTypeConversionError<T>) -> Self {
+        Self::Value(value.to_string())
+    }
+}
+
 #[derive(Debug, Error)]
 enum TestError {
     #[error("Test Needs to be Started Again")]
@@ -69,34 +91,12 @@ enum TestError {
     #[error("No Frame Received")]
     NoFrameReceived,
 
-    #[error("Couldn't convert our value")]
-    ValueError { reason: String },
-
-    #[error("Test Setup Failed: {}", .reason)]
-    SetupFailed {
-        reason: String,
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+    #[error("Test Setup Failed: {0}")]
+    SetupFailed(#[from] SetupError),
 }
 
-impl<T> From<EdidTypeConversionError<T>> for TestError
-where
-    T: fmt::Display,
-{
-    fn from(value: EdidTypeConversionError<T>) -> Self {
-        Self::ValueError {
-            reason: value.to_string(),
-        }
-    }
-}
-
-fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
-    wait_and_set_dv_timings(suite, test.expected_width, test.expected_height).map_err(|e| {
-        TestError::SetupFailed {
-            reason: String::from("Couldn't set or retrieve the timings detected by the bridge"),
-            source: Some(Box::new(e)),
-        }
-    })?;
+fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), SetupError> {
+    wait_and_set_dv_timings(suite, test.expected_width, test.expected_height)?;
 
     let _ = suite
         .queue
