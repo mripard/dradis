@@ -35,7 +35,7 @@ use v4lise::{
     v4l2_start_streaming, v4l2_stop_streaming, v4l2_subscribe_event,
 };
 
-use crate::{BUFFER_TYPE, Dradis, MEMORY_TYPE, TestEdid, TestError};
+use crate::{BUFFER_TYPE, Dradis, MEMORY_TYPE, SetupError, TestEdid};
 
 const HFREQ_TOLERANCE_KHZ: u32 = 5;
 const VFREQ_TOLERANCE_HZ: u32 = 1;
@@ -214,7 +214,7 @@ mod tests_round_down {
 
 // Yes, VBLANK is similar to HBLANK
 #[allow(clippy::too_many_lines, clippy::similar_names)]
-pub(crate) fn set_edid(dev: &impl AsFd, edid: &TestEdid) -> Result<(), crate::TestError> {
+pub(crate) fn set_edid(dev: &impl AsFd, edid: &TestEdid) -> Result<(), SetupError> {
     let TestEdid::DetailedTiming(ref dtd) = edid;
 
     let mode_hfreq_khz: u32 =
@@ -225,31 +225,31 @@ pub(crate) fn set_edid(dev: &impl AsFd, edid: &TestEdid) -> Result<(), crate::Te
         HFREQ_TOLERANCE_KHZ,
     )
     .to_u8()
-    .ok_or(TestError::ValueError {
-        reason: String::from("Min Horizontal Frequency wouldn't fit in an u8"),
-    })?;
+    .ok_or(SetupError::Value(String::from(
+        "Min Horizontal Frequency wouldn't fit in an u8",
+    )))?;
 
     let max_hfreq_khz = round_up(
         max(mode_hfreq_hz, VIC_1_HFREQ_HZ) / 1000,
         HFREQ_TOLERANCE_KHZ,
     )
     .to_u8()
-    .ok_or(TestError::ValueError {
-        reason: String::from("Max Horizontal Frequency wouldn't fit in an u8"),
-    })?;
+    .ok_or(SetupError::Value(String::from(
+        "Max Horizontal Frequency wouldn't fit in an u8",
+    )))?;
 
     let mode_vfreq_hz = mode_hfreq_hz
         / u32::from(u16::from(dtd.vfp) + dtd.vdisplay + u16::from(dtd.vbp) + u16::from(dtd.vsync));
     let min_vfreq_hz = round_down(min(mode_vfreq_hz, VIC_1_VFREQ_HZ), VFREQ_TOLERANCE_HZ)
         .to_u8()
-        .ok_or(TestError::ValueError {
-            reason: String::from("Min Vertical Frequency wouldn't fit in an u8"),
-        })?;
+        .ok_or(SetupError::Value(String::from(
+            "Min Vertical Frequency wouldn't fit in an u8",
+        )))?;
     let max_vfreq_hz = round_up(max(mode_vfreq_hz, VIC_1_VFREQ_HZ), VFREQ_TOLERANCE_HZ)
         .to_u8()
-        .ok_or(TestError::ValueError {
-            reason: String::from("Min Vertical Frequency wouldn't fit in an u8"),
-        })?;
+        .ok_or(SetupError::Value(String::from(
+            "Min Vertical Frequency wouldn't fit in an u8",
+        )))?;
 
     let test_edid = EdidRelease3::builder()
         .manufacturer("CRN".try_into()?)
@@ -359,12 +359,14 @@ pub(crate) fn wait_and_set_dv_timings(
     suite: &Dradis<'_>,
     width: u32,
     height: u32,
-) -> result::Result<(), v4lise::Error> {
+) -> result::Result<(), SetupError> {
     let start = Instant::now();
 
     loop {
         if start.elapsed() > suite.cfg.link_timeout {
-            return Err(v4lise::Error::Empty);
+            return Err(SetupError::Timeout(String::from(
+                "Timed out waiting for source to emit the proper resolution.",
+            )));
         }
 
         let timings = v4l2_query_dv_timings(suite.dev);
@@ -391,9 +393,9 @@ pub(crate) fn wait_and_set_dv_timings(
                     Some(libc::ERANGE) => {
                         debug!("Timings out of range.");
                     }
-                    _ => return Err(e),
+                    _ => return Err(e.into()),
                 },
-                _ => return Err(e),
+                _ => return Err(e.into()),
             },
         }
 

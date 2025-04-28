@@ -15,6 +15,7 @@ use core::fmt;
 use std::{
     cell::RefCell,
     fs::File,
+    io,
     os::unix::io::AsRawFd,
     path::PathBuf,
     rc::Rc,
@@ -38,7 +39,8 @@ use tracing::{Level, debug, debug_span, error, info, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
 use v4l2_raw::{format::v4l2_pix_fmt, wrapper::v4l2_format};
 use v4lise::{
-    v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer, Device, MemoryType, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE
+    Device, MemoryType, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE, v4l2_buf_type, v4l2_buffer,
+    v4l2_memory, v4l2_query_buffer,
 };
 
 use crate::helpers::{
@@ -60,6 +62,36 @@ const fn default_timeout() -> Duration {
     Duration::from_secs(10)
 }
 
+#[derive(Error, Debug)]
+enum SetupError {
+    #[error("I/O Error {0}")]
+    Io(#[from] io::Error),
+
+    #[error("Timeout: {0}")]
+    Timeout(String),
+
+    #[error("Value Error: {0}")]
+    Value(String),
+}
+
+impl<T> From<EdidTypeConversionError<T>> for SetupError
+where
+    T: fmt::Display,
+{
+    fn from(value: EdidTypeConversionError<T>) -> Self {
+        Self::Value(value.to_string())
+    }
+}
+
+impl From<v4lise::Error> for SetupError {
+    fn from(value: v4lise::Error) -> Self {
+        match value {
+            v4lise::Error::Io(e) => e.into(),
+            _ => unimplemented!(),
+        }
+    }
+}
+
 #[derive(Debug, Error)]
 enum TestError {
     #[error("Test Needs to be Started Again")]
@@ -68,43 +100,12 @@ enum TestError {
     #[error("No Frame Received")]
     NoFrameReceived,
 
-    #[error("Couldn't convert our value")]
-    ValueError { reason: String },
-
-    #[error("Test Setup Failed: {}", .reason)]
-    SetupFailed {
-        reason: String,
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+    #[error("Test Setup Failed: {0}")]
+    SetupFailed(#[from] SetupError),
 }
 
-impl<T> From<EdidTypeConversionError<T>> for TestError
-where
-    T: fmt::Display,
-{
-    fn from(value: EdidTypeConversionError<T>) -> Self {
-        Self::ValueError {
-            reason: value.to_string(),
-        }
-    }
-}
-
-impl From<v4lise::Error> for TestError {
-    fn from(value: v4lise::Error) -> Self {
-        Self::SetupFailed {
-            reason: String::from("Unknown Error"),
-            source: Some(Box::new(value)),
-        }
-    }
-}
-
-fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
-    wait_and_set_dv_timings(suite, test.expected_width, test.expected_height).map_err(|e| {
-        TestError::SetupFailed {
-            reason: String::from("Couldn't set or retrieve the timings detected by the bridge"),
-            source: Some(Box::new(e)),
-        }
-    })?;
+fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), SetupError> {
+    wait_and_set_dv_timings(suite, test.expected_width, test.expected_height)?;
 
     let _ = suite
         .queue
@@ -272,10 +273,7 @@ fn test_display_one_mode(
     suite: &Dradis<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    set_edid(suite.dev, &test.edid).map_err(|e| TestError::SetupFailed {
-        reason: String::from("Couldn't set the EDID on the bridge"),
-        source: Some(Box::new(e)),
-    })?;
+    set_edid(suite.dev, &test.edid)?;
 
     loop {
         match test_run(suite, test) {
