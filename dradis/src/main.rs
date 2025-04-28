@@ -45,7 +45,8 @@ use v4l2_raw::{
     raw::{v4l2_buf_type, v4l2_ioctl_querybuf, v4l2_memory},
     wrapper::{
         v4l2_event_subscription, v4l2_event_subscription_type, v4l2_event_type, v4l2_format,
-        v4l2_ioctl_dqevent, v4l2_ioctl_subscribe_event,
+        v4l2_ioctl_dqevent, v4l2_ioctl_subdev_s_fmt, v4l2_ioctl_subscribe_event,
+        v4l2_subdev_format,
     },
 };
 use v4lise::{Device, MemoryType, Queue, QueueType, v4l2_buffer};
@@ -248,6 +249,68 @@ fn test_prepare_queue(
     } else {
         unreachable!()
     };
+
+    for (source_pad, wrapper, sink_pad) in &suite.pipeline {
+        trace!("Trying to set format on entity {}", wrapper.entity.name());
+
+        if !wrapper.entity.is_v4l2_sub_device().unwrap() {
+            trace!("Entity {} isn't a subdev, skipping.", wrapper.entity.name());
+            continue;
+        }
+
+        let subdev = wrapper.device.as_ref().unwrap();
+        if let Some(source_pad) = source_pad {
+            let subdev_fmt = v4l2_subdev_format::new_active()
+                .set_pad(source_pad.index())
+                .set_stream(0)
+                .set_format(pix_fmt.try_into().unwrap());
+
+            debug!(
+                "Entity {}, Pad {} (Source): Setting {}",
+                wrapper.entity.name(),
+                source_pad.index(),
+                subdev_fmt
+            );
+
+            let res = v4l2_ioctl_subdev_s_fmt(subdev.as_fd(), subdev_fmt);
+            if let Err(e) = res {
+                match e.raw_os_error() {
+                    Some(libc::EPERM) => {
+                        debug!("Subdev is Read-Only. Ignoring.");
+                    }
+                    _ => {
+                        return Err(e.into());
+                    }
+                }
+            }
+        }
+
+        if let Some(sink_pad) = sink_pad {
+            let subdev_fmt = v4l2_subdev_format::new_active()
+                .set_pad(sink_pad.index())
+                .set_stream(0)
+                .set_format(pix_fmt.try_into().unwrap());
+
+            debug!(
+                "Entity {}, Pad {} (Source): Setting {}",
+                wrapper.entity.name(),
+                sink_pad.index(),
+                subdev_fmt
+            );
+
+            let res = v4l2_ioctl_subdev_s_fmt(subdev.as_fd(), subdev_fmt);
+            if let Err(e) = res {
+                match e.raw_os_error() {
+                    Some(libc::EPERM) => {
+                        debug!("Subdev is Read-Only. Ignoring.");
+                    }
+                    _ => {
+                        return Err(e.into());
+                    }
+                }
+            }
+        }
+    }
 
     queue
         .set_format(v4l2_format::VideoCapture(pix_fmt))
