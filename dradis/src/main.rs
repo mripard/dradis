@@ -41,7 +41,7 @@ use tracing::{Level, debug, debug_span, error, info, trace, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
 use v4l2_raw::{
     format::v4l2_pix_fmt,
-    raw::{v4l2_buf_type, v4l2_ioctl_querybuf, v4l2_memory},
+    raw::{v4l2_buf_type, v4l2_field, v4l2_ioctl_querybuf, v4l2_memory},
     wrapper::{
         v4l2_event_subscription, v4l2_event_subscription_type, v4l2_event_type, v4l2_format,
         v4l2_ioctl_dqevent, v4l2_ioctl_subdev_s_fmt, v4l2_ioctl_subscribe_event,
@@ -254,6 +254,7 @@ fn test_prepare_queue(
             .set_width(test.expected_width)
             .set_height(test.expected_height)
             .set_pixel_format(v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
+            .set_field(v4l2_field::V4L2_FIELD_NONE)
     } else {
         unreachable!()
     };
