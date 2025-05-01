@@ -31,7 +31,7 @@ dma-buf = "0.4.0"
 dma-heap = "0.4.0"
 frame_check = { package = "dradis-frame-check", path = "./dradis-frame-check" }
 libc = "0.2.172"
-nix = { version = "0.29.0", features = ["ioctl"] }
+nix = { version = "0.30.0", features = ["ioctl"] }
 num-traits = "0.2.19"
 pix = { version = "0.14.0", default-features = false }
 png = { version = "0.17.16", default-features = false }
