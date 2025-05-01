@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745398373368,
+  "lastUpdate": 1746119567200,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -209,6 +209,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 501844,
             "range": "± 4836",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c599f9431fc07cf931d00b38806754977c5bed43",
+          "message": "Merge pull request #210 from mripard/dependabot/cargo/nix-0.30.0\n\nbuild(deps): update nix requirement from 0.29.0 to 0.30.0",
+          "timestamp": "2025-05-01T19:09:26+02:00",
+          "tree_id": "45ea0e0d7c0ce59ab71835c775dc6219a611f265",
+          "url": "https://github.com/mripard/dradis/commit/c599f9431fc07cf931d00b38806754977c5bed43"
+        },
+        "date": 1746119566334,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 482838,
+            "range": "± 1448",
             "unit": "ns/iter"
           }
         ]
