@@ -24,9 +24,3 @@ impl From<std::str::Utf8Error> for Error {
         Error::Invalid
     }
 }
-
-impl From<nix::Error> for Error {
-    fn from(err: nix::Error) -> Self {
-        Self::Io(std::io::Error::from_raw_os_error(err as i32))
-    }
-}

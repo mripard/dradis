@@ -36,9 +36,10 @@ use thiserror::Error;
 use threads_pool::ThreadPool;
 use tracing::{Level, debug, debug_span, error, info, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
+use v4l2_raw::{format::v4l2_pix_fmt, wrapper::v4l2_format};
 use v4lise::{
-    Device, FrameFormat, MemoryType, PixelFormat, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE,
-    v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer,
+    Device, MemoryType, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE, v4l2_buf_type, v4l2_buffer,
+    v4l2_memory, v4l2_query_buffer,
 };
 
 use crate::helpers::{
@@ -106,21 +107,28 @@ fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Resul
         }
     })?;
 
-    let fmt = suite
+    let _ = suite
         .queue
         .get_pixel_formats()
-        .find(|fmt| *fmt == PixelFormat::RGB24)
+        .find(|fmt| *fmt == v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
         .expect("Couldn't find our format");
+
+    let pix_fmt = if let v4l2_format::VideoCapture(pix_fmt) = suite
+        .queue
+        .get_current_format()
+        .expect("Couldn't get our queue format")
+    {
+        pix_fmt
+            .set_width(test.expected_width)
+            .set_height(test.expected_height)
+            .set_pixel_format(v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
+    } else {
+        unreachable!()
+    };
 
     suite
         .queue
-        .set_format(
-            suite
-                .queue
-                .get_current_format()
-                .expect("Couldn't get our queue format")
-                .set_pixel_format(fmt),
-        )
+        .set_format(v4l2_format::VideoCapture(pix_fmt))
         .expect("Couldn't change our queue format");
 
     Ok(())
