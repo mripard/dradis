@@ -4,7 +4,7 @@ use core::{
     result,
 };
 use std::{
-    os::unix::io::{AsRawFd, RawFd},
+    os::{fd::AsFd, unix::io::RawFd},
     thread::sleep,
     time::{Duration, Instant},
 };
@@ -214,7 +214,7 @@ mod tests_round_down {
 
 // Yes, VBLANK is similar to HBLANK
 #[allow(clippy::too_many_lines, clippy::similar_names)]
-pub(crate) fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<(), crate::TestError> {
+pub(crate) fn set_edid(dev: &impl AsFd, edid: &TestEdid) -> Result<(), crate::TestError> {
     let TestEdid::DetailedTiming(ref dtd) = edid;
 
     let mode_hfreq_khz: u32 =
