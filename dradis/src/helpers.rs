@@ -9,8 +9,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use bitflags::bitflags;
-use chrono::{DateTime, Local, LocalResult, TimeZone};
 use num_traits::{One, ToPrimitive, Zero};
 use redid::{
     EdidChromaticityPoint, EdidChromaticityPoints, EdidDescriptorDetailedTiming,
@@ -26,15 +24,14 @@ use redid::{
     EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes,
 };
 use tracing::{debug, info};
-use v4l2_raw::raw::{v4l2_buf_type, v4l2_memory};
-use v4lise::{
-    Device, V4L2_EVENT_CTRL, V4L2_EVENT_EOS, V4L2_EVENT_FRAME_SYNC, V4L2_EVENT_MOTION_DET,
-    V4L2_EVENT_PRIVATE_START, V4L2_EVENT_SOURCE_CHANGE, V4L2_EVENT_VSYNC, v4l2_buffer,
-    v4l2_dequeue_buffer, v4l2_dequeue_event, v4l2_event, v4l2_event_src_change,
-    v4l2_event_subscription, v4l2_query_dv_timings, v4l2_queue_buffer, v4l2_request_buffers,
-    v4l2_requestbuffers, v4l2_set_dv_timings, v4l2_set_edid, v4l2_start_streaming,
-    v4l2_stop_streaming, v4l2_subscribe_event,
+use v4l2_raw::{
+    raw::{v4l2_buf_type, v4l2_ioctl_dqbuf, v4l2_ioctl_qbuf, v4l2_ioctl_reqbufs, v4l2_memory},
+    wrapper::{
+        v4l2_dv_timings, v4l2_ioctl_query_dv_timings, v4l2_ioctl_s_dv_timings, v4l2_ioctl_s_edid,
+        v4l2_ioctl_streamoff, v4l2_ioctl_streamon,
+    },
 };
+use v4lise::{Device, v4l2_buffer, v4l2_requestbuffers};
 
 use crate::{BUFFER_TYPE, Dradis, MEMORY_TYPE, SetupError, TestEdid};
 
@@ -44,96 +41,6 @@ const VFREQ_TOLERANCE_HZ: u32 = 1;
 const VIC_1_HFREQ_HZ: u32 = 31_469;
 const VIC_1_VFREQ_HZ: u32 = 60;
 
-bitflags! {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-    pub(crate) struct EventSourceChanges: u32 {
-        const RESOLUTION = 0b00000001;
-    }
-}
-
-impl From<v4l2_event_src_change> for EventSourceChanges {
-    fn from(value: v4l2_event_src_change) -> Self {
-        Self::from_bits(value.changes).expect("Unknown Event Source.")
-    }
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Copy, Debug)]
-pub(crate) enum EventKind {
-    VerticalSync,
-    EndOfStream,
-    ControlChange,
-    FrameSync,
-    SourceChange(EventSourceChanges),
-    MotionDetection,
-    Private(u32, [u8; 64]),
-}
-
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct Event {
-    pub(crate) kind: EventKind,
-    pub(crate) pending: usize,
-    pub(crate) sequence: usize,
-    pub(crate) timestamp: DateTime<Local>,
-}
-
-impl From<v4l2_event> for Event {
-    fn from(value: v4l2_event) -> Self {
-        Self {
-            kind: match value.type_ {
-                V4L2_EVENT_VSYNC => EventKind::VerticalSync,
-                V4L2_EVENT_EOS => EventKind::EndOfStream,
-                V4L2_EVENT_CTRL => EventKind::ControlChange,
-                V4L2_EVENT_FRAME_SYNC => EventKind::FrameSync,
-                V4L2_EVENT_SOURCE_CHANGE => {
-                    let event = unsafe { value.u.src_change };
-
-                    EventKind::SourceChange(event.into())
-                }
-                V4L2_EVENT_MOTION_DET => EventKind::MotionDetection,
-                _ => {
-                    if value.type_ > V4L2_EVENT_PRIVATE_START {
-                        EventKind::Private(value.type_, [0; 64])
-                    } else {
-                        todo!()
-                    }
-                }
-            },
-            pending: value.pending as usize,
-            sequence: value.sequence as usize,
-            timestamp: {
-                let secs = value.timestamp.tv_sec;
-                let nsecs = value
-                    .timestamp
-                    .tv_nsec
-                    .try_into()
-                    .expect("Couldn't cast our timestamp nsec.");
-
-                match Local.timestamp_opt(secs, nsecs) {
-                    LocalResult::Single(t) => t,
-                    _ => todo!(),
-                }
-            },
-        }
-    }
-}
-
-pub(crate) fn subscribe_event(dev: &Device, event_type: u32) -> result::Result<(), v4lise::Error> {
-    let raw_struct = v4l2_event_subscription {
-        type_: event_type,
-        ..Default::default()
-    };
-
-    v4l2_subscribe_event(dev, raw_struct)?;
-
-    Ok(())
-}
-
-pub(crate) fn dequeue_event(dev: &Device) -> result::Result<Event, v4lise::Error> {
-    let raw_struct = v4l2_dequeue_event(dev)?;
-    Ok(raw_struct.into())
-}
-
 pub(crate) fn dequeue_buffer(dev: &Device) -> result::Result<u32, v4lise::Error> {
     let mut raw_struct = v4l2_buffer {
         type_: BUFFER_TYPE.into(),
@@ -141,7 +48,7 @@ pub(crate) fn dequeue_buffer(dev: &Device) -> result::Result<u32, v4lise::Error>
         ..v4l2_buffer::default()
     };
 
-    raw_struct = v4l2_dequeue_buffer(dev, raw_struct)?;
+    raw_struct = v4l2_ioctl_dqbuf(dev.as_fd(), raw_struct)?;
 
     Ok(raw_struct.index)
 }
@@ -155,7 +62,7 @@ pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> result::Result<
     };
     raw_struct.m.fd = fd;
 
-    v4l2_queue_buffer(dev, raw_struct)?;
+    let _ = v4l2_ioctl_qbuf(dev.as_fd(), raw_struct)?;
 
     Ok(())
 }
@@ -351,7 +258,7 @@ pub(crate) fn set_edid(dev: &impl AsFd, edid: &TestEdid) -> Result<(), SetupErro
 
     let mut bytes = test_edid.into_bytes();
 
-    v4l2_set_edid(dev, &mut bytes)?;
+    v4l2_ioctl_s_edid(dev.as_fd(), &mut bytes)?;
 
     Ok(())
 }
@@ -370,32 +277,28 @@ pub(crate) fn wait_and_set_dv_timings(
             )));
         }
 
-        let timings = v4l2_query_dv_timings(suite.dev);
-
+        let timings = v4l2_ioctl_query_dv_timings(suite.dev.as_fd());
         match timings {
             Ok(timings) => {
-                let bt = unsafe { timings.__bindgen_anon_1.bt };
-
-                if bt.width == width && bt.height == height {
-                    info!("Source started to transmit the proper resolution.");
-                    let _ = v4l2_set_dv_timings(suite.dev, timings)?;
-                    return Ok(());
+                if let v4l2_dv_timings::Bt_656_1120(bt) = timings {
+                    if bt.width == width && bt.height == height {
+                        info!("Source started to transmit the proper resolution.");
+                        v4l2_ioctl_s_dv_timings(suite.dev.as_fd(), timings)?;
+                        return Ok(());
+                    }
                 }
             }
 
-            Err(e) => match e {
-                v4lise::Error::Io(ref io) => match io.raw_os_error() {
-                    Some(libc::ENOLCK) => {
-                        debug!("Link detected but unstable.");
-                    }
-                    Some(libc::ENOLINK) => {
-                        debug!("No link detected.");
-                    }
-                    Some(libc::ERANGE) => {
-                        debug!("Timings out of range.");
-                    }
-                    _ => return Err(e.into()),
-                },
+            Err(e) => match e.raw_os_error() {
+                Some(libc::ENOLCK) => {
+                    debug!("Link detected but unstable.");
+                }
+                Some(libc::ENOLINK) => {
+                    debug!("No link detected.");
+                }
+                Some(libc::ERANGE) => {
+                    debug!("Timings out of range.");
+                }
                 _ => return Err(e.into()),
             },
         }
@@ -416,7 +319,7 @@ pub(crate) fn clear_buffers(
         ..Default::default()
     };
 
-    v4l2_request_buffers(device, rbuf)?;
+    v4l2_ioctl_reqbufs(device.as_fd(), rbuf)?;
 
     Ok(())
 }
@@ -430,7 +333,7 @@ impl Drop for StreamingDevice<'_> {
     fn drop(&mut self) {
         info!("Stopping Streaming");
 
-        v4l2_stop_streaming(self.device, self.buf_type).expect("Couldn't stop streaming");
+        v4l2_ioctl_streamoff(self.device.as_fd(), self.buf_type).expect("Couldn't stop streaming");
 
         clear_buffers(self.device, self.buf_type, v4l2_memory::V4L2_MEMORY_DMABUF)
             .expect("Couldn't free our buffers.");
@@ -443,7 +346,7 @@ pub(crate) fn start_streaming(
 ) -> result::Result<StreamingDevice<'_>, v4lise::Error> {
     info!("Starting Streaming");
 
-    v4l2_start_streaming(device, buf_type)?;
+    v4l2_ioctl_streamon(device.as_fd(), buf_type)?;
 
     Ok(StreamingDevice { device, buf_type })
 }
