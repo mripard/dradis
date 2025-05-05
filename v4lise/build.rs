@@ -7,7 +7,6 @@ fn main() {
     println!("cargo:rerun-if-changed=src/wrapper.h");
 
     let bindings = bindgen::Builder::default()
-        .clang_arg("-Isrc/headers/arm/include/")
         .header("src/wrapper.h")
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
