@@ -338,6 +338,7 @@ pub(crate) fn wait_and_set_dv_timings(
     width: u32,
     height: u32,
 ) -> result::Result<(), SetupError> {
+    let (_, root, _) = suite.pipeline.first().unwrap();
     let (_, bridge, _) = suite.pipeline.last().unwrap();
 
     let start = Instant::now();
@@ -377,7 +378,17 @@ pub(crate) fn wait_and_set_dv_timings(
         sleep(Duration::from_millis(100));
     };
 
-    Ok(mc_wrapper_v4l2_s_dv_timings(bridge, timings)?)
+    let res = mc_wrapper_v4l2_s_dv_timings(bridge, timings);
+    match res {
+        Ok(_) => Ok(()),
+        Err(e) => match e.raw_os_error() {
+            Some(libc::EPERM) => {
+                debug!("Bridge is read-only. Trying on the main device.");
+                mc_wrapper_v4l2_s_dv_timings(root, timings).map_err(Into::into)
+            }
+            _ => Err(e.into()),
+        },
+    }
 }
 
 pub(crate) fn clear_buffers(
