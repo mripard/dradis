@@ -467,6 +467,7 @@ fn test_run(
 }
 
 fn test_display_one_mode(
+    args: &Cli,
     suite: &Dradis<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
@@ -487,7 +488,7 @@ fn test_display_one_mode(
     )
     .unwrap();
 
-    bridge_set_edid(bridge, &test.edid)?;
+    bridge_set_edid(args, bridge, &test.edid)?;
 
     loop {
         match test_run(suite, &queue, test) {
@@ -587,6 +588,9 @@ struct Cli {
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
 
+    #[arg(long = "dump-edid", help = "Folder to dump test EDIDs in.")]
+    dump_edid: Option<PathBuf>,
+
     #[arg(help = "Test Configuration File")]
     test: PathBuf,
 }
@@ -614,7 +618,8 @@ fn main() -> anyhow::Result<()> {
         }
     );
 
-    let test_file = File::open(cli.test).context("Couldn't open the test description file.")?;
+    let test_file =
+        File::open(cli.test.clone()).context("Couldn't open the test description file.")?;
 
     let test_config: Test =
         serde_yaml::from_reader(test_file).context("Couldn't parse the test description file.")?;
@@ -658,7 +663,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     for test in &dradis.cfg.tests {
-        test_display_one_mode(&dradis, test)?;
+        test_display_one_mode(&cli, &dradis, test)?;
     }
 
     Ok(())
