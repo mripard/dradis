@@ -3,7 +3,7 @@ use core::{
     ops::{Add, Div, Mul, Rem, Sub},
 };
 use std::{
-    io,
+    fs, io,
     os::{fd::AsFd as _, unix::io::RawFd},
     thread::sleep,
     time::{Duration, Instant},
@@ -36,7 +36,7 @@ use v4l2_raw::{
 use v4lise::{Device, v4l2_buffer, v4l2_requestbuffers};
 
 use crate::{
-    BUFFER_TYPE, Dradis, MEMORY_TYPE, PipelineItem, SetupError, TestEdid, V4l2EntityWrapper,
+    BUFFER_TYPE, Cli, Dradis, MEMORY_TYPE, PipelineItem, SetupError, TestEdid, V4l2EntityWrapper,
 };
 
 const HFREQ_TOLERANCE_KHZ: u32 = 5;
@@ -194,7 +194,11 @@ pub(crate) fn mc_wrapper_v4l2_s_dv_timings(
 
 // Yes, VBLANK is similar to HBLANK
 #[allow(clippy::too_many_lines, clippy::similar_names)]
-pub(crate) fn bridge_set_edid(dev: &V4l2EntityWrapper, edid: &TestEdid) -> Result<(), SetupError> {
+pub(crate) fn bridge_set_edid(
+    args: &Cli,
+    dev: &V4l2EntityWrapper,
+    edid: &TestEdid,
+) -> Result<(), SetupError> {
     let TestEdid::DetailedTiming(ref dtd) = edid;
 
     let mode_hfreq_khz: u32 =
@@ -329,6 +333,14 @@ pub(crate) fn bridge_set_edid(dev: &V4l2EntityWrapper, edid: &TestEdid) -> Resul
         .build();
 
     let mut bytes = test_edid.into_bytes();
+
+    if let Some(folder) = &args.dump_edid {
+        if !folder.exists() {
+            fs::create_dir(folder)?;
+        }
+
+        fs::write(folder.join("test-edid.bin"), &bytes)?;
+    }
 
     mc_wrapper_v4l2_s_edid(dev, &mut bytes)?;
 
