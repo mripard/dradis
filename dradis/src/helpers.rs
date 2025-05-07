@@ -351,7 +351,7 @@ pub(crate) fn wait_and_set_dv_timings(
 
     let start = Instant::now();
 
-    loop {
+    let timings = loop {
         if start.elapsed() > suite.cfg.link_timeout {
             return Err(SetupError::Timeout(String::from(
                 "Timed out waiting for source to emit the proper resolution.",
@@ -364,8 +364,7 @@ pub(crate) fn wait_and_set_dv_timings(
                 if let v4l2_dv_timings::Bt_656_1120(bt) = timings {
                     if bt.width == width && bt.height == height {
                         info!("Source started to transmit the proper resolution.");
-                        mc_wrapper_v4l2_s_dv_timings(root, timings)?;
-                        return Ok(());
+                        break timings;
                     }
                 }
             }
@@ -384,7 +383,9 @@ pub(crate) fn wait_and_set_dv_timings(
         }
 
         sleep(Duration::from_millis(100));
-    }
+    };
+
+    Ok(mc_wrapper_v4l2_s_dv_timings(root, timings)?)
 }
 
 pub(crate) fn clear_buffers(
