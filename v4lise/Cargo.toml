@@ -9,7 +9,6 @@ version.workspace = true
 
 [dependencies]
 bitflags.workspace = true
-libc.workspace = true
 rustix.workspace = true
 strum_macros.workspace = true
 v4l2-raw.workspace = true

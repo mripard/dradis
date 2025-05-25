@@ -1,11 +1,12 @@
 use std::{
-    fs::{File, OpenOptions},
     os::{
-        fd::{AsFd, BorrowedFd},
-        unix::{io::AsRawFd, prelude::OpenOptionsExt},
+        fd::{AsFd, BorrowedFd, OwnedFd},
+        unix::io::AsRawFd,
     },
     path::Path,
 };
+
+use rustix::fs::{Mode, OFlags, open};
 
 use crate::{
     error::Result,
@@ -14,22 +15,23 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Device {
-    file: File,
+    file: OwnedFd,
 }
 
 impl Device {
     pub fn new(path: &Path, non_blocking: bool) -> Result<Self> {
-        let mut options = OpenOptions::new();
-        options.read(true);
-        options.write(true);
+        let flags = OFlags::union(
+            OFlags::RDWR,
+            if non_blocking {
+                OFlags::NONBLOCK
+            } else {
+                OFlags::empty()
+            },
+        );
 
-        if non_blocking {
-            options.custom_flags(libc::O_NONBLOCK);
-        }
-
-        let file = options.open(path)?;
-
-        Ok(Device { file })
+        Ok(Device {
+            file: open(path, flags, Mode::empty()).map_err(std::io::Error::from)?,
+        })
     }
 
     pub fn get_queue(&self, queue_type: QueueType) -> Result<Queue<'_>> {

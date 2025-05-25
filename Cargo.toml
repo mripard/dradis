@@ -59,6 +59,7 @@ png = { version = "0.17.16", default-features = false }
 redid = { git = "https://github.com/mripard/redid.git" }
 rxing = { version = "0.7.1", default-features = false }
 rustix = { version = "1.0.7", default-features = false, features = [
+    "fs",
     "std",
     "system",
     "time",
