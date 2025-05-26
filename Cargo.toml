@@ -50,7 +50,6 @@ facet-enum-repr = { path = "./facet-enum-repr" }
 facet-enum-repr-derive = { path = "./facet-enum-repr-derive" }
 facet-reflect = { version = "0.25.1", default-features = false }
 frame_check = { package = "dradis-frame-check", path = "./dradis-frame-check" }
-libc = { version = "0.2.172", default-features = false }
 linux-mc = { path = "./linux-mc" }
 linux-raw = { path = "./linux-raw" }
 num-traits = { version = "0.2.19", default-features = false }

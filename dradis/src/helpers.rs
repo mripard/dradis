@@ -25,6 +25,7 @@ use redid::{
     EdidR3DisplayRangeLimits, EdidR3DisplayRangeVideoTimingsSupport, EdidR3FeatureSupport,
     EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes,
 };
+use rustix::io::Errno;
 use tracing::{debug, info};
 use v4lise::{
     Device, V4L2_EVENT_CTRL, V4L2_EVENT_EOS, V4L2_EVENT_FRAME_SYNC, V4L2_EVENT_MOTION_DET,
@@ -382,19 +383,17 @@ pub(crate) fn wait_and_set_dv_timings(
                 }
             }
 
-            Err(e) => match e.raw_os_error() {
-                Some(libc::ENOLCK) => {
+            Err(e) => match Errno::from_io_error(&e) {
+                Some(Errno::NOLCK) => {
                     debug!("Link detected but unstable.");
                 }
-                Some(libc::ENOLINK) => {
+                Some(Errno::NOLINK) => {
                     debug!("No link detected.");
                 }
-                Some(libc::ERANGE) => {
+                Some(Errno::RANGE) => {
                     debug!("Timings out of range.");
                 }
-                _ => {
-                    return Err(e.into());
-                }
+                _ => return Err(e.into()),
             },
         }
 

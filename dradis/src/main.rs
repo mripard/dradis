@@ -31,6 +31,7 @@ use frame_check::{
     DecodeCheckArgs, DecodeCheckArgsDump, DecodeCheckArgsDumpOptions, decode_and_check_frame,
 };
 use redid::EdidTypeConversionError;
+use rustix::io::Errno;
 use serde::Deserialize;
 use serde_with::{DurationSeconds, serde_as};
 use thiserror::Error;
@@ -197,12 +198,12 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
             let buffer_idx = dequeue_buffer(suite.dev);
             match buffer_idx {
                 Ok(_) => break buffer_idx,
-                Err(ref e) => match e.raw_os_error() {
-                        Some(libc::EAGAIN) => {
-                            debug!("No buffer to dequeue.");
-                        }
-                        _ => break buffer_idx,
-                },
+                Err(ref e) => match Errno::from_io_error(e) {
+                    Some(Errno::AGAIN) => {
+                        debug!("No buffer to dequeue.");
+                    },
+                    _ => break buffer_idx,
+                }
             }
 
             sleep(Duration::from_millis(5));
