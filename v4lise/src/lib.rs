@@ -6,10 +6,9 @@ extern crate bitflags;
 
 mod capabilities;
 mod device;
-mod error;
 mod queue;
 
-use std::os::fd::AsFd;
+use std::{io, os::fd::AsFd};
 
 use v4l2_raw::raw::{
     v4l2_ioctl_dqbuf, v4l2_ioctl_dqevent, v4l2_ioctl_g_fmt, v4l2_ioctl_qbuf,
@@ -31,69 +30,68 @@ pub use v4l2_raw::{
 
 pub use crate::{
     device::Device,
-    error::{Error, Result},
     queue::{MemoryType, Queue, QueueType},
 };
 
-pub fn v4l2_set_edid(fd: &impl AsFd, edid: &mut [u8]) -> Result<()> {
+pub fn v4l2_set_edid(fd: &impl AsFd, edid: &mut [u8]) -> io::Result<()> {
     let arg = v4l2_edid {
         blocks: (edid.len() / 128) as u32,
         edid: edid.as_mut_ptr(),
         ..Default::default()
     };
 
-    Ok(v4l2_ioctl_s_edid(fd.as_fd(), arg).map(|_| ())?)
+    v4l2_ioctl_s_edid(fd.as_fd(), arg).map(|_| ())
 }
 
-pub fn v4l2_query_dv_timings(fd: &impl AsFd) -> Result<v4l2_dv_timings> {
+pub fn v4l2_query_dv_timings(fd: &impl AsFd) -> io::Result<v4l2_dv_timings> {
     let timings = v4l2_dv_timings::default();
 
-    Ok(v4l2_ioctl_query_dv_timings(fd.as_fd(), timings)?)
+    v4l2_ioctl_query_dv_timings(fd.as_fd(), timings)
 }
 
-pub fn v4l2_set_dv_timings(fd: &impl AsFd, timings: v4l2_dv_timings) -> Result<()> {
-    Ok(v4l2_ioctl_s_dv_timings(fd.as_fd(), timings).map(|_| ())?)
+pub fn v4l2_set_dv_timings(fd: &impl AsFd, timings: v4l2_dv_timings) -> io::Result<()> {
+    v4l2_ioctl_s_dv_timings(fd.as_fd(), timings).map(|_| ())
 }
 
-pub fn v4l2_set_format(fd: &impl AsFd, fmt: v4l2_format) -> Result<v4l2_format> {
-    Ok(v4l2_ioctl_s_fmt(fd.as_fd(), fmt)?)
+pub fn v4l2_set_format(fd: &impl AsFd, fmt: v4l2_format) -> io::Result<v4l2_format> {
+    v4l2_ioctl_s_fmt(fd.as_fd(), fmt)
 }
 
-pub fn v4l2_get_format(fd: &impl AsFd, fmt: v4l2_format) -> Result<v4l2_format> {
-    Ok(v4l2_ioctl_g_fmt(fd.as_fd(), fmt)?)
+pub fn v4l2_get_format(fd: &impl AsFd, fmt: v4l2_format) -> io::Result<v4l2_format> {
+    v4l2_ioctl_g_fmt(fd.as_fd(), fmt)
 }
 
-pub fn v4l2_start_streaming(fd: &impl AsFd, buf_type: v4l2_buf_type) -> Result<()> {
-    Ok(v4l2_ioctl_streamon(fd.as_fd(), buf_type.into())?)
+pub fn v4l2_start_streaming(fd: &impl AsFd, buf_type: v4l2_buf_type) -> io::Result<()> {
+    v4l2_ioctl_streamon(fd.as_fd(), buf_type.into())
 }
 
-pub fn v4l2_stop_streaming(fd: &impl AsFd, buf_type: v4l2_buf_type) -> Result<()> {
-    Ok(v4l2_ioctl_streamoff(fd.as_fd(), buf_type.into())?)
+pub fn v4l2_stop_streaming(fd: &impl AsFd, buf_type: v4l2_buf_type) -> io::Result<()> {
+    v4l2_ioctl_streamoff(fd.as_fd(), buf_type.into())
 }
 
-pub fn v4l2_subscribe_event(fd: &impl AsFd, sub: v4l2_event_subscription) -> Result<()> {
-    Ok(v4l2_ioctl_subscribe_event(fd.as_fd(), sub)?)
+pub fn v4l2_subscribe_event(fd: &impl AsFd, sub: v4l2_event_subscription) -> io::Result<()> {
+    v4l2_ioctl_subscribe_event(fd.as_fd(), sub)
 }
 
-pub fn v4l2_queue_buffer(fd: &impl AsFd, buf: v4l2_buffer) -> Result<()> {
-    Ok(v4l2_ioctl_qbuf(fd.as_fd(), buf).map(|_| ())?)
+pub fn v4l2_queue_buffer(fd: &impl AsFd, buf: v4l2_buffer) -> io::Result<()> {
+    v4l2_ioctl_qbuf(fd.as_fd(), buf).map(|_| ())
 }
 
-pub fn v4l2_dequeue_buffer(fd: &impl AsFd, buf: v4l2_buffer) -> Result<v4l2_buffer> {
-    Ok(v4l2_ioctl_dqbuf(fd.as_fd(), buf)?)
+pub fn v4l2_dequeue_buffer(fd: &impl AsFd, buf: v4l2_buffer) -> io::Result<v4l2_buffer> {
+    v4l2_ioctl_dqbuf(fd.as_fd(), buf)
 }
 
-pub fn v4l2_dequeue_event(fd: &impl AsFd) -> Result<v4l2_event> {
-    Ok(v4l2_ioctl_dqevent(fd.as_fd())?)
+pub fn v4l2_dequeue_event(fd: &impl AsFd) -> io::Result<v4l2_event> {
+    v4l2_ioctl_dqevent(fd.as_fd())
 }
 
 pub fn v4l2_request_buffers(
     fd: &impl AsFd,
     rbuf: v4l2_requestbuffers,
-) -> Result<v4l2_requestbuffers> {
-    Ok(v4l2_ioctl_reqbufs(fd.as_fd(), rbuf)?)
+) -> io::Result<v4l2_requestbuffers> {
+    v4l2_ioctl_reqbufs(fd.as_fd(), rbuf)
 }
 
-pub fn v4l2_query_buffer(fd: &impl AsFd, buf: v4l2_buffer) -> Result<v4l2_buffer> {
-    Ok(v4l2_ioctl_querybuf(fd.as_fd(), buf)?)
+pub fn v4l2_query_buffer(fd: &impl AsFd, buf: v4l2_buffer) -> io::Result<v4l2_buffer> {
+    v4l2_ioctl_querybuf(fd.as_fd(), buf)
 }

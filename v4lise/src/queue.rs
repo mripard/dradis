@@ -1,4 +1,4 @@
-use std::os::fd::AsFd as _;
+use std::{io, os::fd::AsFd as _};
 
 use v4l2_raw::{
     format::v4l2_pix_fmt,
@@ -11,7 +11,6 @@ use v4l2_raw::{
 use crate::{
     capabilities::{CapabilitiesFlags, Capability},
     device::Device,
-    error::{Error, Result},
     v4l2_buf_type, v4l2_fmtdesc, v4l2_frmsizeenum, v4l2_memory, v4l2_requestbuffers,
 };
 
@@ -61,12 +60,15 @@ pub struct Queue<'a> {
 }
 
 impl<'a> Queue<'a> {
-    pub fn new(dev: &'a Device, queue_type: QueueType) -> Result<Self> {
+    pub fn new(dev: &'a Device, queue_type: QueueType) -> io::Result<Self> {
         let raw_caps = v4l2_ioctl_querycap(dev.as_fd())?;
         let caps = Capability::from(raw_caps);
 
         if !caps.device_caps.contains(queue_type.into()) {
-            return Err(Error::Invalid);
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Device doesn't support requested capability",
+            ));
         }
 
         Ok(Queue { dev, queue_type })
@@ -79,8 +81,8 @@ impl<'a> Queue<'a> {
         }
     }
 
-    pub fn get_current_format(&self) -> Result<v4l2_format> {
-        Ok(v4l2_ioctl_g_fmt(self.dev.as_fd(), self.queue_type.into())?)
+    pub fn get_current_format(&self) -> io::Result<v4l2_format> {
+        v4l2_ioctl_g_fmt(self.dev.as_fd(), self.queue_type.into())
     }
 
     pub fn get_sizes(&self, fmt: v4l2_pix_fmt) -> QueueSizeIter<'_> {
@@ -91,7 +93,7 @@ impl<'a> Queue<'a> {
         }
     }
 
-    pub fn request_buffers(&self, mem_type: MemoryType, num: usize) -> Result<()> {
+    pub fn request_buffers(&self, mem_type: MemoryType, num: usize) -> io::Result<()> {
         let buf_type: v4l2_buf_type = self.queue_type.into();
         let mem_type: v4l2_memory = mem_type.into();
         let rbuf = v4l2_requestbuffers {
@@ -106,8 +108,8 @@ impl<'a> Queue<'a> {
         Ok(())
     }
 
-    pub fn set_format(&self, fmt: v4l2_format) -> Result<()> {
-        Ok(v4l2_raw::wrapper::v4l2_ioctl_s_fmt(self.dev.as_fd(), fmt).map(|_| ())?)
+    pub fn set_format(&self, fmt: v4l2_format) -> io::Result<()> {
+        v4l2_raw::wrapper::v4l2_ioctl_s_fmt(self.dev.as_fd(), fmt).map(|_| ())
     }
 }
 

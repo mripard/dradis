@@ -1,4 +1,5 @@
 use std::{
+    io,
     os::{
         fd::{AsFd, BorrowedFd, OwnedFd},
         unix::io::AsRawFd,
@@ -8,10 +9,7 @@ use std::{
 
 use rustix::fs::{Mode, OFlags, open};
 
-use crate::{
-    error::Result,
-    queue::{Queue, QueueType},
-};
+use crate::queue::{Queue, QueueType};
 
 #[derive(Debug)]
 pub struct Device {
@@ -19,7 +17,7 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new(path: &Path, non_blocking: bool) -> Result<Self> {
+    pub fn new(path: &Path, non_blocking: bool) -> io::Result<Self> {
         let flags = OFlags::union(
             OFlags::RDWR,
             if non_blocking {
@@ -30,11 +28,11 @@ impl Device {
         );
 
         Ok(Device {
-            file: open(path, flags, Mode::empty()).map_err(std::io::Error::from)?,
+            file: open(path, flags, Mode::empty())?,
         })
     }
 
-    pub fn get_queue(&self, queue_type: QueueType) -> Result<Queue<'_>> {
+    pub fn get_queue(&self, queue_type: QueueType) -> io::Result<Queue<'_>> {
         Queue::new(self, queue_type)
     }
 }

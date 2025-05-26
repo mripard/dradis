@@ -1,9 +1,9 @@
 use core::{
     cmp::{max, min},
     ops::{Add, Div, Mul, Rem, Sub},
-    result,
 };
 use std::{
+    io,
     os::{fd::AsFd, unix::io::RawFd},
     thread::sleep,
     time::{Duration, Instant},
@@ -117,7 +117,7 @@ impl From<v4l2_event> for Event {
     }
 }
 
-pub(crate) fn subscribe_event(dev: &Device, event_type: u32) -> result::Result<(), v4lise::Error> {
+pub(crate) fn subscribe_event(dev: &Device, event_type: u32) -> io::Result<()> {
     let raw_struct = v4l2_event_subscription {
         type_: event_type,
         ..Default::default()
@@ -128,12 +128,12 @@ pub(crate) fn subscribe_event(dev: &Device, event_type: u32) -> result::Result<(
     Ok(())
 }
 
-pub(crate) fn dequeue_event(dev: &Device) -> result::Result<Event, v4lise::Error> {
+pub(crate) fn dequeue_event(dev: &Device) -> io::Result<Event> {
     let raw_struct = v4l2_dequeue_event(dev)?;
     Ok(raw_struct.into())
 }
 
-pub(crate) fn dequeue_buffer(dev: &Device) -> result::Result<u32, v4lise::Error> {
+pub(crate) fn dequeue_buffer(dev: &Device) -> io::Result<u32> {
     let mut raw_struct = v4l2_buffer {
         type_: BUFFER_TYPE as u32,
         memory: MEMORY_TYPE as u32,
@@ -145,7 +145,7 @@ pub(crate) fn dequeue_buffer(dev: &Device) -> result::Result<u32, v4lise::Error>
     Ok(raw_struct.index)
 }
 
-pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> result::Result<(), v4lise::Error> {
+pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> io::Result<()> {
     let mut raw_struct = v4l2_buffer {
         index: idx,
         type_: BUFFER_TYPE as u32,
@@ -350,7 +350,10 @@ pub(crate) fn set_edid(dev: &impl AsFd, edid: &TestEdid) -> Result<(), crate::Te
 
     let mut bytes = test_edid.into_bytes();
 
-    v4l2_set_edid(dev, &mut bytes)?;
+    v4l2_set_edid(dev, &mut bytes).map_err(|e| TestError::SetupFailed {
+        reason: String::from("Couldn't set the EDID on the bridge"),
+        source: Some(Box::new(e)),
+    })?;
 
     Ok(())
 }
@@ -359,12 +362,12 @@ pub(crate) fn wait_and_set_dv_timings(
     suite: &Dradis<'_>,
     width: u32,
     height: u32,
-) -> result::Result<(), v4lise::Error> {
+) -> Result<(), TestError> {
     let start = Instant::now();
 
     loop {
         if start.elapsed() > suite.cfg.link_timeout {
-            return Err(v4lise::Error::Empty);
+            return Err(TestError::NoFrameReceived);
         }
 
         let timings = v4l2_query_dv_timings(suite.dev);
@@ -375,25 +378,32 @@ pub(crate) fn wait_and_set_dv_timings(
 
                 if bt.width == width && bt.height == height {
                     info!("Source started to transmit the proper resolution.");
-                    let _ = v4l2_set_dv_timings(suite.dev, timings)?;
+                    let _ = v4l2_set_dv_timings(suite.dev, timings).map_err(|e| {
+                        TestError::SetupFailed {
+                            reason: String::from("Couldn't set DV Timings on the bridge"),
+                            source: Some(Box::new(e)),
+                        }
+                    });
                     return Ok(());
                 }
             }
 
-            Err(e) => match e {
-                v4lise::Error::Io(ref io) => match io.raw_os_error() {
-                    Some(libc::ENOLCK) => {
-                        debug!("Link detected but unstable.");
-                    }
-                    Some(libc::ENOLINK) => {
-                        debug!("No link detected.");
-                    }
-                    Some(libc::ERANGE) => {
-                        debug!("Timings out of range.");
-                    }
-                    _ => return Err(e),
-                },
-                _ => return Err(e),
+            Err(e) => match e.raw_os_error() {
+                Some(libc::ENOLCK) => {
+                    debug!("Link detected but unstable.");
+                }
+                Some(libc::ENOLINK) => {
+                    debug!("No link detected.");
+                }
+                Some(libc::ERANGE) => {
+                    debug!("Timings out of range.");
+                }
+                _ => {
+                    return Err(TestError::SetupFailed {
+                        reason: String::from("Couldn't query DV Timings on the bridge"),
+                        source: Some(Box::new(e)),
+                    });
+                }
             },
         }
 
@@ -405,7 +415,7 @@ pub(crate) fn clear_buffers(
     device: &Device,
     buf_type: v4l2_buf_type,
     mem_type: v4l2_memory,
-) -> result::Result<(), v4lise::Error> {
+) -> io::Result<()> {
     let rbuf = v4l2_requestbuffers {
         count: 0,
         type_: buf_type as u32,
@@ -437,7 +447,7 @@ impl Drop for StreamingDevice<'_> {
 pub(crate) fn start_streaming(
     device: &Device,
     buf_type: v4l2_buf_type,
-) -> result::Result<StreamingDevice<'_>, v4lise::Error> {
+) -> io::Result<StreamingDevice<'_>> {
     info!("Starting Streaming");
 
     v4l2_start_streaming(device, buf_type)?;

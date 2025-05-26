@@ -90,15 +90,6 @@ where
     }
 }
 
-impl From<v4lise::Error> for TestError {
-    fn from(value: v4lise::Error) -> Self {
-        Self::SetupFailed {
-            reason: String::from("Unknown Error"),
-            source: Some(Box::new(value)),
-        }
-    }
-}
-
 fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
     wait_and_set_dv_timings(suite, test.expected_width, test.expected_height).map_err(|e| {
         TestError::SetupFailed {
@@ -206,14 +197,11 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
             let buffer_idx = dequeue_buffer(suite.dev);
             match buffer_idx {
                 Ok(_) => break buffer_idx,
-                Err(ref e) => match e {
-                    v4lise::Error::Io(io) => match io.raw_os_error() {
+                Err(ref e) => match e.raw_os_error() {
                         Some(libc::EAGAIN) => {
                             debug!("No buffer to dequeue.");
                         }
                         _ => break buffer_idx,
-                    },
-                    _ => break buffer_idx,
                 },
             }
 
@@ -273,10 +261,7 @@ fn test_display_one_mode(
     suite: &Dradis<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    set_edid(suite.dev, &test.edid).map_err(|e| TestError::SetupFailed {
-        reason: String::from("Couldn't set the EDID on the bridge"),
-        source: Some(Box::new(e)),
-    })?;
+    set_edid(suite.dev, &test.edid)?;
 
     loop {
         match test_run(suite, test) {
