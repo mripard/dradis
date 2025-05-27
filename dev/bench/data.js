@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1746119567200,
+  "lastUpdate": 1748338281564,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -239,6 +239,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 482838,
             "range": "± 1448",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ec83ac27d27898fabaed15658d7b2faab79514ca",
+          "message": "Merge pull request #211 from mripard/media-framework-support\n\nMedia Pipeline Support",
+          "timestamp": "2025-05-27T11:26:42+02:00",
+          "tree_id": "0e31ec10a943870dbdc21dbd782a6dfede678079",
+          "url": "https://github.com/mripard/dradis/commit/ec83ac27d27898fabaed15658d7b2faab79514ca"
+        },
+        "date": 1748338280685,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 520527,
+            "range": "± 1658",
             "unit": "ns/iter"
           }
         ]
