@@ -1,16 +1,14 @@
 use core::{
     cmp::{max, min},
     ops::{Add, Div, Mul, Rem, Sub},
-    result,
 };
 use std::{
-    os::unix::io::{AsRawFd, RawFd},
+    fs, io,
+    os::{fd::AsFd as _, unix::io::RawFd},
     thread::sleep,
     time::{Duration, Instant},
 };
 
-use bitflags::bitflags;
-use chrono::{DateTime, Local, LocalResult, TimeZone};
 use num_traits::{One, ToPrimitive, Zero};
 use redid::{
     EdidChromaticityPoint, EdidChromaticityPoints, EdidDescriptorDetailedTiming,
@@ -25,17 +23,21 @@ use redid::{
     EdidR3DisplayRangeLimits, EdidR3DisplayRangeVideoTimingsSupport, EdidR3FeatureSupport,
     EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes,
 };
+use rustix::io::Errno;
 use tracing::{debug, info};
-use v4lise::{
-    Device, V4L2_EVENT_CTRL, V4L2_EVENT_EOS, V4L2_EVENT_FRAME_SYNC, V4L2_EVENT_MOTION_DET,
-    V4L2_EVENT_PRIVATE_START, V4L2_EVENT_SOURCE_CHANGE, V4L2_EVENT_VSYNC, v4l2_buf_type,
-    v4l2_buffer, v4l2_dequeue_buffer, v4l2_dequeue_event, v4l2_event, v4l2_event_src_change,
-    v4l2_event_subscription, v4l2_memory, v4l2_query_dv_timings, v4l2_queue_buffer,
-    v4l2_request_buffers, v4l2_requestbuffers, v4l2_set_dv_timings, v4l2_set_edid,
-    v4l2_start_streaming, v4l2_stop_streaming, v4l2_subscribe_event,
+use v4l2_raw::{
+    raw::{v4l2_buf_type, v4l2_ioctl_dqbuf, v4l2_ioctl_qbuf, v4l2_ioctl_reqbufs, v4l2_memory},
+    wrapper::{
+        v4l2_dv_timings, v4l2_ioctl_query_dv_timings, v4l2_ioctl_s_dv_timings, v4l2_ioctl_s_edid,
+        v4l2_ioctl_streamoff, v4l2_ioctl_streamon, v4l2_ioctl_subdev_query_dv_timings,
+        v4l2_ioctl_subdev_s_dv_timings, v4l2_ioctl_subdev_s_edid,
+    },
 };
+use v4lise::{Device, v4l2_buffer, v4l2_requestbuffers};
 
-use crate::{BUFFER_TYPE, Dradis, MEMORY_TYPE, TestEdid, TestError};
+use crate::{
+    BUFFER_TYPE, Cli, Dradis, MEMORY_TYPE, PipelineItem, SetupError, TestEdid, V4l2EntityWrapper,
+};
 
 const HFREQ_TOLERANCE_KHZ: u32 = 5;
 const VFREQ_TOLERANCE_HZ: u32 = 1;
@@ -43,118 +45,28 @@ const VFREQ_TOLERANCE_HZ: u32 = 1;
 const VIC_1_HFREQ_HZ: u32 = 31_469;
 const VIC_1_VFREQ_HZ: u32 = 60;
 
-bitflags! {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-    pub(crate) struct EventSourceChanges: u32 {
-        const RESOLUTION = 0b00000001;
-    }
-}
-
-impl From<v4l2_event_src_change> for EventSourceChanges {
-    fn from(value: v4l2_event_src_change) -> Self {
-        Self::from_bits(value.changes).expect("Unknown Event Source.")
-    }
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Copy, Debug)]
-pub(crate) enum EventKind {
-    VerticalSync,
-    EndOfStream,
-    ControlChange,
-    FrameSync,
-    SourceChange(EventSourceChanges),
-    MotionDetection,
-    Private(u32, [u8; 64]),
-}
-
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct Event {
-    pub(crate) kind: EventKind,
-    pub(crate) pending: usize,
-    pub(crate) sequence: usize,
-    pub(crate) timestamp: DateTime<Local>,
-}
-
-impl From<v4l2_event> for Event {
-    fn from(value: v4l2_event) -> Self {
-        Self {
-            kind: match value.type_ {
-                V4L2_EVENT_VSYNC => EventKind::VerticalSync,
-                V4L2_EVENT_EOS => EventKind::EndOfStream,
-                V4L2_EVENT_CTRL => EventKind::ControlChange,
-                V4L2_EVENT_FRAME_SYNC => EventKind::FrameSync,
-                V4L2_EVENT_SOURCE_CHANGE => {
-                    let event = unsafe { value.u.src_change };
-
-                    EventKind::SourceChange(event.into())
-                }
-                V4L2_EVENT_MOTION_DET => EventKind::MotionDetection,
-                _ => {
-                    if value.type_ > V4L2_EVENT_PRIVATE_START {
-                        EventKind::Private(value.type_, [0; 64])
-                    } else {
-                        todo!()
-                    }
-                }
-            },
-            pending: value.pending as usize,
-            sequence: value.sequence as usize,
-            timestamp: {
-                let secs = value.timestamp.tv_sec;
-                let nsecs = value
-                    .timestamp
-                    .tv_nsec
-                    .try_into()
-                    .expect("Couldn't cast our timestamp nsec.");
-
-                match Local.timestamp_opt(secs, nsecs) {
-                    LocalResult::Single(t) => t,
-                    _ => todo!(),
-                }
-            },
-        }
-    }
-}
-
-pub(crate) fn subscribe_event(dev: &Device, event_type: u32) -> result::Result<(), v4lise::Error> {
-    let raw_struct = v4l2_event_subscription {
-        type_: event_type,
-        ..Default::default()
-    };
-
-    v4l2_subscribe_event(dev, raw_struct)?;
-
-    Ok(())
-}
-
-pub(crate) fn dequeue_event(dev: &Device) -> result::Result<Event, v4lise::Error> {
-    let raw_struct = v4l2_dequeue_event(dev)?;
-    Ok(raw_struct.into())
-}
-
-pub(crate) fn dequeue_buffer(dev: &Device) -> result::Result<u32, v4lise::Error> {
+pub(crate) fn dequeue_buffer(dev: &Device) -> io::Result<u32> {
     let mut raw_struct = v4l2_buffer {
-        type_: BUFFER_TYPE as u32,
-        memory: MEMORY_TYPE as u32,
+        type_: BUFFER_TYPE.into(),
+        memory: MEMORY_TYPE.into(),
         ..v4l2_buffer::default()
     };
 
-    raw_struct = v4l2_dequeue_buffer(dev, raw_struct)?;
+    raw_struct = v4l2_ioctl_dqbuf(dev.as_fd(), raw_struct)?;
 
     Ok(raw_struct.index)
 }
 
-pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> result::Result<(), v4lise::Error> {
+pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> io::Result<()> {
     let mut raw_struct = v4l2_buffer {
         index: idx,
-        type_: BUFFER_TYPE as u32,
-        memory: MEMORY_TYPE as u32,
+        type_: BUFFER_TYPE.into(),
+        memory: MEMORY_TYPE.into(),
         ..v4l2_buffer::default()
     };
     raw_struct.m.fd = fd;
 
-    v4l2_queue_buffer(dev, raw_struct)?;
+    let _ = v4l2_ioctl_qbuf(dev.as_fd(), raw_struct)?;
 
     Ok(())
 }
@@ -212,9 +124,81 @@ mod tests_round_down {
     }
 }
 
+fn mc_wrapper_v4l2_s_edid(dev: &V4l2EntityWrapper, edid: &mut [u8]) -> io::Result<()> {
+    if let Some(device) = &dev.device {
+        if dev.entity.is_v4l2_device().valid()? {
+            debug!("Running VIDIOC_S_EDID on entity {}", dev.entity.name());
+            v4l2_ioctl_s_edid(device.as_fd(), edid)
+        } else if dev.entity.is_v4l2_sub_device().valid()? {
+            debug!(
+                "Running VIDIOC_SUBDEV_S_EDID on entity {}",
+                dev.entity.name()
+            );
+            v4l2_ioctl_subdev_s_edid(device.as_fd(), edid)
+        } else {
+            unreachable!()
+        }
+    } else {
+        Ok(())
+    }
+}
+
+pub(crate) fn mc_wrapper_v4l2_query_dv_timings(
+    dev: &V4l2EntityWrapper,
+) -> io::Result<v4l2_dv_timings> {
+    if let Some(device) = &dev.device {
+        if dev.entity.is_v4l2_device().valid()? {
+            debug!(
+                "Running VIDIOC_QUERY_DV_TIMINGS on entity {}",
+                dev.entity.name()
+            );
+            v4l2_ioctl_query_dv_timings(device.as_fd())
+        } else if dev.entity.is_v4l2_sub_device().valid()? {
+            debug!(
+                "Running VIDIOC_SUBDEV_QUERY_DV_TIMINGS on entity {}",
+                dev.entity.name()
+            );
+            v4l2_ioctl_subdev_query_dv_timings(device.as_fd())
+        } else {
+            unreachable!()
+        }
+    } else {
+        unimplemented!()
+    }
+}
+
+pub(crate) fn mc_wrapper_v4l2_s_dv_timings(
+    dev: &V4l2EntityWrapper,
+    timings: v4l2_dv_timings,
+) -> io::Result<()> {
+    if let Some(device) = &dev.device {
+        if dev.entity.is_v4l2_device().valid()? {
+            debug!(
+                "Running VIDIOC_S_DV_TIMINGS on entity {}",
+                dev.entity.name()
+            );
+            v4l2_ioctl_s_dv_timings(device.as_fd(), timings)
+        } else if dev.entity.is_v4l2_sub_device().valid()? {
+            debug!(
+                "Running VIDIOC_SUBDEV_S_DV_TIMINGS on entity {}",
+                dev.entity.name()
+            );
+            v4l2_ioctl_subdev_s_dv_timings(device.as_fd(), timings)
+        } else {
+            unreachable!()
+        }
+    } else {
+        Ok(())
+    }
+}
+
 // Yes, VBLANK is similar to HBLANK
 #[allow(clippy::too_many_lines, clippy::similar_names)]
-pub(crate) fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<(), crate::TestError> {
+pub(crate) fn bridge_set_edid(
+    args: &Cli,
+    dev: &V4l2EntityWrapper,
+    edid: &TestEdid,
+) -> Result<(), SetupError> {
     let TestEdid::DetailedTiming(ref dtd) = edid;
 
     let mode_hfreq_khz: u32 =
@@ -225,31 +209,31 @@ pub(crate) fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<(), crate:
         HFREQ_TOLERANCE_KHZ,
     )
     .to_u8()
-    .ok_or(TestError::ValueError {
-        reason: String::from("Min Horizontal Frequency wouldn't fit in an u8"),
-    })?;
+    .ok_or(SetupError::Value(String::from(
+        "Min Horizontal Frequency wouldn't fit in an u8",
+    )))?;
 
     let max_hfreq_khz = round_up(
         max(mode_hfreq_hz, VIC_1_HFREQ_HZ) / 1000,
         HFREQ_TOLERANCE_KHZ,
     )
     .to_u8()
-    .ok_or(TestError::ValueError {
-        reason: String::from("Max Horizontal Frequency wouldn't fit in an u8"),
-    })?;
+    .ok_or(SetupError::Value(String::from(
+        "Max Horizontal Frequency wouldn't fit in an u8",
+    )))?;
 
     let mode_vfreq_hz = mode_hfreq_hz
         / u32::from(u16::from(dtd.vfp) + dtd.vdisplay + u16::from(dtd.vbp) + u16::from(dtd.vsync));
     let min_vfreq_hz = round_down(min(mode_vfreq_hz, VIC_1_VFREQ_HZ), VFREQ_TOLERANCE_HZ)
         .to_u8()
-        .ok_or(TestError::ValueError {
-            reason: String::from("Min Vertical Frequency wouldn't fit in an u8"),
-        })?;
+        .ok_or(SetupError::Value(String::from(
+            "Min Vertical Frequency wouldn't fit in an u8",
+        )))?;
     let max_vfreq_hz = round_up(max(mode_vfreq_hz, VIC_1_VFREQ_HZ), VFREQ_TOLERANCE_HZ)
         .to_u8()
-        .ok_or(TestError::ValueError {
-            reason: String::from("Min Vertical Frequency wouldn't fit in an u8"),
-        })?;
+        .ok_or(SetupError::Value(String::from(
+            "Min Vertical Frequency wouldn't fit in an u8",
+        )))?;
 
     let test_edid = EdidRelease3::builder()
         .manufacturer("CRN".try_into()?)
@@ -350,7 +334,15 @@ pub(crate) fn set_edid(dev: &impl AsRawFd, edid: &TestEdid) -> Result<(), crate:
 
     let mut bytes = test_edid.into_bytes();
 
-    v4l2_set_edid(dev, &mut bytes)?;
+    if let Some(folder) = &args.dump_edid {
+        if !folder.exists() {
+            fs::create_dir(folder)?;
+        }
+
+        fs::write(folder.join("test-edid.bin"), &bytes)?;
+    }
+
+    mc_wrapper_v4l2_s_edid(dev, &mut bytes)?;
 
     Ok(())
 }
@@ -359,45 +351,71 @@ pub(crate) fn wait_and_set_dv_timings(
     suite: &Dradis<'_>,
     width: u32,
     height: u32,
-) -> result::Result<(), v4lise::Error> {
+) -> Result<(), SetupError> {
+    let PipelineItem(_, root, _) =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
+
+    let PipelineItem(_, bridge, _) =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
+
     let start = Instant::now();
 
-    loop {
+    let timings = loop {
         if start.elapsed() > suite.cfg.link_timeout {
-            return Err(v4lise::Error::Empty);
+            return Err(SetupError::Timeout(String::from(
+                "Timed out waiting for source to emit the proper resolution.",
+            )));
         }
 
-        let timings = v4l2_query_dv_timings(suite.dev);
-
+        let timings = mc_wrapper_v4l2_query_dv_timings(bridge);
         match timings {
             Ok(timings) => {
-                let bt = unsafe { timings.__bindgen_anon_1.bt };
-
-                if bt.width == width && bt.height == height {
-                    info!("Source started to transmit the proper resolution.");
-                    let _ = v4l2_set_dv_timings(suite.dev, timings)?;
-                    return Ok(());
+                if let v4l2_dv_timings::Bt_656_1120(bt) = timings {
+                    if bt.width == width && bt.height == height {
+                        info!("Source started to transmit the proper resolution.");
+                        break timings;
+                    }
                 }
             }
-
-            Err(e) => match e {
-                v4lise::Error::Io(ref io) => match io.raw_os_error() {
-                    Some(libc::ENOLCK) => {
-                        debug!("Link detected but unstable.");
-                    }
-                    Some(libc::ENOLINK) => {
-                        debug!("No link detected.");
-                    }
-                    Some(libc::ERANGE) => {
-                        debug!("Timings out of range.");
-                    }
-                    _ => return Err(e),
-                },
-                _ => return Err(e),
+            Err(e) => match Errno::from_io_error(&e) {
+                Some(Errno::NOLCK) => {
+                    debug!("Link detected but unstable.");
+                }
+                Some(Errno::NOLINK) => {
+                    debug!("No link detected.");
+                }
+                Some(Errno::RANGE) => {
+                    debug!("Timings out of range.");
+                }
+                _ => return Err(e.into()),
             },
         }
 
         sleep(Duration::from_millis(100));
+    };
+
+    let res = mc_wrapper_v4l2_s_dv_timings(bridge, timings);
+    match res {
+        Ok(()) => Ok(()),
+        Err(e) => match Errno::from_io_error(&e) {
+            Some(Errno::PERM) => {
+                debug!("Bridge is read-only. Trying on the main device.");
+                mc_wrapper_v4l2_s_dv_timings(root, timings).map_err(Into::into)
+            }
+            _ => Err(e.into()),
+        },
     }
 }
 
@@ -405,15 +423,15 @@ pub(crate) fn clear_buffers(
     device: &Device,
     buf_type: v4l2_buf_type,
     mem_type: v4l2_memory,
-) -> result::Result<(), v4lise::Error> {
+) -> io::Result<()> {
     let rbuf = v4l2_requestbuffers {
         count: 0,
-        type_: buf_type as u32,
-        memory: mem_type as u32,
+        type_: buf_type.into(),
+        memory: mem_type.into(),
         ..Default::default()
     };
 
-    v4l2_request_buffers(device, rbuf)?;
+    v4l2_ioctl_reqbufs(device.as_fd(), rbuf)?;
 
     Ok(())
 }
@@ -427,7 +445,7 @@ impl Drop for StreamingDevice<'_> {
     fn drop(&mut self) {
         info!("Stopping Streaming");
 
-        v4l2_stop_streaming(self.device, self.buf_type).expect("Couldn't stop streaming");
+        v4l2_ioctl_streamoff(self.device.as_fd(), self.buf_type).expect("Couldn't stop streaming");
 
         clear_buffers(self.device, self.buf_type, v4l2_memory::V4L2_MEMORY_DMABUF)
             .expect("Couldn't free our buffers.");
@@ -437,10 +455,10 @@ impl Drop for StreamingDevice<'_> {
 pub(crate) fn start_streaming(
     device: &Device,
     buf_type: v4l2_buf_type,
-) -> result::Result<StreamingDevice<'_>, v4lise::Error> {
+) -> io::Result<StreamingDevice<'_>> {
     info!("Starting Streaming");
 
-    v4l2_start_streaming(device, buf_type)?;
+    v4l2_ioctl_streamon(device.as_fd(), buf_type)?;
 
     Ok(StreamingDevice { device, buf_type })
 }

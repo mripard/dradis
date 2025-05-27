@@ -1,16 +1,13 @@
 [package]
+name = "linux-raw"
 authors.workspace = true
 edition.workspace = true
 license-file.workspace = true
-name = "v4lise"
 publish = false
 repository.workspace = true
 version.workspace = true
 
 [dependencies]
-bitflags.workspace = true
-rustix.workspace = true
-v4l2-raw.workspace = true
 
-[lib]
-bench = false
+[lints]
+workspace = true

@@ -1,0 +1,25 @@
+[package]
+authors.workspace = true
+edition.workspace = true
+description = "Linux V4L2 Rust Abstraction"
+license-file.workspace = true
+name = "v4l2-raw"
+publish = false
+readme = "./README.md"
+repository.workspace = true
+version.workspace = true
+
+[build-dependencies]
+bindgen.workspace = true
+
+[dependencies]
+facet.workspace = true
+facet-enum-repr.workspace = true
+facet-reflect.workspace = true
+linux-raw.workspace = true
+rustix.workspace = true
+strum_macros.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

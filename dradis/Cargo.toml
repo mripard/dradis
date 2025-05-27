@@ -13,15 +13,14 @@ built.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-bitflags.workspace = true
-chrono.workspace = true
 clap.workspace = true
 dma-buf.workspace = true
 dma-heap.workspace = true
 frame_check.workspace = true
-libc.workspace = true
+linux-mc.workspace = true
 num-traits.workspace = true
 redid.workspace = true
+rustix.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_with.workspace = true
@@ -30,6 +29,7 @@ thiserror.workspace = true
 threads_pool.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+v4l2-raw.workspace = true
 v4lise.workspace = true
 
 [dev-dependencies]

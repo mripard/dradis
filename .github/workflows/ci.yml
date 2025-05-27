@@ -21,6 +21,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install libclang-dev
+
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
@@ -41,6 +45,10 @@ jobs:
       checks: write
 
     steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install libclang-dev
+
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
@@ -77,6 +85,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install libclang-dev
+
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
@@ -95,6 +107,10 @@ jobs:
     needs: [ build, tests ]
 
     steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install libclang-dev
+
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:

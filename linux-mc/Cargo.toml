@@ -1,0 +1,25 @@
+[package]
+authors.workspace = true
+description = "Linux Media Controller Library"
+edition.workspace = true
+license-file.workspace = true
+name = "linux-mc"
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[build-dependencies]
+bindgen.workspace = true
+
+[dependencies]
+bitflags.workspace = true
+bytemuck.workspace = true
+linux-raw.workspace = true
+rustix.workspace = true
+strum_macros.workspace = true
+
+[dev-dependencies]
+clap.workspace = true
+
+[lints]
+workspace = true

@@ -15,7 +15,8 @@ use core::fmt;
 use std::{
     cell::RefCell,
     fs::File,
-    os::unix::io::AsRawFd,
+    io,
+    os::{fd::AsFd, unix::io::AsRawFd},
     path::PathBuf,
     rc::Rc,
     thread::sleep,
@@ -29,21 +30,28 @@ use dma_heap::{Heap, HeapKind};
 use frame_check::{
     DecodeCheckArgs, DecodeCheckArgsDump, DecodeCheckArgsDumpOptions, decode_and_check_frame,
 };
+use linux_mc::{MediaController, MediaControllerEntity, MediaControllerPad, media_entity_function};
 use redid::EdidTypeConversionError;
+use rustix::io::Errno;
 use serde::Deserialize;
 use serde_with::{DurationSeconds, serde_as};
 use thiserror::Error;
 use threads_pool::ThreadPool;
-use tracing::{Level, debug, debug_span, error, info, warn};
+use tracing::{Level, debug, debug_span, error, info, trace, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
-use v4lise::{
-    Device, FrameFormat, MemoryType, PixelFormat, Queue, QueueType, V4L2_EVENT_SOURCE_CHANGE,
-    v4l2_buf_type, v4l2_buffer, v4l2_memory, v4l2_query_buffer,
+use v4l2_raw::{
+    format::v4l2_pix_fmt,
+    raw::{v4l2_buf_type, v4l2_field, v4l2_ioctl_querybuf, v4l2_memory},
+    wrapper::{
+        v4l2_event_subscription, v4l2_event_subscription_type, v4l2_event_type, v4l2_format,
+        v4l2_ioctl_dqevent, v4l2_ioctl_subdev_s_fmt, v4l2_ioctl_subscribe_event,
+        v4l2_subdev_format,
+    },
 };
+use v4lise::{Device, MemoryType, Queue, QueueType, v4l2_buffer};
 
 use crate::helpers::{
-    EventKind, dequeue_buffer, dequeue_event, queue_buffer, set_edid, start_streaming,
-    subscribe_event, wait_and_set_dv_timings,
+    bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
 };
 
 pub mod built_info {
@@ -60,6 +68,27 @@ const fn default_timeout() -> Duration {
     Duration::from_secs(10)
 }
 
+#[derive(Error, Debug)]
+enum SetupError {
+    #[error("I/O Error {0}")]
+    Io(#[from] io::Error),
+
+    #[error("Timeout: {0}")]
+    Timeout(String),
+
+    #[error("Value Error: {0}")]
+    Value(String),
+}
+
+impl<T> From<EdidTypeConversionError<T>> for SetupError
+where
+    T: fmt::Display,
+{
+    fn from(value: EdidTypeConversionError<T>) -> Self {
+        Self::Value(value.to_string())
+    }
+}
+
 #[derive(Debug, Error)]
 enum TestError {
     #[error("Test Needs to be Started Again")]
@@ -68,70 +97,284 @@ enum TestError {
     #[error("No Frame Received")]
     NoFrameReceived,
 
-    #[error("Couldn't convert our value")]
-    ValueError { reason: String },
-
-    #[error("Test Setup Failed: {}", .reason)]
-    SetupFailed {
-        reason: String,
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+    #[error("Test Setup Failed: {0}")]
+    SetupFailed(#[from] SetupError),
 }
 
-impl<T> From<EdidTypeConversionError<T>> for TestError
-where
-    T: fmt::Display,
-{
-    fn from(value: EdidTypeConversionError<T>) -> Self {
-        Self::ValueError {
-            reason: value.to_string(),
+fn find_endpoint_predicate(
+    entity: MediaControllerEntity,
+) -> Option<Result<MediaControllerEntity, io::Error>> {
+    if entity.function().valid() != media_entity_function::MEDIA_ENT_F_VID_IF_BRIDGE {
+        return None;
+    }
+
+    match entity.num_pads().valid() {
+        Ok(num_pads) => {
+            if num_pads > 1 {
+                return None;
+            }
         }
+        Err(e) => return Some(Err(e)),
+    }
+
+    match entity.pad(0).valid() {
+        Ok(Some(p)) => {
+            if p.is_source().valid() {
+                Some(Ok(entity))
+            } else {
+                None
+            }
+        }
+        Ok(None) => None,
+        Err(e) => Some(Err(e)),
     }
 }
 
-impl From<v4lise::Error> for TestError {
-    fn from(value: v4lise::Error) -> Self {
-        Self::SetupFailed {
-            reason: String::from("Unknown Error"),
-            source: Some(Box::new(value)),
+fn find_internal_routed_pad(
+    entity: &MediaControllerEntity,
+    pad: &MediaControllerPad,
+) -> Result<Option<MediaControllerPad>, io::Error> {
+    let other = pad.kind().valid().other();
+
+    let mut other_pads = entity
+        .pads()
+        .valid()?
+        .into_iter()
+        .filter(|p| p.kind().valid() == other)
+        .collect::<Vec<_>>();
+
+    Ok(match other_pads.len() {
+        0 => None,
+        1 => Some(other_pads.remove(0)),
+        2.. => {
+            // If it's a subdev, we should be calling g_routing. It's not enabled by default though,
+            // so we'll just take the first pad in the list, and hope for the best.
+            Some(other_pads.remove(0))
         }
-    }
+    })
 }
 
-fn test_prepare_queue(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
-    wait_and_set_dv_timings(suite, test.expected_width, test.expected_height).map_err(|e| {
-        TestError::SetupFailed {
-            reason: String::from("Couldn't set or retrieve the timings detected by the bridge"),
-            source: Some(Box::new(e)),
-        }
-    })?;
+#[derive(Debug)]
+struct MediaPipelineItem(
+    Option<MediaControllerPad>,
+    MediaControllerEntity,
+    Option<MediaControllerPad>,
+);
 
-    let fmt = suite
-        .queue
+fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, io::Error> {
+    let mut outputs = Vec::new();
+    let entities = mc.entities()?;
+
+    debug!("Starting to discover our pipeline.");
+
+    let mut endpoints = entities.into_iter().filter_map(find_endpoint_predicate);
+    let hdmi_bridge = endpoints
+        .next()
+        .transpose()?
+        .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
+    assert!(endpoints.next().is_none());
+
+    debug!("Found an HDMI bridge: {}", hdmi_bridge.name());
+
+    let hdmi_bridge_pad = hdmi_bridge
+        .pad(0)
+        .valid()?
+        .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
+
+    debug!(
+        "Found our pipeline source: {}, pad {}",
+        hdmi_bridge.name(),
+        hdmi_bridge_pad.index()
+    );
+
+    outputs.push(MediaPipelineItem(
+        None,
+        hdmi_bridge,
+        Some(hdmi_bridge_pad.clone()),
+    ));
+
+    let mut prev_source_pad = hdmi_bridge_pad;
+    loop {
+        let sink_pad = prev_source_pad
+            .remote_pad()
+            .valid()?
+            .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
+
+        let entity = sink_pad.entity().valid()?;
+
+        let source_pad = find_internal_routed_pad(&entity, &sink_pad)?;
+
+        outputs.push(MediaPipelineItem(
+            Some(sink_pad.clone()),
+            entity.clone(),
+            source_pad.clone(),
+        ));
+
+        // Should we test whether it's a v4l2 device and / or a default controller?
+        if let Some(source_pad) = source_pad {
+            debug!(
+                "Found an intermediate entity {}, input pad {}, output pad {}",
+                entity.name(),
+                sink_pad.index(),
+                source_pad.index()
+            );
+            prev_source_pad = source_pad;
+        } else {
+            debug!(
+                "Found the root entity {}, input pad {}",
+                entity.name(),
+                sink_pad.index()
+            );
+
+            break;
+        }
+    }
+
+    outputs.reverse();
+    Ok(outputs)
+}
+
+fn test_prepare_queue(
+    suite: &Dradis<'_>,
+    queue: &Queue<'_>,
+    test: &TestItem,
+) -> std::result::Result<(), SetupError> {
+    wait_and_set_dv_timings(suite, test.expected_width, test.expected_height)?;
+
+    let _ = queue
         .get_pixel_formats()
-        .find(|fmt| *fmt == PixelFormat::RGB24)
+        .find(|fmt| *fmt == v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
         .expect("Couldn't find our format");
 
-    suite
-        .queue
-        .set_format(
-            suite
-                .queue
-                .get_current_format()
-                .expect("Couldn't get our queue format")
-                .set_pixel_format(fmt),
-        )
+    let pix_fmt = if let v4l2_format::VideoCapture(pix_fmt) = queue
+        .get_current_format()
+        .expect("Couldn't get our queue format")
+    {
+        pix_fmt
+            .set_width(test.expected_width)
+            .set_height(test.expected_height)
+            .set_pixel_format(v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
+            .set_field(v4l2_field::V4L2_FIELD_NONE)
+    } else {
+        unreachable!()
+    };
+
+    for PipelineItem(source_pad, wrapper, sink_pad) in &suite.pipeline {
+        trace!("Trying to set format on entity {}", wrapper.entity.name());
+
+        if !wrapper.entity.is_v4l2_sub_device().valid()? {
+            trace!("Entity {} isn't a subdev, skipping.", wrapper.entity.name());
+            continue;
+        }
+        let Some(subdev) = wrapper.device.as_ref() else {
+            continue;
+        };
+
+        let mbus_fmt = pix_fmt.try_into().map_err(|_e| {
+            SetupError::from(io::Error::new(
+                Errno::INVAL.kind(),
+                "Couldn't find a mediabus format for the pixel format",
+            ))
+        })?;
+
+        if let Some(source_pad) = source_pad {
+            let subdev_fmt = v4l2_subdev_format::new_active()
+                .set_pad(source_pad.index().valid())
+                .set_stream(0)
+                .set_format(mbus_fmt);
+
+            debug!(
+                "Entity {}, Pad {} (Source): Setting {}",
+                wrapper.entity.name(),
+                source_pad.index(),
+                subdev_fmt
+            );
+
+            if let Err(e) = v4l2_ioctl_subdev_s_fmt(subdev.as_fd(), subdev_fmt) {
+                match Errno::from_io_error(&e) {
+                    Some(Errno::PERM) => {
+                        debug!("Subdev is Read-Only. Ignoring.");
+                    }
+                    _ => {
+                        return Err(e.into());
+                    }
+                }
+            }
+        }
+
+        if let Some(sink_pad) = sink_pad {
+            let subdev_fmt = v4l2_subdev_format::new_active()
+                .set_pad(sink_pad.index().valid())
+                .set_stream(0)
+                .set_format(mbus_fmt);
+
+            debug!(
+                "Entity {}, Pad {} (Source): Setting {}",
+                wrapper.entity.name(),
+                sink_pad.index(),
+                subdev_fmt
+            );
+
+            if let Err(e) = v4l2_ioctl_subdev_s_fmt(subdev.as_fd(), subdev_fmt) {
+                match Errno::from_io_error(&e) {
+                    Some(Errno::PERM) => {
+                        debug!("Subdev is Read-Only. Ignoring.");
+                    }
+                    _ => {
+                        return Err(e.into());
+                    }
+                }
+            }
+        }
+    }
+
+    queue
+        .set_format(v4l2_format::VideoCapture(pix_fmt))
         .expect("Couldn't change our queue format");
 
     Ok(())
 }
 
 #[expect(clippy::too_many_lines)]
-fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), TestError> {
-    test_prepare_queue(suite, test)?;
+fn test_run(
+    suite: &Dradis<'_>,
+    queue: &Queue<'_>,
+    test: &TestItem,
+) -> std::result::Result<(), TestError> {
+    let PipelineItem(_, root, _) =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
 
-    suite
-        .queue
+    let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
+        Errno::NODEV.kind(),
+        "Missing V4L2 Root Device",
+    )))?;
+
+    let PipelineItem(_, bridge, _) =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
+
+    let bridge_device = bridge
+        .device
+        .as_ref()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing V4L2 HDMI Bridge Device",
+        )))?;
+
+    test_prepare_queue(suite, queue, test)?;
+
+    queue
         .request_buffers(MemoryType::DMABUF, NUM_BUFFERS as usize)
         .expect("Couldn't request our buffers");
 
@@ -141,12 +384,12 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
     for idx in 0..NUM_BUFFERS {
         let mut rbuf = v4l2_buffer {
             index: idx,
-            type_: BUFFER_TYPE as u32,
-            memory: MEMORY_TYPE as u32,
+            type_: BUFFER_TYPE.into(),
+            memory: MEMORY_TYPE.into(),
             ..v4l2_buffer::default()
         };
 
-        rbuf = v4l2_query_buffer(suite.dev, rbuf).expect("Couldn't query our buffer");
+        rbuf = v4l2_ioctl_querybuf(root_device.as_fd(), rbuf).expect("Couldn't query our buffer");
 
         let len = rbuf.length as usize;
         let buffer = suite
@@ -158,11 +401,11 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
             .memory_map()
             .expect("Couldn't map our dma-buf buffer");
 
-        queue_buffer(suite.dev, idx, buffer.as_raw_fd()).expect("Couldn't queue our buffer");
+        queue_buffer(root_device, idx, buffer.as_raw_fd()).expect("Couldn't queue our buffer");
         buffers.push(buffer);
     }
 
-    let _stream = start_streaming(suite.dev, BUFFER_TYPE).expect("Couldn't start streaming");
+    let _stream = start_streaming(root_device, BUFFER_TYPE).expect("Couldn't start streaming");
 
     let start = Instant::now();
     let mut first_frame_valid = None;
@@ -185,26 +428,25 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
                 return Err(TestError::NoFrameReceived);
             }
 
-            let evt = dequeue_event(suite.dev);
+            let evt = v4l2_ioctl_dqevent(bridge_device.as_fd());
             if let Ok(e) = evt {
-                if let EventKind::SourceChange(v) = e.kind {
-                    debug! {"Source Changed: seq: {}, timestamp: {}, rem: {}, flags {:#?}", e.sequence, e.timestamp, e.pending, v};
+                if let v4l2_event_type::SourceChange(_) = e.kind() {
+                    debug! {"Source Changed: seq: {}, rem: {}", e.sequence(), e.pending()};
                     return Err(TestError::Retry);
                 }
+
+                trace!("Igoring event {e:#?}");
             } else {
                 debug!("No Event to Dequeue.");
             }
 
-            let buffer_idx = dequeue_buffer(suite.dev);
+            let buffer_idx = dequeue_buffer(root_device);
             match buffer_idx {
                 Ok(_) => break buffer_idx,
-                Err(ref e) => match e {
-                    v4lise::Error::Io(io) => match io.raw_os_error() {
-                        Some(libc::EAGAIN) => {
-                            debug!("No buffer to dequeue.");
-                        }
-                        _ => break buffer_idx,
-                    },
+                Err(ref e) => match Errno::from_io_error(e) {
+                    Some(Errno::AGAIN) => {
+                        debug!("No buffer to dequeue.");
+                    }
                     _ => break buffer_idx,
                 },
             }
@@ -246,7 +488,7 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
             }
         });
 
-        queue_buffer(suite.dev, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
+        queue_buffer(root_device, idx, buf.as_raw_fd()).expect("Couldn't queue our buffer");
 
         if let Some(duration) = test.duration {
             if let Some(first) = first_frame_valid {
@@ -262,16 +504,55 @@ fn test_run(suite: &Dradis<'_>, test: &TestItem) -> std::result::Result<(), Test
 }
 
 fn test_display_one_mode(
+    args: &Cli,
     suite: &Dradis<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    set_edid(suite.dev, &test.edid).map_err(|e| TestError::SetupFailed {
-        reason: String::from("Couldn't set the EDID on the bridge"),
-        source: Some(Box::new(e)),
-    })?;
+    let PipelineItem(_, root, _) =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
+
+    let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
+        Errno::NODEV.kind(),
+        "Missing V4L2 Root Device",
+    )))?;
+
+    let PipelineItem(_, bridge, _) =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
+
+    let bridge_device = bridge
+        .device
+        .as_ref()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing V4L2 HDMI Bridge Device",
+        )))?;
+
+    let queue = root_device
+        .get_queue(QueueType::Capture)
+        .map_err(SetupError::from)?;
+
+    v4l2_ioctl_subscribe_event(
+        bridge_device.as_fd(),
+        v4l2_event_subscription::new(v4l2_event_subscription_type::SourceChange),
+    )
+    .map_err(SetupError::from)?;
+
+    bridge_set_edid(args, bridge, &test.edid)?;
 
     loop {
-        match test_run(suite, test) {
+        match test_run(suite, &queue, test) {
             Ok(()) => break,
             Err(e) => match e {
                 TestError::Retry => {
@@ -338,21 +619,41 @@ struct Test {
 }
 
 #[derive(Debug)]
+struct V4l2EntityWrapper {
+    entity: MediaControllerEntity,
+    device: Option<Device>,
+}
+
+#[derive(Debug)]
+struct PipelineItem(
+    Option<MediaControllerPad>,
+    V4l2EntityWrapper,
+    Option<MediaControllerPad>,
+);
+
+#[derive(Debug)]
 pub(crate) struct Dradis<'a> {
     cfg: Test,
-    dev: &'a Device,
+    pipeline: Vec<PipelineItem>,
     heap: &'a Heap,
-    queue: &'a Queue<'a>,
 }
 
 #[derive(Parser)]
 #[command(version, about = "DRADIS DRM/KMS Test Program")]
 struct Cli {
-    #[arg(default_value = "/dev/video0", help = "V4L2 Device File", long, short)]
+    #[arg(
+        default_value = "/dev/media0",
+        help = "Media Controller Device File",
+        long,
+        short
+    )]
     device: PathBuf,
 
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
+
+    #[arg(long = "dump-edid", help = "Folder to dump test EDIDs in.")]
+    dump_edid: Option<PathBuf>,
 
     #[arg(help = "Test Configuration File")]
     test: PathBuf,
@@ -360,16 +661,6 @@ struct Cli {
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-
-    info!(
-        "Running {} {}",
-        built_info::PKG_NAME,
-        if let Some(version) = built_info::GIT_VERSION {
-            version
-        } else {
-            built_info::PKG_VERSION
-        }
-    );
 
     tracing_subscriber::fmt()
         .with_span_events(FmtSpan::CLOSE)
@@ -381,31 +672,58 @@ fn main() -> anyhow::Result<()> {
         })
         .init();
 
-    let test_file = File::open(cli.test).context("Couldn't open the test description file.")?;
+    info!(
+        "Running {} {}",
+        built_info::PKG_NAME,
+        if let Some(version) = built_info::GIT_VERSION {
+            version
+        } else {
+            built_info::PKG_VERSION
+        }
+    );
+
+    let test_file =
+        File::open(cli.test.clone()).context("Couldn't open the test description file.")?;
 
     let test_config: Test =
         serde_yaml::from_reader(test_file).context("Couldn't parse the test description file.")?;
 
     let heap = Heap::new(HeapKind::Cma).context("Couldn't open the DMA-Buf Heap")?;
 
-    let dev = Device::new(&cli.device, true).context("Couldn't open the V4L2 Device.")?;
+    debug!("Running from media controller {}", cli.device.display());
+    let mc = MediaController::new(&cli.device)?;
+    let pipeline = find_dev_and_subdev(&mc)?
+        .into_iter()
+        .map(|MediaPipelineItem(source, dev, sink)| {
+            let node = if let Some(itf) = dev.interfaces().valid()?.first() {
+                if let Some(node) = itf.device_node().valid()? {
+                    Some(Device::new(node.path(), true)?)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
 
-    let queue = dev
-        .get_queue(QueueType::Capture)
-        .context("Couldn't open the V4L2 Capture Queue")?;
+            Ok(PipelineItem(
+                source,
+                V4l2EntityWrapper {
+                    entity: dev,
+                    device: node,
+                },
+                sink,
+            ))
+        })
+        .collect::<Result<Vec<_>, io::Error>>()?;
 
     let dradis = Dradis {
         cfg: test_config,
-        dev: &dev,
+        pipeline,
         heap: &heap,
-        queue: &queue,
     };
 
-    subscribe_event(dradis.dev, V4L2_EVENT_SOURCE_CHANGE)
-        .context("Couldn't subscribe to our V4L2 Events")?;
-
     for test in &dradis.cfg.tests {
-        test_display_one_mode(&dradis, test)?;
+        test_display_one_mode(&cli, &dradis, test)?;
     }
 
     Ok(())
