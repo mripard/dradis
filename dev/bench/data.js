@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1748868013581,
+  "lastUpdate": 1748868703630,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -329,6 +329,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 491528,
             "range": "± 2222",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4634f71b4ce46e2cd8b55cd52f8e600171a5dc2b",
+          "message": "Merge pull request #214 from mripard/dependabot/cargo/criterion-0.6.0\n\nbuild(deps): update criterion requirement from 0.5.1 to 0.6.0",
+          "timestamp": "2025-06-02T14:47:41+02:00",
+          "tree_id": "179ad58df1c7fa72ee466a264811823ece339576",
+          "url": "https://github.com/mripard/dradis/commit/4634f71b4ce46e2cd8b55cd52f8e600171a5dc2b"
+        },
+        "date": 1748868703222,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 499695,
+            "range": "± 2062",
             "unit": "ns/iter"
           }
         ]
