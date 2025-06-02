@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1748868703630,
+  "lastUpdate": 1748876785389,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -359,6 +359,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 499695,
             "range": "± 2062",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "distinct": true,
+          "id": "b32740964b9d761bd3c5df298aa916f122dc6529",
+          "message": "dependabot: fix facet pattern\n\nSigned-off-by: Maxime Ripard <mripard@kernel.org>",
+          "timestamp": "2025-06-02T17:02:52+02:00",
+          "tree_id": "fc62d3f753dbef74c7a096c02f78bd394195cc35",
+          "url": "https://github.com/mripard/dradis/commit/b32740964b9d761bd3c5df298aa916f122dc6529"
+        },
+        "date": 1748876784968,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 486103,
+            "range": "± 5360",
             "unit": "ns/iter"
           }
         ]
