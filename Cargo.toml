@@ -47,7 +47,7 @@ facet = { version = "0.25.1", default-features = false }
 facet-derive-parse = { version = "0.25.1", default-features = false }
 facet-enum-repr = { path = "./facet-enum-repr" }
 facet-enum-repr-derive = { path = "./facet-enum-repr-derive" }
-facet-reflect = { version = "0.25.1", default-features = false }
+facet-reflect = { version = "0.27.8", default-features = false }
 frame_check = { package = "dradis-frame-check", path = "./dradis-frame-check" }
 linux-mc = { path = "./linux-mc" }
 linux-raw = { path = "./linux-raw" }
