@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1748867273080,
+  "lastUpdate": 1748868013581,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -299,6 +299,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 490906,
             "range": "± 2019",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b137eaf76fefd8a33cc18d8d5ba0df1b43476d74",
+          "message": "Merge pull request #215 from mripard/dependabot/cargo/facet-0.27.8\n\nbuild(deps): update facet requirement from 0.25.1 to 0.27.8",
+          "timestamp": "2025-06-02T14:36:06+02:00",
+          "tree_id": "d6253ddac7bf7b642ebeff88ba7242e1fe456639",
+          "url": "https://github.com/mripard/dradis/commit/b137eaf76fefd8a33cc18d8d5ba0df1b43476d74"
+        },
+        "date": 1748868012787,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 491528,
+            "range": "± 2222",
             "unit": "ns/iter"
           }
         ]
