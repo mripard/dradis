@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1748338281564,
+  "lastUpdate": 1748867273080,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -269,6 +269,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 520527,
             "range": "± 1658",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2797eaf6f2b5adfb3833b74224e5bdbafe23876f",
+          "message": "Merge pull request #216 from mripard/dependabot-fixes\n\nDependabot fixes",
+          "timestamp": "2025-06-02T14:23:38+02:00",
+          "tree_id": "59fc0bb3b00000794e973b8b784e6638c1908fea",
+          "url": "https://github.com/mripard/dradis/commit/2797eaf6f2b5adfb3833b74224e5bdbafe23876f"
+        },
+        "date": 1748867272470,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 490906,
+            "range": "± 2019",
             "unit": "ns/iter"
           }
         ]
