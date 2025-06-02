@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "boomer",
     "dradis",
     "dradis-frame-check",
     "dradis-threads-pool",
