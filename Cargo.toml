@@ -37,7 +37,7 @@ clap = { version = "4.5.38", default-features = false, features = [
     "help",
     "std",
 ] }
-criterion = { version = "0.5.1", default-features = false, features = [
+criterion = { version = "0.6.0", default-features = false, features = [
     "cargo_bench_support",
     "plotters",
 ] }
