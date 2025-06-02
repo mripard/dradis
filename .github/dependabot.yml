@@ -7,4 +7,4 @@ updates:
     groups:
       facet:
         patterns:
-          - "facet-*"
+          - "facet*"
