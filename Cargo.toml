@@ -50,11 +50,14 @@ facet-enum-repr = { path = "./facet-enum-repr" }
 facet-enum-repr-derive = { path = "./facet-enum-repr-derive" }
 facet-reflect = { version = "0.27.8", default-features = false }
 frame_check = { package = "dradis-frame-check", path = "./dradis-frame-check" }
+image = { version = "0.25.6", default-features = false, features = ["png"] }
 linux-mc = { path = "./linux-mc" }
 linux-raw = { path = "./linux-raw" }
+nucleid = { git = "https://github.com/mripard/nucleid.git", rev = "b084a0fb0dc998c68b1ca660c7ac876a00a815fd" }
 num-traits = { version = "0.2.19", default-features = false }
 pix = { version = "0.14.0", default-features = false }
 png = { version = "0.17.16", default-features = false }
+qrcode = { version = "0.14.1", default-features = false, features = ["image"] }
 redid = { git = "https://github.com/mripard/redid.git" }
 rxing = { version = "0.7.1", default-features = false }
 rustix = { version = "1.0.7", default-features = false, features = [
