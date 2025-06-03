@@ -9,7 +9,7 @@ use std::{hash::Hasher, path::PathBuf, time::Instant};
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use image::{imageops::FilterType, EncodableLayout, GenericImage, Rgb, Rgba};
+use image::{EncodableLayout, GenericImage, Rgb, Rgba, imageops::FilterType};
 use nucleid::{
     BufferType, ConnectorStatus, ConnectorUpdate, Device, Format, ObjectUpdate, PlaneType,
     PlaneUpdate,
