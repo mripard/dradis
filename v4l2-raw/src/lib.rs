@@ -1,5 +1,9 @@
 #![allow(non_camel_case_types)]
 #![allow(unsafe_code)]
+#![expect(
+    clippy::large_stack_arrays,
+    reason = "Facet can generate pretty large arrays."
+)]
 #![doc = include_str!("../README.md")]
 
 use core::{error, fmt};

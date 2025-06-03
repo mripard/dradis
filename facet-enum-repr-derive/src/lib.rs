@@ -146,7 +146,7 @@ compile_error!("FacetEnumRepr only works on enums.")
                     unimplemented!()
                 }
             } else {
-                unimplemented!()
+                None
             }
         })
         .unwrap_or(Vec::new());

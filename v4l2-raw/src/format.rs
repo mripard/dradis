@@ -2,8 +2,9 @@
 
 use core::fmt;
 
+use facet::Facet;
+use facet_enum_repr::FacetEnumRepr;
 use facet_reflect::Peek;
-use strum_macros::FromRepr;
 
 use crate::ConversionError;
 
@@ -29,7 +30,7 @@ macro_rules! v4l2_fourcc_be {
 ///
 /// [documentation]: https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/pixfmt.html#image-formats
 #[repr(u32)]
-#[derive(Clone, Copy, Debug, FromRepr, PartialEq)]
+#[derive(Clone, Copy, Debug, Facet, FacetEnumRepr, PartialEq)]
 pub enum v4l2_pix_fmt {
     //  RGB formats (1 or 2 bytes per pixel)
     /// 8-bit RGB 3-3-2
@@ -631,26 +632,6 @@ pub enum v4l2_pix_fmt {
     V4L2_META_FMT_RPI_FE_CFG = v4l2_fourcc!('R', 'P', 'F', 'C'),
     /// `PiSP` Frontend (FE) statistics
     V4L2_META_FMT_RPI_FE_STATS = v4l2_fourcc!('R', 'P', 'F', 'S'),
-}
-
-impl TryFrom<u32> for v4l2_pix_fmt {
-    type Error = ConversionError;
-
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        Self::from_repr(value).ok_or(Self::Error::InvalidValue(
-            value
-                .to_le_bytes()
-                .iter()
-                .map(|&c| c as char)
-                .collect::<String>(),
-        ))
-    }
-}
-
-impl From<v4l2_pix_fmt> for u32 {
-    fn from(value: v4l2_pix_fmt) -> Self {
-        value as u32
-    }
 }
 
 #[cfg(test)]
