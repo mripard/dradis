@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1748876785389,
+  "lastUpdate": 1748952422380,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -389,6 +389,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 486103,
             "range": "± 5360",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "af9254c55559bb9f3f46ede70a28fec8c4127413",
+          "message": "Merge pull request #218 from mripard/dradis-import\n\nImport Boomer into the repo",
+          "timestamp": "2025-06-03T14:03:02+02:00",
+          "tree_id": "3a9b50a8b78a504b8cc32ef84875691461ba49a8",
+          "url": "https://github.com/mripard/dradis/commit/af9254c55559bb9f3f46ede70a28fec8c4127413"
+        },
+        "date": 1748952421790,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 483711,
+            "range": "± 1611",
             "unit": "ns/iter"
           }
         ]
