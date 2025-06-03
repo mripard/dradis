@@ -16,7 +16,7 @@ use nucleid::{
 };
 use qrcode::QrCode;
 use serde::Serialize;
-use tracing::Level;
+use tracing::{Level, debug, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use twox_hash::XxHash64;
 
@@ -77,7 +77,7 @@ fn main() -> Result<()> {
         .find(|con| con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected)
         .context("No Active Connector")?;
 
-    log::info!("Running from connector {:#?}", connector);
+    info!("Running from connector {:#?}", connector);
 
     let mode = connector
         .preferred_mode()
@@ -86,7 +86,7 @@ fn main() -> Result<()> {
     let width = mode.width();
     let height = mode.height();
 
-    log::info!("Using mode {:#?}", mode);
+    info!("Using mode {:#?}", mode);
 
     let output = device
         .output_from_connector(&connector)
@@ -117,7 +117,7 @@ fn main() -> Result<()> {
     hasher.write(img.as_bytes());
     let hash = hasher.finish() as u64;
 
-    log::info!("Hash {:#x}", hash);
+    info!("Hash {:#x}", hash);
 
     let mut buffers: Vec<_> = Vec::new();
     for _idx in 0..NUM_BUFFERS {
@@ -130,7 +130,7 @@ fn main() -> Result<()> {
         buffers.push(buffer);
     }
 
-    log::info!("Setting up the pipeline");
+    info!("Setting up the pipeline");
 
     let first = &buffers[0];
     let mut output = output
@@ -153,7 +153,7 @@ fn main() -> Result<()> {
         )
         .commit()?;
 
-    log::info!("Starting to output");
+    info!("Starting to output");
 
     let mut index: u64 = 0;
     loop {
@@ -162,7 +162,7 @@ fn main() -> Result<()> {
         let buffer = &mut buffers[(index % NUM_BUFFERS) as usize];
         let data = buffer.data();
 
-        log::debug!("Switching to frame {}", index);
+        debug!("Switching to frame {}", index);
 
         let metadata = Metadata {
             version: (HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR),
@@ -176,7 +176,7 @@ fn main() -> Result<()> {
 
         let json = serde_json::to_string(&metadata).unwrap();
 
-        log::debug!("Metadata {:#?}", json);
+        debug!("Metadata {:#?}", json);
 
         let qrcode = QrCode::new(json.as_bytes())
             .unwrap()
@@ -195,7 +195,7 @@ fn main() -> Result<()> {
 
         index += 1;
 
-        log::debug!(
+        debug!(
             "Took {} ms to generate the frame",
             frame_start.elapsed().as_millis()
         );

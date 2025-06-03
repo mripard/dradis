@@ -12,7 +12,6 @@ version.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 image = { version = "0.25.6", default-features = false, features = ["png"] }
-log = { version = "0.4.27", default-features = false, features = ["std"] }
 nucleid = { git = "https://github.com/mripard/nucleid.git", rev = "b084a0fb0dc998c68b1ca660c7ac876a00a815fd" }
 qrcode = { version = "0.14.1", default-features = false, features = ["image"] }
 serde.workspace = true
