@@ -16,7 +16,8 @@ use nucleid::{
 };
 use qrcode::QrCode;
 use serde::Serialize;
-use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
+use tracing::Level;
+use tracing_subscriber::fmt::format::FmtSpan;
 use twox_hash::XxHash64;
 
 const QRCODE_WIDTH: usize = 128;
@@ -58,17 +59,15 @@ struct CliArgs {
 fn main() -> Result<()> {
     let args = CliArgs::parse();
 
-    TermLogger::init(
-        match args.verbose {
-            0 => LevelFilter::Info,
-            1 => LevelFilter::Debug,
-            _ => LevelFilter::Trace,
-        },
-        Config::default(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )
-    .context("Couldn't setup our logger.")?;
+    tracing_subscriber::fmt()
+        .with_span_events(FmtSpan::CLOSE)
+        .with_ansi(true)
+        .with_max_level(match args.verbose {
+            0 => Level::INFO,
+            1 => Level::DEBUG,
+            _ => Level::TRACE,
+        })
+        .init();
 
     let device = Device::new(args.device.to_str().unwrap()).unwrap();
 

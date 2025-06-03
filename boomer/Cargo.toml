@@ -17,7 +17,8 @@ nucleid = { git = "https://github.com/mripard/nucleid.git", rev = "b084a0fb0dc99
 qrcode = { version = "0.14.1", default-features = false, features = ["image"] }
 serde.workspace = true
 serde_json.workspace = true
-simplelog = { version = "0.12.2", default-features = false, features = ["termcolor"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
 twox-hash.workspace = true
 
 [[bin]]
