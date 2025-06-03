@@ -15,13 +15,19 @@ use std::{
 
 use pix::{Raster, Region, bgr::Bgr8, gray::Gray8, rgb::Rgb8};
 use png::{BitDepth, ColorType, Encoder};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use threads_pool::ThreadPool;
 use tracing::{debug, debug_span, error, trace_span, warn};
 use twox_hash::XxHash64;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
+
+/// Width of the QR Code Area, in pixels.
+pub const QRCODE_WIDTH: u32 = 128;
+
+/// Height of the QR Code Area, in pixels.
+pub const QRCODE_HEIGHT: u32 = 128;
 
 /// Our Error Type.
 #[derive(Debug, Error)]
@@ -38,7 +44,7 @@ pub enum FrameError {
 
 /// Frame Metadata
 #[allow(dead_code)]
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct Metadata {
     /// Metadata Version. The first number is the major version, the second number the minor.
     /// Minors are meant to be backward compatible, majors are breaking changes.
@@ -81,7 +87,7 @@ impl FrameInner {
     }
 
     fn crop(&self, width: u32, height: u32) -> Self {
-        let region = Region::new(0, 0, 128, 128);
+        let region = Region::new(0, 0, QRCODE_WIDTH, QRCODE_HEIGHT);
 
         let mut smaller = Raster::with_clear(width, height);
         smaller.copy_raster((), &self.0, region);
@@ -185,12 +191,15 @@ impl DradisFrame {
     /// IF the QR Code can't be decoded
     pub fn qrcode_content(&self) -> Result<String, FrameError> {
         debug_span!("QR Code Detection").in_scope(|| {
-            let cropped = self.0.crop(128, 128);
+            let cropped = self.0.crop(QRCODE_WIDTH, QRCODE_HEIGHT);
             let luma = cropped.to_luma();
 
-            let results =
-                rxing::helpers::detect_multiple_in_luma(luma.as_u8_slice().to_vec(), 128, 128)
-                    .map_err(|_e| FrameError::InvalidFrame)?;
+            let results = rxing::helpers::detect_multiple_in_luma(
+                luma.as_u8_slice().to_vec(),
+                QRCODE_WIDTH,
+                QRCODE_HEIGHT,
+            )
+            .map_err(|_e| FrameError::InvalidFrame)?;
 
             if results.len() != 1 {
                 debug!("Didn't find a QR Code");
