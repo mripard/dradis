@@ -9,7 +9,7 @@ use std::{hash::Hasher, path::PathBuf, time::Instant};
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use frame_check::Metadata;
+use frame_check::{Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
 use image::{EncodableLayout, GenericImage, Rgb, Rgba, imageops::FilterType};
 use nucleid::{
     BufferType, ConnectorStatus, ConnectorUpdate, Device, Format, ObjectUpdate, PlaneType,
@@ -19,9 +19,6 @@ use qrcode::QrCode;
 use tracing::{Level, debug, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use twox_hash::XxHash64;
-
-const QRCODE_WIDTH: u32 = 128;
-const QRCODE_HEIGHT: u32 = 128;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
 const HEADER_VERSION_MINOR: u8 = 0;
