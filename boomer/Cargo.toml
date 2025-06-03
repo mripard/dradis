@@ -11,6 +11,7 @@ version.workspace = true
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
+frame_check.workspace = true
 image.workspace = true
 nucleid.workspace = true
 qrcode.workspace = true

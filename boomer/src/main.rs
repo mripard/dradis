@@ -9,37 +9,26 @@ use std::{hash::Hasher, path::PathBuf, time::Instant};
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use frame_check::Metadata;
 use image::{EncodableLayout, GenericImage, Rgb, Rgba, imageops::FilterType};
 use nucleid::{
     BufferType, ConnectorStatus, ConnectorUpdate, Device, Format, ObjectUpdate, PlaneType,
     PlaneUpdate,
 };
 use qrcode::QrCode;
-use serde::Serialize;
 use tracing::{Level, debug, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use twox_hash::XxHash64;
 
-const QRCODE_WIDTH: usize = 128;
-const QRCODE_HEIGHT: usize = 128;
+const QRCODE_WIDTH: u32 = 128;
+const QRCODE_HEIGHT: u32 = 128;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
 const HEADER_VERSION_MINOR: u8 = 0;
 
-const NUM_BUFFERS: u64 = 3;
+const NUM_BUFFERS: usize = 3;
 
 const PATTERN: &[u8] = include_bytes!("../resources/smpte-color-bars.png");
-
-#[derive(Serialize)]
-struct Metadata {
-    version: (u8, u8),
-    qrcode_width: usize,
-    qrcode_height: usize,
-    width: usize,
-    height: usize,
-    hash: u64,
-    index: u64,
-}
 
 #[derive(Parser)]
 #[command(about = "KMS Crash Test Pattern", version)]
@@ -154,11 +143,11 @@ fn main() -> Result<()> {
 
     info!("Starting to output");
 
-    let mut index: u64 = 0;
+    let mut index: usize = 0;
     loop {
         let frame_start = Instant::now();
 
-        let buffer = &mut buffers[(index % NUM_BUFFERS) as usize];
+        let buffer = &mut buffers[index % NUM_BUFFERS];
         let data = buffer.data();
 
         debug!("Switching to frame {}", index);
@@ -167,8 +156,8 @@ fn main() -> Result<()> {
             version: (HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR),
             qrcode_width: QRCODE_WIDTH,
             qrcode_height: QRCODE_HEIGHT,
-            width,
-            height,
+            width: width as u32,
+            height: height as u32,
             hash,
             index,
         };
@@ -180,8 +169,8 @@ fn main() -> Result<()> {
         let qrcode = QrCode::new(json.as_bytes())
             .unwrap()
             .render::<Rgb<u8>>()
-            .min_dimensions(QRCODE_WIDTH as u32, QRCODE_HEIGHT as u32)
-            .max_dimensions(QRCODE_WIDTH as u32, QRCODE_HEIGHT as u32)
+            .min_dimensions(QRCODE_WIDTH, QRCODE_HEIGHT)
+            .max_dimensions(QRCODE_WIDTH, QRCODE_HEIGHT)
             .build();
 
         image::imageops::overlay(&mut img, &qrcode, 0, 0);

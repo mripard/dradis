@@ -15,7 +15,7 @@ use std::{
 
 use pix::{Raster, Region, bgr::Bgr8, gray::Gray8, rgb::Rgb8};
 use png::{BitDepth, ColorType, Encoder};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use threads_pool::ThreadPool;
 use tracing::{debug, debug_span, error, trace_span, warn};
@@ -38,7 +38,7 @@ pub enum FrameError {
 
 /// Frame Metadata
 #[allow(dead_code)]
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct Metadata {
     /// Metadata Version. The first number is the major version, the second number the minor.
     /// Minors are meant to be backward compatible, majors are breaking changes.
