@@ -73,7 +73,6 @@ fn main() -> Result<()> {
 
     let connector = device
         .connectors()
-        .into_iter()
         .find(|con| con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected)
         .context("No Active Connector")?;
 
@@ -107,7 +106,7 @@ fn main() -> Result<()> {
 
     for x in 0..QRCODE_WIDTH {
         for y in 0..QRCODE_HEIGHT {
-            img.put_pixel(x as u32, y as u32, Rgba([0, 0, 0, 255]));
+            img.put_pixel(x, y, Rgba([0, 0, 0, 255]));
         }
     }
 
@@ -115,7 +114,7 @@ fn main() -> Result<()> {
 
     let mut hasher = XxHash64::with_seed(0);
     hasher.write(img.as_bytes());
-    let hash = hasher.finish() as u64;
+    let hash = hasher.finish();
 
     info!("Hash {:#x}", hash);
 
