@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1748952422380,
+  "lastUpdate": 1749039167151,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -419,6 +419,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 483711,
             "range": "± 1611",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fc77962a54f3f4a422e1e4acdfe8b6c41bdd07f5",
+          "message": "Merge pull request #219 from mripard/updates\n\nFurther Boomer Improvements",
+          "timestamp": "2025-06-04T14:07:59+02:00",
+          "tree_id": "4fdad72e836cc715ec8fd0dab0631e2ec9761698",
+          "url": "https://github.com/mripard/dradis/commit/fc77962a54f3f4a422e1e4acdfe8b6c41bdd07f5"
+        },
+        "date": 1749039166562,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 496103,
+            "range": "± 4230",
             "unit": "ns/iter"
           }
         ]
