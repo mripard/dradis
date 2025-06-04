@@ -13,7 +13,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use pix::{Raster, Region, bgr::Bgr8, chan::Ch8, el::Pixel, gray::Gray8, rgb::Rgb8};
+use pix::{
+    Raster, Region,
+    bgr::{Bgr8, Bgra8},
+    chan::Ch8,
+    el::Pixel,
+    gray::Gray8,
+    rgb::Rgb8,
+};
 use png::{BitDepth, ColorType, Encoder};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -75,6 +82,10 @@ pub trait FramePixel: Pixel<Chan = Ch8> {}
 // The pixels are stored left to right, and the R, G, B color components are stored in the same
 // order. This format is called RGB24 by v4l2, BGR888 by DRM.
 impl FramePixel for Rgb8 {}
+
+// The pixels are stored left to right, and the R, G, B, A components are stored in the same order.
+// This format is called ABGR32 by v4l2, and  ARGB8888 by KMS.
+impl FramePixel for Bgra8 {}
 
 /// A representation of a raw RGB Frame with 8 bits per components.
 #[doc(hidden)]
