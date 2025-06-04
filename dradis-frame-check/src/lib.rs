@@ -300,6 +300,20 @@ pub struct ClearedFrame<P>(FrameInner<P>)
 where
     P: FramePixel;
 
+impl<P> ClearedFrame<P>
+where
+    P: FramePixel,
+{
+    /// Converts a [`ClearedFrame`] pixel type to another
+    #[must_use]
+    pub fn convert<D>(self) -> ClearedFrame<D>
+    where
+        D: FramePixel,
+    {
+        ClearedFrame(FrameInner(Raster::with_raster(&self.0.0)))
+    }
+}
+
 impl ClearedFrame<Rgb8> {
     /// Computes the checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
     #[must_use]
