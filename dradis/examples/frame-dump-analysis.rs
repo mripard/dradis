@@ -141,8 +141,8 @@ fn check_frame(bytes: &[u8], width: u32, height: u32) -> Result<u64, Box<dyn std
 }
 
 fn scan_different_pixels(bytes_a: &[u8], bytes_b: &[u8], width: u32, height: u32) {
-    let frame_a = QRCodeFrame::from_raw_bytes(width, height, bytes_a);
-    let frame_b = QRCodeFrame::from_raw_bytes(width, height, bytes_b);
+    let frame_a = QRCodeFrame::<Rgb8>::from_raw_bytes(width, height, bytes_a);
+    let frame_b = QRCodeFrame::<Rgb8>::from_raw_bytes(width, height, bytes_b);
 
     for row in 0..height {
         for col in 0..width {
@@ -200,9 +200,9 @@ fn compare_two_frames(bytes_a: &[u8], bytes_b: &[u8], width: u32, height: u32) {
         (None, None) => scan_different_pixels(bytes_a, bytes_b, width, height),
         (Some(_), None) | (None, Some(_)) => {
             let frame_a =
-                QRCodeFrame::from_raw_bytes(width, height, bytes_a).cleared_frame(128, 128);
+                QRCodeFrame::<Rgb8>::from_raw_bytes(width, height, bytes_a).cleared_frame(128, 128);
             let frame_b =
-                QRCodeFrame::from_raw_bytes(width, height, bytes_b).cleared_frame(128, 128);
+                QRCodeFrame::<Rgb8>::from_raw_bytes(width, height, bytes_b).cleared_frame(128, 128);
 
             scan_different_pixels(frame_a.as_bytes(), frame_b.as_bytes(), width, height);
         }

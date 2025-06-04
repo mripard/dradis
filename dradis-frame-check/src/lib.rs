@@ -196,22 +196,18 @@ where
 /// It's likely to have been emitted by Boomer, and received by Dradis. The QR Code contains the
 /// metadata describing the frame.
 #[derive(Debug)]
-pub struct QRCodeFrame(FrameInner<Rgb8>);
+pub struct QRCodeFrame<P>(FrameInner<P>)
+where
+    P: FramePixel;
 
-impl QRCodeFrame {
+impl<P> QRCodeFrame<P>
+where
+    P: FramePixel,
+{
     /// Creates a [`QRCodeFrame`] from a raw frame buffer
     #[must_use]
     pub fn from_raw_bytes(width: u32, height: u32, bytes: &[u8]) -> Self {
         Self(FrameInner::from_raw_bytes(width, height, bytes))
-    }
-
-    /// Creates a [`QRCodeFrame`] from a raw frame buffer, with inverted Red and Blue Color
-    /// Channels
-    #[must_use]
-    pub fn from_raw_bytes_with_swapped_channels(width: u32, height: u32, bytes: &[u8]) -> Self {
-        let bgr = Raster::<Bgr8>::with_u8_buffer(width, height, bytes.to_vec());
-
-        Self(FrameInner(Raster::with_raster(&bgr)))
     }
 
     /// Decodes the QR Code content found in a [`QRCodeFrame`]
@@ -254,19 +250,33 @@ impl QRCodeFrame {
 
     /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`]
     #[must_use]
-    pub fn cleared_frame(&self, clear_width: u32, clear_height: u32) -> ClearedFrame<Rgb8> {
+    pub fn cleared_frame(&self, clear_width: u32, clear_height: u32) -> ClearedFrame<P> {
         ClearedFrame(self.0.clear(clear_width, clear_height))
     }
 
     /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`] using preidentified [`Metadata`]
     #[must_use]
-    pub fn cleared_frame_with_metadata(&self, metadata: &Metadata) -> ClearedFrame<Rgb8> {
+    pub fn cleared_frame_with_metadata(&self, metadata: &Metadata) -> ClearedFrame<P> {
         self.cleared_frame(metadata.qrcode_width, metadata.qrcode_height)
     }
 }
 
-impl Deref for QRCodeFrame {
-    type Target = FrameInner<Rgb8>;
+impl QRCodeFrame<Rgb8> {
+    /// Creates a [`QRCodeFrame`] from a raw frame buffer, with inverted Red and Blue Color
+    /// Channels
+    #[must_use]
+    pub fn from_raw_bytes_with_swapped_channels(width: u32, height: u32, bytes: &[u8]) -> Self {
+        let bgr = Raster::<Bgr8>::with_u8_buffer(width, height, bytes.to_vec());
+
+        Self(FrameInner(Raster::with_raster(&bgr)))
+    }
+}
+
+impl<P> Deref for QRCodeFrame<P>
+where
+    P: FramePixel,
+{
+    type Target = FrameInner<P>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -369,7 +379,7 @@ pub struct DecodeCheckArgs {
 }
 
 fn dump_image_to_file(
-    frame_with_qr: &QRCodeFrame,
+    frame_with_qr: &QRCodeFrame<Rgb8>,
     frame_without_qr: &ClearedFrame<Rgb8>,
     valid: bool,
     idx: usize,
