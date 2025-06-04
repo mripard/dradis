@@ -3,21 +3,20 @@
 extern crate alloc;
 
 use alloc::rc::Rc;
-use core::hash::Hasher as _;
 use std::path::PathBuf;
 
 use anyhow::{Context as _, Result};
 use clap::Parser;
-use frame_check::{Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
-use image::{EncodableLayout as _, GenericImage as _, Rgb, Rgba, imageops::FilterType};
+use frame_check::{Frame, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
+use image::{Rgb, imageops::FilterType};
 use nucleid::{
     BufferType, Connector, ConnectorStatus, ConnectorUpdate, Device, Format, Framebuffer, Mode,
     ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
 };
+use pix::{Raster, rgb::Rgb8};
 use qrcode::QrCode;
 use tracing::{Level, debug, debug_span, info};
 use tracing_subscriber::fmt::format::FmtSpan;
-use twox_hash::XxHash64;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
 const HEADER_VERSION_MINOR: u8 = 0;
@@ -130,6 +129,32 @@ fn create_metadata_json(
     serde_json::to_string(&metadata)
 }
 
+fn get_rgb_pattern(width: u32, height: u32) -> Result<Frame, image::ImageError> {
+    Ok(Raster::with_u8_buffer(
+        width,
+        height,
+        image::load_from_memory(PATTERN)?
+            .resize_exact(width, height, FilterType::Nearest)
+            .to_rgb8()
+            .to_vec(),
+    )
+    .into())
+}
+
+fn create_qr_code(bytes: &[u8]) -> Result<Raster<Rgb8>, qrcode::types::QrError> {
+    let qrcode = QrCode::new(bytes)?
+        .render::<Rgb<u8>>()
+        .min_dimensions(QRCODE_WIDTH, QRCODE_HEIGHT)
+        .max_dimensions(QRCODE_WIDTH, QRCODE_HEIGHT)
+        .build();
+
+    Ok(Raster::with_u8_buffer(
+        qrcode.width(),
+        qrcode.height(),
+        qrcode.to_vec(),
+    ))
+}
+
 fn main() -> Result<()> {
     let args = CliArgs::parse();
 
@@ -163,22 +188,11 @@ fn main() -> Result<()> {
     let plane =
         find_plane_for_output(&output).context("Couldn't find a plane with the proper format")?;
 
-    let mut img = image::load_from_memory(PATTERN)
-        .context("Couldn't load our image")?
-        .resize_exact(width.into(), height.into(), FilterType::Nearest);
+    let pattern_bgr =
+        get_rgb_pattern(width.into(), height.into()).context("Couldn't load our pattern.")?;
+    let cleared_pattern_bgr = pattern_bgr.clear();
 
-    for x in 0..QRCODE_WIDTH {
-        for y in 0..QRCODE_HEIGHT {
-            img.put_pixel(x, y, Rgba([0, 0, 0, 255]));
-        }
-    }
-
-    let mut img = img.to_rgb8();
-
-    let mut hasher = XxHash64::with_seed(0);
-    hasher.write(img.as_bytes());
-    let hash = hasher.finish();
-
+    let hash = cleared_pattern_bgr.compute_checksum();
     info!("Hash {:#x}", hash);
 
     let mut buffers = get_framebuffers(
@@ -220,15 +234,10 @@ fn main() -> Result<()> {
 
         debug!("Metadata {:#?}", json);
 
-        let qrcode = QrCode::new(json.as_bytes())
-            .context("QR Code creation failed")?
-            .render::<Rgb<u8>>()
-            .min_dimensions(QRCODE_WIDTH, QRCODE_HEIGHT)
-            .max_dimensions(QRCODE_WIDTH, QRCODE_HEIGHT)
-            .build();
+        let qrcode = create_qr_code(json.as_bytes()).context("QR Code creation failed")?;
 
-        image::imageops::overlay(&mut img, &qrcode, 0, 0);
-        data.copy_from_slice(img.as_bytes());
+        let merged_buffer = cleared_pattern_bgr.with_qr_code(&qrcode);
+        data.copy_from_slice(merged_buffer.as_bytes());
 
         output = output
             .start_update()
