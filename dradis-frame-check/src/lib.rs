@@ -162,21 +162,22 @@ impl core::fmt::Debug for FrameInner {
     }
 }
 
-/// A frame captured by Dradis
+/// A Frame with an the QR Code area cleared, and an embedded QR Code in that area.
 ///
-/// It's likely to have been emitted by Boomer. It contains a QR Code containing the metadata
-/// describing the frame.
+/// It's likely to have been emitted by Boomer, and received by Dradis. The QR Code contains the
+/// metadata describing the frame.
 #[derive(Debug)]
-pub struct DradisFrame(FrameInner);
+pub struct QRCodeFrame(FrameInner);
 
-impl DradisFrame {
-    /// Creates a [`DradisFrame`] from a raw frame buffer
+impl QRCodeFrame {
+    /// Creates a [`QRCodeFrame`] from a raw frame buffer
     #[must_use]
     pub fn from_raw_bytes(width: u32, height: u32, bytes: &[u8]) -> Self {
         Self(FrameInner::from_raw_bytes(width, height, bytes))
     }
 
-    /// Creates a [`DradisFrame`] from a raw frame buffer, with inverted Red and Blue Color Channels
+    /// Creates a [`QRCodeFrame`] from a raw frame buffer, with inverted Red and Blue Color
+    /// Channels
     #[must_use]
     pub fn from_raw_bytes_with_swapped_channels(width: u32, height: u32, bytes: &[u8]) -> Self {
         let bgr = Raster::<Bgr8>::with_u8_buffer(width, height, bytes.to_vec());
@@ -184,7 +185,7 @@ impl DradisFrame {
         Self(FrameInner(Raster::with_raster(&bgr)))
     }
 
-    /// Decodes the QR Code content found in a [`DradisFrame`]
+    /// Decodes the QR Code content found in a [`QRCodeFrame`]
     ///
     /// # Errors
     ///
@@ -210,7 +211,7 @@ impl DradisFrame {
         })
     }
 
-    /// Decodes and parses the [`Metadata`] found in a [`DradisFrame`]
+    /// Decodes and parses the [`Metadata`] found in a [`QRCodeFrame`]
     ///
     /// # Errors
     ///
@@ -222,9 +223,9 @@ impl DradisFrame {
             .in_scope(|| serde_json::from_str(&content).map_err(|_e| FrameError::IntegrityFailure))
     }
 
-    /// Creates a [`ClearedDradisFrame`] out of a [`DradisFrame`]
+    /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`]
     #[must_use]
-    pub fn cleared_frame(&self, clear_width: u32, clear_height: u32) -> ClearedDradisFrame {
+    pub fn cleared_frame(&self, clear_width: u32, clear_height: u32) -> ClearedFrame {
         let mut cleared = self.0.0.clone();
         let empty = Raster::<Rgb8>::with_color(clear_width, clear_height, Rgb8::new(0, 0, 0));
         cleared.copy_raster(
@@ -233,17 +234,17 @@ impl DradisFrame {
             (),
         );
 
-        ClearedDradisFrame(FrameInner(cleared))
+        ClearedFrame(FrameInner(cleared))
     }
 
-    /// Creates a [`ClearedDradisFrame`] out of a [`DradisFrame`] using preidentified [`Metadata`]
+    /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`] using preidentified [`Metadata`]
     #[must_use]
-    pub fn cleared_frame_with_metadata(&self, metadata: &Metadata) -> ClearedDradisFrame {
+    pub fn cleared_frame_with_metadata(&self, metadata: &Metadata) -> ClearedFrame {
         self.cleared_frame(metadata.qrcode_width, metadata.qrcode_height)
     }
 }
 
-impl Deref for DradisFrame {
+impl Deref for QRCodeFrame {
     type Target = FrameInner;
 
     fn deref(&self) -> &Self::Target {
@@ -251,12 +252,12 @@ impl Deref for DradisFrame {
     }
 }
 
-/// A frame captured by Dradis, with the QR Code area cleared.
+/// A Frame with the QR Code area cleared.
 #[derive(Debug)]
-pub struct ClearedDradisFrame(FrameInner);
+pub struct ClearedFrame(FrameInner);
 
-impl ClearedDradisFrame {
-    /// Computes the checksum of [`DradisFrame`], without the QR Code area.
+impl ClearedFrame {
+    /// Computes the checksum of [`QRCodeFrame`], without the QR Code area.
     #[must_use]
     pub fn compute_checksum(&self) -> u64 {
         let mut hasher = XxHash64::with_seed(0);
@@ -265,7 +266,7 @@ impl ClearedDradisFrame {
     }
 }
 
-impl Deref for ClearedDradisFrame {
+impl Deref for ClearedFrame {
     type Target = FrameInner;
 
     fn deref(&self) -> &Self::Target {
@@ -316,8 +317,8 @@ pub struct DecodeCheckArgs {
 }
 
 fn dump_image_to_file(
-    frame_with_qr: &DradisFrame,
-    frame_without_qr: &ClearedDradisFrame,
+    frame_with_qr: &QRCodeFrame,
+    frame_without_qr: &ClearedFrame,
     valid: bool,
     idx: usize,
 ) {
@@ -359,9 +360,9 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
 
     let image = trace_span!("Framebuffer Importation").in_scope(|| {
         if args.swap_channels {
-            DradisFrame::from_raw_bytes_with_swapped_channels(args.width, args.height, data)
+            QRCodeFrame::from_raw_bytes_with_swapped_channels(args.width, args.height, data)
         } else {
-            DradisFrame::from_raw_bytes(args.width, args.height, data)
+            QRCodeFrame::from_raw_bytes(args.width, args.height, data)
         }
     });
 
