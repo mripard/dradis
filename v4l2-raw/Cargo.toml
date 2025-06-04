@@ -18,7 +18,6 @@ facet-enum-repr.workspace = true
 facet-reflect.workspace = true
 linux-raw.workspace = true
 rustix.workspace = true
-strum_macros.workspace = true
 tracing.workspace = true
 
 [lints]

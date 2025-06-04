@@ -13,7 +13,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use pix::{Raster, Region, bgr::Bgr8, gray::Gray8, rgb::Rgb8};
+use pix::{
+    Raster, Region,
+    bgr::{Bgr8, Bgra8},
+    chan::Ch8,
+    el::Pixel,
+    gray::Gray8,
+    rgb::Rgb8,
+};
 use png::{BitDepth, ColorType, Encoder};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -69,21 +76,49 @@ pub struct Metadata {
     pub index: usize,
 }
 
-/// A representation of a Raw RGB24 Frame for our use. The pixels are stored left to right, and the
-/// R, G, B color components are stored in the same order. This format is called RGB24 by v4l2,
-/// BGR888 by DRM.
 #[doc(hidden)]
-pub struct FrameInner(Raster<Rgb8>);
+pub trait FramePixel: Pixel<Chan = Ch8> {}
 
-impl FrameInner {
+// The pixels are stored left to right, and the R, G, B color components are stored in the same
+// order. This format is called RGB24 by v4l2, BGR888 by DRM.
+impl FramePixel for Rgb8 {}
+
+// The pixels are stored left to right, and the R, G, B, A components are stored in the same order.
+// This format is called ABGR32 by v4l2, and  ARGB8888 by KMS.
+impl FramePixel for Bgra8 {}
+
+/// A representation of a raw RGB Frame with 8 bits per components.
+#[doc(hidden)]
+pub struct FrameInner<P>(Raster<P>)
+where
+    P: FramePixel + Pixel<Chan = Ch8>;
+
+impl<P> FrameInner<P>
+where
+    P: FramePixel + Pixel<Chan = Ch8>,
+{
     fn from_raw_bytes(width: u32, height: u32, bytes: &[u8]) -> Self {
-        Self(Raster::with_u8_buffer(width, height, bytes.to_vec()))
+        Self(Raster::<P>::with_u8_buffer(width, height, bytes.to_vec()))
     }
 
     /// Returns the raw framebuffer content, as bytes.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_u8_slice()
+    }
+
+    fn clear(&self, width: u32, height: u32) -> Self {
+        let empty_pixel = Rgb8::new(0, 0, 0).convert();
+
+        let mut cleared = self.0.clone();
+        let empty = Raster::<P>::with_color(width, height, empty_pixel);
+        cleared.copy_raster(
+            Region::new(0, 0, self.0.width(), self.0.height()),
+            &empty,
+            (),
+        );
+
+        FrameInner(cleared)
     }
 
     fn crop(&self, width: u32, height: u32) -> Self {
@@ -101,7 +136,7 @@ impl FrameInner {
     ///
     /// If the pixel coordinates can't be converted to the underlying representation.
     #[must_use]
-    pub fn pixel(&self, x: u32, y: u32) -> Rgb8 {
+    pub fn pixel(&self, x: u32, y: u32) -> P {
         self.0.pixel(
             i32::try_from(x).expect("Can't convert i32 to u32"),
             i32::try_from(y).expect("Can't convert i32 to u32"),
@@ -124,6 +159,17 @@ impl FrameInner {
         self.0.width() as usize
     }
 
+    /// Writes our frame buffer as is, to a file identified by the given path.
+    ///
+    /// # Errors
+    ///
+    /// If we can't access the path.
+    pub fn write_to_raw(&self, path: &Path) -> io::Result<()> {
+        fs::write(path, self.0.as_u8_slice())
+    }
+}
+
+impl FrameInner<Rgb8> {
     /// Writes our framebuffer as a png image, to a file identified by the given path.
     ///
     /// # Errors
@@ -142,18 +188,12 @@ impl FrameInner {
 
         Ok(())
     }
-
-    /// Writes our frame buffer as is, to a file identified by the given path.
-    ///
-    /// # Errors
-    ///
-    /// If we can't access the path.
-    pub fn write_to_raw(&self, path: &Path) -> io::Result<()> {
-        fs::write(path, self.0.as_u8_slice())
-    }
 }
 
-impl core::fmt::Debug for FrameInner {
+impl<P> core::fmt::Debug for FrameInner<P>
+where
+    P: FramePixel + Pixel<Chan = Ch8>,
+{
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("FrameInner")
             .field("width", &self.0.width())
@@ -162,29 +202,26 @@ impl core::fmt::Debug for FrameInner {
     }
 }
 
-/// A frame captured by Dradis
+/// A Frame with an the QR Code area cleared, and an embedded QR Code in that area.
 ///
-/// It's likely to have been emitted by Boomer. It contains a QR Code containing the metadata
-/// describing the frame.
+/// It's likely to have been emitted by Boomer, and received by Dradis. The QR Code contains the
+/// metadata describing the frame.
 #[derive(Debug)]
-pub struct DradisFrame(FrameInner);
+pub struct QRCodeFrame<P>(FrameInner<P>)
+where
+    P: FramePixel;
 
-impl DradisFrame {
-    /// Creates a [`DradisFrame`] from a raw frame buffer
+impl<P> QRCodeFrame<P>
+where
+    P: FramePixel,
+{
+    /// Creates a [`QRCodeFrame`] from a raw frame buffer
     #[must_use]
     pub fn from_raw_bytes(width: u32, height: u32, bytes: &[u8]) -> Self {
         Self(FrameInner::from_raw_bytes(width, height, bytes))
     }
 
-    /// Creates a [`DradisFrame`] from a raw frame buffer, with inverted Red and Blue Color Channels
-    #[must_use]
-    pub fn from_raw_bytes_with_swapped_channels(width: u32, height: u32, bytes: &[u8]) -> Self {
-        let bgr = Raster::<Bgr8>::with_u8_buffer(width, height, bytes.to_vec());
-
-        Self(FrameInner(Raster::with_raster(&bgr)))
-    }
-
-    /// Decodes the QR Code content found in a [`DradisFrame`]
+    /// Decodes the QR Code content found in a [`QRCodeFrame`]
     ///
     /// # Errors
     ///
@@ -210,7 +247,7 @@ impl DradisFrame {
         })
     }
 
-    /// Decodes and parses the [`Metadata`] found in a [`DradisFrame`]
+    /// Decodes and parses the [`Metadata`] found in a [`QRCodeFrame`]
     ///
     /// # Errors
     ///
@@ -222,41 +259,72 @@ impl DradisFrame {
             .in_scope(|| serde_json::from_str(&content).map_err(|_e| FrameError::IntegrityFailure))
     }
 
-    /// Creates a [`ClearedDradisFrame`] out of a [`DradisFrame`]
+    /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`]
     #[must_use]
-    pub fn cleared_frame(&self, clear_width: u32, clear_height: u32) -> ClearedDradisFrame {
-        let mut cleared = self.0.0.clone();
-        let empty = Raster::<Rgb8>::with_color(clear_width, clear_height, Rgb8::new(0, 0, 0));
-        cleared.copy_raster(
-            Region::new(0, 0, self.0.0.width(), self.0.0.height()),
-            &empty,
-            (),
-        );
-
-        ClearedDradisFrame(FrameInner(cleared))
+    pub fn cleared_frame(&self, clear_width: u32, clear_height: u32) -> ClearedFrame<P> {
+        ClearedFrame(self.0.clear(clear_width, clear_height))
     }
 
-    /// Creates a [`ClearedDradisFrame`] out of a [`DradisFrame`] using preidentified [`Metadata`]
+    /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`] using preidentified [`Metadata`]
     #[must_use]
-    pub fn cleared_frame_with_metadata(&self, metadata: &Metadata) -> ClearedDradisFrame {
+    pub fn cleared_frame_with_metadata(&self, metadata: &Metadata) -> ClearedFrame<P> {
         self.cleared_frame(metadata.qrcode_width, metadata.qrcode_height)
     }
 }
 
-impl Deref for DradisFrame {
-    type Target = FrameInner;
+impl QRCodeFrame<Rgb8> {
+    /// Creates a [`QRCodeFrame`] from a raw frame buffer, with inverted Red and Blue Color
+    /// Channels
+    #[must_use]
+    pub fn from_raw_bytes_with_swapped_channels(width: u32, height: u32, bytes: &[u8]) -> Self {
+        let bgr = Raster::<Bgr8>::with_u8_buffer(width, height, bytes.to_vec());
+
+        Self(FrameInner(Raster::with_raster(&bgr)))
+    }
+}
+
+impl<P> Deref for QRCodeFrame<P>
+where
+    P: FramePixel,
+{
+    type Target = FrameInner<P>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-/// A frame captured by Dradis, with the QR Code area cleared.
+/// A Frame with the QR Code area cleared.
 #[derive(Debug)]
-pub struct ClearedDradisFrame(FrameInner);
+pub struct ClearedFrame<P>(FrameInner<P>)
+where
+    P: FramePixel;
 
-impl ClearedDradisFrame {
-    /// Computes the checksum of [`DradisFrame`], without the QR Code area.
+impl<P> ClearedFrame<P>
+where
+    P: FramePixel,
+{
+    /// Converts a [`ClearedFrame`] pixel type to another
+    #[must_use]
+    pub fn convert<D>(self) -> ClearedFrame<D>
+    where
+        D: FramePixel,
+    {
+        ClearedFrame(FrameInner(Raster::with_raster(&self.0.0)))
+    }
+
+    /// Adds a QR Code to a [`ClearedFrame`] to create a [`QRCodeFrame`]
+    #[must_use]
+    pub fn with_qr_code(&self, qr: &Raster<P>) -> QRCodeFrame<P> {
+        let mut merged = self.0.0.clone();
+        merged.copy_raster((0, 0, QRCODE_WIDTH, QRCODE_HEIGHT), qr, ());
+
+        QRCodeFrame(FrameInner(merged))
+    }
+}
+
+impl ClearedFrame<Rgb8> {
+    /// Computes the checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
     #[must_use]
     pub fn compute_checksum(&self) -> u64 {
         let mut hasher = XxHash64::with_seed(0);
@@ -265,8 +333,37 @@ impl ClearedDradisFrame {
     }
 }
 
-impl Deref for ClearedDradisFrame {
-    type Target = FrameInner;
+impl<P> Deref for ClearedFrame<P>
+where
+    P: FramePixel,
+{
+    type Target = FrameInner<P>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// A Frame.
+#[derive(Debug)]
+pub struct Frame(FrameInner<Rgb8>);
+
+impl Frame {
+    /// Creates a [`ClearedFrame`] out of a [`Frame`]
+    #[must_use]
+    pub fn clear(self) -> ClearedFrame<Rgb8> {
+        ClearedFrame(self.0.clear(QRCODE_WIDTH, QRCODE_HEIGHT))
+    }
+}
+
+impl From<Raster<Rgb8>> for Frame {
+    fn from(value: Raster<Rgb8>) -> Self {
+        Self(FrameInner(value))
+    }
+}
+
+impl Deref for Frame {
+    type Target = FrameInner<Rgb8>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -316,8 +413,8 @@ pub struct DecodeCheckArgs {
 }
 
 fn dump_image_to_file(
-    frame_with_qr: &DradisFrame,
-    frame_without_qr: &ClearedDradisFrame,
+    frame_with_qr: &QRCodeFrame<Rgb8>,
+    frame_without_qr: &ClearedFrame<Rgb8>,
     valid: bool,
     idx: usize,
 ) {
@@ -359,9 +456,9 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
 
     let image = trace_span!("Framebuffer Importation").in_scope(|| {
         if args.swap_channels {
-            DradisFrame::from_raw_bytes_with_swapped_channels(args.width, args.height, data)
+            QRCodeFrame::from_raw_bytes_with_swapped_channels(args.width, args.height, data)
         } else {
-            DradisFrame::from_raw_bytes(args.width, args.height, data)
+            QRCodeFrame::from_raw_bytes(args.width, args.height, data)
         }
     });
 

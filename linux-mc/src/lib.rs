@@ -18,8 +18,9 @@ use std::{
 
 use bitflags::bitflags;
 use bytemuck::cast_slice;
+use facet::Facet;
+use facet_enum_repr::FacetEnumRepr;
 use linux_raw::KernelVersion;
-use strum_macros::FromRepr;
 
 /// Raw, unsafe, abstraction
 pub mod raw;
@@ -87,7 +88,7 @@ impl DeviceNode {
 
 /// Media Controller Entity Function
 #[repr(u32)]
-#[derive(Clone, Copy, Debug, FromRepr, PartialEq)]
+#[derive(Clone, Copy, Debug, Facet, FacetEnumRepr, PartialEq)]
 pub enum media_entity_function {
     /// Unknown Entity
     MEDIA_ENT_F_UNKNOWN = raw::bindgen::MEDIA_ENT_F_UNKNOWN,
@@ -173,14 +174,6 @@ pub enum media_entity_function {
     MEDIA_ENT_F_DV_DECODER = raw::bindgen::MEDIA_ENT_F_DV_DECODER,
     /// Digital video encoder.
     MEDIA_ENT_F_DV_ENCODER = raw::bindgen::MEDIA_ENT_F_DV_ENCODER,
-}
-
-impl TryFrom<u32> for media_entity_function {
-    type Error = ();
-
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        Self::from_repr(value).ok_or(())
-    }
 }
 
 impl fmt::Display for media_entity_function {
@@ -461,7 +454,7 @@ impl MediaControllerEntity {
             RevocableValue::Value(
                 function
                     .try_into()
-                    .unwrap_or_else(|()| panic!("Unknown function {function:x}")),
+                    .unwrap_or_else(|_e| panic!("Unknown function {function:x}")),
             )
         } else {
             RevocableValue::Revoked

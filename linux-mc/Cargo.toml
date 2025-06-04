@@ -14,9 +14,10 @@ bindgen.workspace = true
 [dependencies]
 bitflags.workspace = true
 bytemuck.workspace = true
+facet.workspace = true
+facet-enum-repr.workspace = true
 linux-raw.workspace = true
 rustix.workspace = true
-strum_macros.workspace = true
 
 [dev-dependencies]
 clap.workspace = true

@@ -44,16 +44,16 @@ criterion = { version = "0.6.0", default-features = false, features = [
 ] }
 dma-buf = { version = "0.5.0", default-features = false }
 dma-heap = { version = "0.4.1", default-features = false }
-facet = { version = "0.27.8", default-features = false }
-facet-derive-parse = { version = "0.27.8", default-features = false }
+facet = { version = "0.27.9", default-features = false }
+facet-derive-parse = { version = "0.27.9", default-features = false }
 facet-enum-repr = { path = "./facet-enum-repr" }
 facet-enum-repr-derive = { path = "./facet-enum-repr-derive" }
-facet-reflect = { version = "0.27.8", default-features = false }
+facet-reflect = { version = "0.27.9", default-features = false }
 frame_check = { package = "dradis-frame-check", path = "./dradis-frame-check" }
 image = { version = "0.25.6", default-features = false, features = ["png"] }
 linux-mc = { path = "./linux-mc" }
 linux-raw = { path = "./linux-raw" }
-nucleid = { git = "https://github.com/mripard/nucleid.git", rev = "cfd19aaec72d6b7f8dfe2cd46e914d7b2dff4433" }
+nucleid = { git = "https://github.com/mripard/nucleid.git", rev = "850ae440233d3a1c4aba4cdfbc90ec2213010723" }
 num-traits = { version = "0.2.19", default-features = false }
 pix = { version = "0.14.0", default-features = false }
 png = { version = "0.17.16", default-features = false }
@@ -75,7 +75,6 @@ serde_with = { version = "3.12.0", default-features = false, features = [
     "std",
 ] }
 serde_yaml = { version = "0.9.34", default-features = false }
-strum_macros = { version = "0.27.1", default-features = false }
 thiserror = { version = "2.0.12", default-features = false }
 threads_pool = { package = "dradis-threads-pool", path = "./dradis-threads-pool" }
 tracelimit = { git = "https://github.com/microsoft/openvmm.git", default-features = false }
