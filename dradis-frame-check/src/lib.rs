@@ -96,6 +96,20 @@ where
         self.0.as_u8_slice()
     }
 
+    fn clear(&self, width: u32, height: u32) -> Self {
+        let empty_pixel = Rgb8::new(0, 0, 0).convert();
+
+        let mut cleared = self.0.clone();
+        let empty = Raster::<P>::with_color(width, height, empty_pixel);
+        cleared.copy_raster(
+            Region::new(0, 0, self.0.width(), self.0.height()),
+            &empty,
+            (),
+        );
+
+        FrameInner(cleared)
+    }
+
     fn crop(&self, width: u32, height: u32) -> Self {
         let region = Region::new(0, 0, QRCODE_WIDTH, QRCODE_HEIGHT);
 
@@ -241,15 +255,7 @@ impl QRCodeFrame {
     /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`]
     #[must_use]
     pub fn cleared_frame(&self, clear_width: u32, clear_height: u32) -> ClearedFrame {
-        let mut cleared = self.0.0.clone();
-        let empty = Raster::<Rgb8>::with_color(clear_width, clear_height, Rgb8::new(0, 0, 0));
-        cleared.copy_raster(
-            Region::new(0, 0, self.0.0.width(), self.0.0.height()),
-            &empty,
-            (),
-        );
-
-        ClearedFrame(FrameInner(cleared))
+        ClearedFrame(self.0.clear(clear_width, clear_height))
     }
 
     /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`] using preidentified [`Metadata`]
@@ -282,6 +288,32 @@ impl ClearedFrame {
 }
 
 impl Deref for ClearedFrame {
+    type Target = FrameInner<Rgb8>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// A Frame.
+#[derive(Debug)]
+pub struct Frame(FrameInner<Rgb8>);
+
+impl Frame {
+    /// Creates a [`ClearedFrame`] out of a [`Frame`]
+    #[must_use]
+    pub fn clear(self) -> ClearedFrame {
+        ClearedFrame(self.0.clear(QRCODE_WIDTH, QRCODE_HEIGHT))
+    }
+}
+
+impl From<Raster<Rgb8>> for Frame {
+    fn from(value: Raster<Rgb8>) -> Self {
+        Self(FrameInner(value))
+    }
+}
+
+impl Deref for Frame {
     type Target = FrameInner<Rgb8>;
 
     fn deref(&self) -> &Self::Target {
