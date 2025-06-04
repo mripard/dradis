@@ -4,7 +4,7 @@ extern crate alloc;
 
 use alloc::rc::Rc;
 use core::hash::Hasher as _;
-use std::{path::PathBuf, time::Instant};
+use std::path::PathBuf;
 
 use anyhow::{Context as _, Result};
 use clap::Parser;
@@ -15,7 +15,7 @@ use nucleid::{
     ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
 };
 use qrcode::QrCode;
-use tracing::{Level, debug, info};
+use tracing::{Level, debug, debug_span, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use twox_hash::XxHash64;
 
@@ -207,7 +207,8 @@ fn main() -> Result<()> {
 
     let mut index: usize = 0;
     loop {
-        let frame_start = Instant::now();
+        let span = debug_span!("Frame Generation");
+        let _enter = span.enter();
 
         let buffer = &mut buffers[index % NUM_BUFFERS];
         let data = buffer.data();
@@ -235,10 +236,5 @@ fn main() -> Result<()> {
             .commit()?;
 
         index += 1;
-
-        debug!(
-            "Took {} ms to generate the frame",
-            frame_start.elapsed().as_millis()
-        );
     }
 }
