@@ -312,6 +312,15 @@ where
     {
         ClearedFrame(FrameInner(Raster::with_raster(&self.0.0)))
     }
+
+    /// Adds a QR Code to a [`ClearedFrame`] to create a [`QRCodeFrame`]
+    #[must_use]
+    pub fn with_qr_code(&self, qr: &Raster<P>) -> QRCodeFrame<P> {
+        let mut merged = self.0.0.clone();
+        merged.copy_raster((0, 0, QRCODE_WIDTH, QRCODE_HEIGHT), qr, ());
+
+        QRCodeFrame(FrameInner(merged))
+    }
 }
 
 impl ClearedFrame<Rgb8> {
