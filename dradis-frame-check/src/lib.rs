@@ -13,7 +13,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use pix::{Raster, Region, bgr::Bgr8, gray::Gray8, rgb::Rgb8};
+use pix::{Raster, Region, bgr::Bgr8, chan::Ch8, el::Pixel, gray::Gray8, rgb::Rgb8};
 use png::{BitDepth, ColorType, Encoder};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -69,15 +69,25 @@ pub struct Metadata {
     pub index: usize,
 }
 
-/// A representation of a Raw RGB24 Frame for our use. The pixels are stored left to right, and the
-/// R, G, B color components are stored in the same order. This format is called RGB24 by v4l2,
-/// BGR888 by DRM.
 #[doc(hidden)]
-pub struct FrameInner(Raster<Rgb8>);
+pub trait FramePixel: Pixel<Chan = Ch8> {}
 
-impl FrameInner {
+// The pixels are stored left to right, and the R, G, B color components are stored in the same
+// order. This format is called RGB24 by v4l2, BGR888 by DRM.
+impl FramePixel for Rgb8 {}
+
+/// A representation of a raw RGB Frame with 8 bits per components.
+#[doc(hidden)]
+pub struct FrameInner<P>(Raster<P>)
+where
+    P: FramePixel + Pixel<Chan = Ch8>;
+
+impl<P> FrameInner<P>
+where
+    P: FramePixel + Pixel<Chan = Ch8>,
+{
     fn from_raw_bytes(width: u32, height: u32, bytes: &[u8]) -> Self {
-        Self(Raster::with_u8_buffer(width, height, bytes.to_vec()))
+        Self(Raster::<P>::with_u8_buffer(width, height, bytes.to_vec()))
     }
 
     /// Returns the raw framebuffer content, as bytes.
@@ -101,7 +111,7 @@ impl FrameInner {
     ///
     /// If the pixel coordinates can't be converted to the underlying representation.
     #[must_use]
-    pub fn pixel(&self, x: u32, y: u32) -> Rgb8 {
+    pub fn pixel(&self, x: u32, y: u32) -> P {
         self.0.pixel(
             i32::try_from(x).expect("Can't convert i32 to u32"),
             i32::try_from(y).expect("Can't convert i32 to u32"),
@@ -124,6 +134,17 @@ impl FrameInner {
         self.0.width() as usize
     }
 
+    /// Writes our frame buffer as is, to a file identified by the given path.
+    ///
+    /// # Errors
+    ///
+    /// If we can't access the path.
+    pub fn write_to_raw(&self, path: &Path) -> io::Result<()> {
+        fs::write(path, self.0.as_u8_slice())
+    }
+}
+
+impl FrameInner<Rgb8> {
     /// Writes our framebuffer as a png image, to a file identified by the given path.
     ///
     /// # Errors
@@ -142,18 +163,12 @@ impl FrameInner {
 
         Ok(())
     }
-
-    /// Writes our frame buffer as is, to a file identified by the given path.
-    ///
-    /// # Errors
-    ///
-    /// If we can't access the path.
-    pub fn write_to_raw(&self, path: &Path) -> io::Result<()> {
-        fs::write(path, self.0.as_u8_slice())
-    }
 }
 
-impl core::fmt::Debug for FrameInner {
+impl<P> core::fmt::Debug for FrameInner<P>
+where
+    P: FramePixel + Pixel<Chan = Ch8>,
+{
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("FrameInner")
             .field("width", &self.0.width())
@@ -167,7 +182,7 @@ impl core::fmt::Debug for FrameInner {
 /// It's likely to have been emitted by Boomer, and received by Dradis. The QR Code contains the
 /// metadata describing the frame.
 #[derive(Debug)]
-pub struct QRCodeFrame(FrameInner);
+pub struct QRCodeFrame(FrameInner<Rgb8>);
 
 impl QRCodeFrame {
     /// Creates a [`QRCodeFrame`] from a raw frame buffer
@@ -245,7 +260,7 @@ impl QRCodeFrame {
 }
 
 impl Deref for QRCodeFrame {
-    type Target = FrameInner;
+    type Target = FrameInner<Rgb8>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -254,7 +269,7 @@ impl Deref for QRCodeFrame {
 
 /// A Frame with the QR Code area cleared.
 #[derive(Debug)]
-pub struct ClearedFrame(FrameInner);
+pub struct ClearedFrame(FrameInner<Rgb8>);
 
 impl ClearedFrame {
     /// Computes the checksum of [`QRCodeFrame`], without the QR Code area.
@@ -267,7 +282,7 @@ impl ClearedFrame {
 }
 
 impl Deref for ClearedFrame {
-    type Target = FrameInner;
+    type Target = FrameInner<Rgb8>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
