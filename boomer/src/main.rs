@@ -8,12 +8,12 @@ use std::path::PathBuf;
 use anyhow::{Context as _, Result};
 use clap::Parser;
 use frame_check::{Frame, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
-use image::{Rgb, imageops::FilterType};
+use image::{Rgba, imageops::FilterType};
 use nucleid::{
     BufferType, Connector, ConnectorStatus, ConnectorUpdate, Device, Format, Framebuffer, Mode,
     ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
 };
-use pix::{Raster, rgb::Rgb8};
+use pix::{Raster, bgr::Bgra8, rgb::Rgba8};
 use qrcode::QrCode;
 use tracing::{Level, debug, debug_span, info};
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -52,7 +52,8 @@ fn find_mode_for_connector(connector: &Rc<Connector>) -> Result<Mode, nucleid::E
 
 fn find_plane_for_output(output: &Output) -> Option<Rc<Plane>> {
     output.planes().into_iter().find(|plane| {
-        plane.formats().any(|fmt| fmt == Format::BGR888) && plane.plane_type() == PlaneType::Overlay
+        plane.formats().any(|fmt| fmt == Format::XRGB8888)
+            && plane.plane_type() == PlaneType::Overlay
     })
 }
 
@@ -141,18 +142,17 @@ fn get_rgb_pattern(width: u32, height: u32) -> Result<Frame, image::ImageError> 
     .into())
 }
 
-fn create_qr_code(bytes: &[u8]) -> Result<Raster<Rgb8>, qrcode::types::QrError> {
+fn create_qr_code(bytes: &[u8]) -> Result<Raster<Bgra8>, qrcode::types::QrError> {
     let qrcode = QrCode::new(bytes)?
-        .render::<Rgb<u8>>()
+        .render::<Rgba<u8>>()
         .min_dimensions(QRCODE_WIDTH, QRCODE_HEIGHT)
         .max_dimensions(QRCODE_WIDTH, QRCODE_HEIGHT)
         .build();
 
-    Ok(Raster::with_u8_buffer(
-        qrcode.width(),
-        qrcode.height(),
-        qrcode.to_vec(),
-    ))
+    let rgba_raster: Raster<Rgba8> =
+        Raster::with_u8_buffer(qrcode.width(), qrcode.height(), qrcode.to_vec());
+
+    Ok(Raster::with_raster(&rgba_raster))
 }
 
 fn main() -> Result<()> {
@@ -195,13 +195,15 @@ fn main() -> Result<()> {
     let hash = cleared_pattern_bgr.compute_checksum();
     info!("Hash {:#x}", hash);
 
+    let cleared_pattern_xrgb = cleared_pattern_bgr.convert::<Bgra8>();
+
     let mut buffers = get_framebuffers(
         &device,
         NUM_BUFFERS,
         width.into(),
         height.into(),
-        Format::BGR888,
-        24,
+        Format::XRGB8888,
+        32,
     )
     .context("Couldn't create our framebuffers")?;
 
@@ -236,7 +238,7 @@ fn main() -> Result<()> {
 
         let qrcode = create_qr_code(json.as_bytes()).context("QR Code creation failed")?;
 
-        let merged_buffer = cleared_pattern_bgr.with_qr_code(&qrcode);
+        let merged_buffer = cleared_pattern_xrgb.with_qr_code(&qrcode);
         data.copy_from_slice(merged_buffer.as_bytes());
 
         output = output
