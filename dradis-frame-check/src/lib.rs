@@ -254,13 +254,13 @@ impl QRCodeFrame {
 
     /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`]
     #[must_use]
-    pub fn cleared_frame(&self, clear_width: u32, clear_height: u32) -> ClearedFrame {
+    pub fn cleared_frame(&self, clear_width: u32, clear_height: u32) -> ClearedFrame<Rgb8> {
         ClearedFrame(self.0.clear(clear_width, clear_height))
     }
 
     /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`] using preidentified [`Metadata`]
     #[must_use]
-    pub fn cleared_frame_with_metadata(&self, metadata: &Metadata) -> ClearedFrame {
+    pub fn cleared_frame_with_metadata(&self, metadata: &Metadata) -> ClearedFrame<Rgb8> {
         self.cleared_frame(metadata.qrcode_width, metadata.qrcode_height)
     }
 }
@@ -275,10 +275,12 @@ impl Deref for QRCodeFrame {
 
 /// A Frame with the QR Code area cleared.
 #[derive(Debug)]
-pub struct ClearedFrame(FrameInner<Rgb8>);
+pub struct ClearedFrame<P>(FrameInner<P>)
+where
+    P: FramePixel;
 
-impl ClearedFrame {
-    /// Computes the checksum of [`QRCodeFrame`], without the QR Code area.
+impl ClearedFrame<Rgb8> {
+    /// Computes the checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
     #[must_use]
     pub fn compute_checksum(&self) -> u64 {
         let mut hasher = XxHash64::with_seed(0);
@@ -287,8 +289,11 @@ impl ClearedFrame {
     }
 }
 
-impl Deref for ClearedFrame {
-    type Target = FrameInner<Rgb8>;
+impl<P> Deref for ClearedFrame<P>
+where
+    P: FramePixel,
+{
+    type Target = FrameInner<P>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -302,7 +307,7 @@ pub struct Frame(FrameInner<Rgb8>);
 impl Frame {
     /// Creates a [`ClearedFrame`] out of a [`Frame`]
     #[must_use]
-    pub fn clear(self) -> ClearedFrame {
+    pub fn clear(self) -> ClearedFrame<Rgb8> {
         ClearedFrame(self.0.clear(QRCODE_WIDTH, QRCODE_HEIGHT))
     }
 }
@@ -365,7 +370,7 @@ pub struct DecodeCheckArgs {
 
 fn dump_image_to_file(
     frame_with_qr: &QRCodeFrame,
-    frame_without_qr: &ClearedFrame,
+    frame_without_qr: &ClearedFrame<Rgb8>,
     valid: bool,
     idx: usize,
 ) {
