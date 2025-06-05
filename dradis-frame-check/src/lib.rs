@@ -6,7 +6,7 @@
 extern crate alloc;
 
 use alloc::rc::Rc;
-use core::{cell::RefCell, hash::Hasher as _, ops::Deref};
+use core::{cell::RefCell, fmt, hash::Hasher as _, ops::Deref};
 use std::{
     fs::{self, File},
     io::{self, BufWriter},
@@ -74,6 +74,22 @@ pub struct Metadata {
 
     /// Frame index. Ever increasing.
     pub index: usize,
+}
+
+impl fmt::Display for Metadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!(
+            "Metadata Version {}.{}, Frame Size {}x{}, QR Code Area {}x{}, index {}, hash {:#x}",
+            self.version.0,
+            self.version.1,
+            self.width,
+            self.height,
+            self.qrcode_width,
+            self.qrcode_height,
+            self.index,
+            self.hash,
+        ))
+    }
 }
 
 #[doc(hidden)]
@@ -190,11 +206,11 @@ impl FrameInner<Rgb8> {
     }
 }
 
-impl<P> core::fmt::Debug for FrameInner<P>
+impl<P> fmt::Debug for FrameInner<P>
 where
     P: FramePixel + Pixel<Chan = Ch8>,
 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("FrameInner")
             .field("width", &self.0.width())
             .field("height", &self.0.height())
