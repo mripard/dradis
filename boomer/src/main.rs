@@ -15,7 +15,7 @@ use nucleid::{
 };
 use pix::{Raster, bgr::Bgra8, rgb::Rgba8};
 use qrcode::QrCode;
-use tracing::{Level, debug, debug_span, info};
+use tracing::{Level, debug, debug_span, info, trace};
 use tracing_subscriber::fmt::format::FmtSpan;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
@@ -127,6 +127,8 @@ fn create_metadata_json(
         index,
     };
 
+    debug!("{}", metadata);
+
     serde_json::to_string(&metadata)
 }
 
@@ -234,7 +236,7 @@ fn main() -> Result<()> {
         let json = create_metadata_json(width.into(), height.into(), hash, index)
             .context("Metadata JSON serialization failed.")?;
 
-        debug!("Metadata {:#?}", json);
+        trace!("Metadata JSON {}", json);
 
         let qrcode = create_qr_code(json.as_bytes()).context("QR Code creation failed")?;
 
