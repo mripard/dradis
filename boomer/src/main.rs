@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use alloc::rc::Rc;
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
 
 use anyhow::{Context as _, Result};
 use clap::Parser;
@@ -46,7 +46,7 @@ fn find_connector(device: &Device) -> Option<Rc<Connector>> {
         .find(|con| con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected)
 }
 
-fn find_mode_for_connector(connector: &Rc<Connector>) -> Result<Mode, nucleid::Error> {
+fn find_mode_for_connector(connector: &Rc<Connector>) -> io::Result<Mode> {
     connector.preferred_mode()
 }
 
@@ -64,7 +64,7 @@ fn get_framebuffers(
     height: u32,
     fmt: Format,
     bpp: u32,
-) -> Result<Vec<Framebuffer>, nucleid::Error> {
+) -> io::Result<Vec<Framebuffer>> {
     let mut buffers = Vec::with_capacity(num);
 
     for _idx in 0..num {
@@ -86,7 +86,7 @@ fn initial_commit(
     fb: &Framebuffer,
     src: (f32, f32),
     display: (usize, usize),
-) -> Result<Output, nucleid::Error> {
+) -> io::Result<Output> {
     let (src_w, src_h) = src;
     let (display_w, display_h) = display;
 
@@ -171,7 +171,7 @@ fn main() -> Result<()> {
     let device = Device::new(&args.device).context("Couldn't open the KMS device file")?;
 
     let connector = find_connector(&device).context("No Active Connector")?;
-    info!("Running from connector {:#?}", connector);
+    info!("Running from Connector {}", connector);
 
     let mode =
         find_mode_for_connector(&connector).context("Couldn't find a mode for the connector")?;
@@ -179,7 +179,7 @@ fn main() -> Result<()> {
     let width = mode.width();
     let height = mode.height();
 
-    info!("Using mode {:#?}", mode);
+    info!("Using mode {}", mode);
 
     let output = device
         .output_from_connector(&connector)
