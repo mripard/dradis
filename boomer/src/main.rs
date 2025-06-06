@@ -11,7 +11,7 @@ use frame_check::{Frame, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
 use image::{Rgba, imageops::FilterType};
 use nucleid::{
     BufferType, Connector, ConnectorStatus, ConnectorUpdate, Device, Format, Framebuffer, Mode,
-    ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
+    Object as _, ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
 };
 use pix::{Raster, bgr::Bgra8, rgb::Rgba8};
 use qrcode::QrCode;
@@ -93,13 +93,19 @@ fn initial_commit(
     output
         .start_update()
         .set_mode(mode)
-        .add_connector(
+        .add_connector(if connector.property("top margin")?.is_some() {
+            debug!("Driver supports TV margins properties. Using them.");
+
             ConnectorUpdate::new(connector)
                 .set_property("top margin", 0)
                 .set_property("bottom margin", 0)
                 .set_property("left margin", 0)
-                .set_property("right margin", 0),
-        )
+                .set_property("right margin", 0)
+        } else {
+            debug!("KMS Driver doesn't support TV margins properties. Skipping.");
+
+            ConnectorUpdate::new(connector)
+        })
         .add_plane(
             PlaneUpdate::new(plane)
                 .set_framebuffer(fb)
