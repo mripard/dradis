@@ -150,6 +150,12 @@ impl FromStr for KernelVersion {
             None
         };
 
+        let version_str = if let Some(idx) = version_str.find('+') {
+            &version_str[..idx]
+        } else {
+            version_str
+        };
+
         let mut version_items = version_str.split('.');
 
         let major = version_items
@@ -229,6 +235,18 @@ mod tests {
                 patch: 29,
                 sublevel: Some(6),
                 extraversion: Some(String::from("22-sigma"))
+            }
+        );
+
+        // Custom Built Kernel, with modifications
+        assert_eq!(
+            KernelVersion::from_str("6.15.0+").unwrap(),
+            KernelVersion {
+                major: 6,
+                minor: 15,
+                patch: 0,
+                sublevel: None,
+                extraversion: None,
             }
         );
     }

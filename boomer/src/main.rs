@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use alloc::rc::Rc;
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
 
 use anyhow::{Context as _, Result};
 use clap::Parser;
@@ -11,11 +11,11 @@ use frame_check::{Frame, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
 use image::{Rgba, imageops::FilterType};
 use nucleid::{
     BufferType, Connector, ConnectorStatus, ConnectorUpdate, Device, Format, Framebuffer, Mode,
-    ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
+    Object as _, ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
 };
 use pix::{Raster, bgr::Bgra8, rgb::Rgba8};
 use qrcode::QrCode;
-use tracing::{Level, debug, debug_span, info};
+use tracing::{Level, debug, debug_span, info, trace};
 use tracing_subscriber::fmt::format::FmtSpan;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
@@ -46,7 +46,7 @@ fn find_connector(device: &Device) -> Option<Rc<Connector>> {
         .find(|con| con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected)
 }
 
-fn find_mode_for_connector(connector: &Rc<Connector>) -> Result<Mode, nucleid::Error> {
+fn find_mode_for_connector(connector: &Rc<Connector>) -> io::Result<Mode> {
     connector.preferred_mode()
 }
 
@@ -64,7 +64,7 @@ fn get_framebuffers(
     height: u32,
     fmt: Format,
     bpp: u32,
-) -> Result<Vec<Framebuffer>, nucleid::Error> {
+) -> io::Result<Vec<Framebuffer>> {
     let mut buffers = Vec::with_capacity(num);
 
     for _idx in 0..num {
@@ -86,20 +86,26 @@ fn initial_commit(
     fb: &Framebuffer,
     src: (f32, f32),
     display: (usize, usize),
-) -> Result<Output, nucleid::Error> {
+) -> io::Result<Output> {
     let (src_w, src_h) = src;
     let (display_w, display_h) = display;
 
     output
         .start_update()
         .set_mode(mode)
-        .add_connector(
+        .add_connector(if connector.property("top margin")?.is_some() {
+            debug!("Driver supports TV margins properties. Using them.");
+
             ConnectorUpdate::new(connector)
                 .set_property("top margin", 0)
                 .set_property("bottom margin", 0)
                 .set_property("left margin", 0)
-                .set_property("right margin", 0),
-        )
+                .set_property("right margin", 0)
+        } else {
+            debug!("KMS Driver doesn't support TV margins properties. Skipping.");
+
+            ConnectorUpdate::new(connector)
+        })
         .add_plane(
             PlaneUpdate::new(plane)
                 .set_framebuffer(fb)
@@ -126,6 +132,8 @@ fn create_metadata_json(
         hash,
         index,
     };
+
+    debug!("{}", metadata);
 
     serde_json::to_string(&metadata)
 }
@@ -171,7 +179,7 @@ fn main() -> Result<()> {
     let device = Device::new(&args.device).context("Couldn't open the KMS device file")?;
 
     let connector = find_connector(&device).context("No Active Connector")?;
-    info!("Running from connector {:#?}", connector);
+    info!("Running from Connector {}", connector);
 
     let mode =
         find_mode_for_connector(&connector).context("Couldn't find a mode for the connector")?;
@@ -179,7 +187,7 @@ fn main() -> Result<()> {
     let width = mode.width();
     let height = mode.height();
 
-    info!("Using mode {:#?}", mode);
+    info!("Using mode {}", mode);
 
     let output = device
         .output_from_connector(&connector)
@@ -234,7 +242,7 @@ fn main() -> Result<()> {
         let json = create_metadata_json(width.into(), height.into(), hash, index)
             .context("Metadata JSON serialization failed.")?;
 
-        debug!("Metadata {:#?}", json);
+        trace!("Metadata JSON {}", json);
 
         let qrcode = create_qr_code(json.as_bytes()).context("QR Code creation failed")?;
 

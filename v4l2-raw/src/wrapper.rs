@@ -7,7 +7,7 @@ use tracing::instrument;
 
 use crate::{
     ConversionError,
-    format::{v4l2_mbus_pixelcode, v4l2_pix_fmt},
+    format::{media_bus_fmt, v4l2_pix_fmt},
     raw::{
         self, V4L2_EVENT_ALL, V4L2_EVENT_CTRL, V4L2_EVENT_CTRL_CH_DIMENSIONS,
         V4L2_EVENT_CTRL_CH_FLAGS, V4L2_EVENT_CTRL_CH_RANGE, V4L2_EVENT_CTRL_CH_VALUE,
@@ -122,6 +122,12 @@ pub struct v4l2_pix_format {
 }
 
 impl v4l2_pix_format {
+    /// Returns the current image pixel format.
+    #[must_use]
+    pub fn pixel_format(&self) -> v4l2_pix_fmt {
+        self.pixelformat
+    }
+
     /// Sets the image colorspace.
     ///
     /// This function is only effective for output streams. The colorspace will be ignored and set
@@ -188,6 +194,38 @@ impl v4l2_pix_format {
     pub fn set_xfer_func(mut self, func: v4l2_xfer_func) -> Self {
         self.xfer_func = func;
         self
+    }
+
+    /// Creates a [`v4l2_mbus_framefmt`] out of the current [`v4l2_pix_format`]
+    ///
+    /// # Errors
+    ///
+    /// If one of the fields cannot be converted
+    pub fn to_v4l2_mbus_framefmt(
+        self,
+        code: media_bus_fmt,
+    ) -> Result<v4l2_mbus_framefmt, ConversionError> {
+        Ok(v4l2_mbus_framefmt {
+            width: self.width,
+            height: self.height,
+            code,
+            field: self.field,
+            colorspace: self.colorspace,
+            encoding: {
+                // Because the encoding changes representation between the various structures, we
+                // can't really have one that would have the same layout than all the users. Let's
+                // try to convert it into a valid enum first, and once we know it's valid, we can
+                // store it as the raw underlying representation.
+                let enc_raw: u32 = self.encoding;
+                let enc: v4l2_encoding = enc_raw.try_into()?;
+
+                enc.into()
+            },
+            quantization: self.quantization.into(),
+            xfer_func: self.xfer_func.into(),
+            flags: 0, // FIXME: Carry over the flags
+            _reserved: [0; 10],
+        })
     }
 }
 
@@ -558,7 +596,7 @@ pub fn v4l2_ioctl_try_fmt(fd: BorrowedFd<'_>, fmt: v4l2_format) -> io::Result<v4
 pub struct v4l2_mbus_framefmt {
     width: u32,
     height: u32,
-    code: v4l2_mbus_pixelcode,
+    code: media_bus_fmt,
     field: v4l2_field,
     colorspace: v4l2_colorspace,
     encoding: u16,
@@ -619,34 +657,6 @@ impl TryFrom<raw::v4l2_mbus_framefmt> for v4l2_mbus_framefmt {
     }
 }
 
-impl TryFrom<v4l2_pix_format> for v4l2_mbus_framefmt {
-    type Error = ConversionError;
-
-    fn try_from(value: v4l2_pix_format) -> Result<Self, Self::Error> {
-        Ok(Self {
-            width: value.width,
-            height: value.height,
-            code: value.pixelformat.try_into()?,
-            field: value.field,
-            colorspace: value.colorspace,
-            encoding: {
-                // Because the encoding changes representation between the various structures, we
-                // can't really have one that would have the same layout than all the users. Let's
-                // try to convert it into a valid enum first, and once we know it's valid, we can
-                // store it as the raw underlying representation.
-                let enc_raw: u32 = value.encoding;
-                let enc: v4l2_encoding = enc_raw.try_into()?;
-
-                enc.into()
-            },
-            quantization: value.quantization.into(),
-            xfer_func: value.xfer_func.into(),
-            flags: 0, // FIXME: Carry over the flags
-            _reserved: [0; 10],
-        })
-    }
-}
-
 impl fmt::Debug for v4l2_mbus_framefmt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("v4l2_mbus_framefmt")
@@ -698,7 +708,7 @@ impl Default for v4l2_mbus_framefmt {
         Self {
             width: 0,
             height: 0,
-            code: v4l2_mbus_pixelcode::V4L2_MBUS_FMT_FIXED,
+            code: media_bus_fmt::MEDIA_BUS_FMT_FIXED,
             field: v4l2_field::V4L2_FIELD_ANY,
             colorspace: v4l2_colorspace::V4L2_COLORSPACE_DEFAULT,
             encoding: v4l2_encoding::YCbCr(v4l2_ycbcr_encoding::V4L2_YCBCR_ENC_DEFAULT).into(),
