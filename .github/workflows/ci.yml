@@ -145,7 +145,7 @@ jobs:
     name: Build Test Debian Package
     needs: [ build, tests ]
     uses: ./.github/workflows/deb_pkg.yml
-    if: ${{ github.event_name == 'pull_request'}}
+    if: github.event_name == 'pull_request'
     with:
       distribution-version: bookworm
       package-revision: ${{ github.event.pull_request.number }}
