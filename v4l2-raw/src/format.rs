@@ -646,6 +646,21 @@ mod tests_v4l2_pix_fmt {
     }
 }
 
+impl v4l2_pix_fmt {
+    /// Converts a [`v4l2_pix_fmt`] for its equivalent [`media_bus_fmt`] on a MIPI-CSI2 bus, if any.
+    #[must_use]
+    pub fn to_mipi_csi2_mbus_pixelcode(&self) -> Option<media_bus_fmt> {
+        #[expect(
+            clippy::wildcard_enum_match_arm,
+            reason = "Not all v4l2 pixel formats have media bus equivalents"
+        )]
+        match self {
+            Self::V4L2_PIX_FMT_BGR24 => Some(media_bus_fmt::MEDIA_BUS_FMT_BGR888_1X24),
+            _ => None,
+        }
+    }
+}
+
 /// Media Bus Pixel Code Representation
 /// See the kernel [documentation] for more details.
 ///
@@ -789,14 +804,9 @@ impl TryFrom<v4l2_pix_fmt> for media_bus_fmt {
     type Error = ConversionError;
 
     fn try_from(value: v4l2_pix_fmt) -> Result<Self, Self::Error> {
-        #[expect(
-            clippy::wildcard_enum_match_arm,
-            reason = "Not all v4l2 pixel formats have media bus equivalents"
-        )]
-        match value {
-            v4l2_pix_fmt::V4L2_PIX_FMT_BGR24 => Ok(Self::MEDIA_BUS_FMT_RGB888_1X24),
-            _ => Err(Self::Error::InvalidValue(format!("{value:#?}"))),
-        }
+        value
+            .to_mipi_csi2_mbus_pixelcode()
+            .ok_or(Self::Error::InvalidValue(format!("{value:#?}")))
     }
 }
 
