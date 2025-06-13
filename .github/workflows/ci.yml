@@ -148,7 +148,7 @@ jobs:
     if: github.event_name == 'pull_request'
     with:
       distribution-version: bookworm
-      package-revision: ${{ github.event.pull_request.number }}
+      package-revision: ${{ github.event.pull_request.number || 0 }}
 
   dependabot:
     runs-on: ubuntu-latest
