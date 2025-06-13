@@ -13,16 +13,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  dump_context:
-    name: Dump GitHub Context to logs
-    runs-on: ubuntu-latest
-    steps:
-      - env:
-          GITHUB_CONTEXT: ${{ toJSON(github) }}
-        run: |
-          echo "GitHub Context:"
-          echo "$GITHUB_CONTEXT"
-
   build:
     name: Build
     runs-on: ubuntu-latest
