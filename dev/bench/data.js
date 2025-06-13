@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749807740849,
+  "lastUpdate": 1749808139648,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -599,6 +599,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 481712,
             "range": "± 1815",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "distinct": true,
+          "id": "1e086f13a59255da285dcef7f45aea4305c450a4",
+          "message": "github: Fix if clause (hopefully)\n\nSigned-off-by: Maxime Ripard <mripard@kernel.org>",
+          "timestamp": "2025-06-13T11:44:37+02:00",
+          "tree_id": "9c6f584a337c48f29870d16100882541fde64f81",
+          "url": "https://github.com/mripard/dradis/commit/1e086f13a59255da285dcef7f45aea4305c450a4"
+        },
+        "date": 1749808138805,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 477703,
+            "range": "± 1704",
             "unit": "ns/iter"
           }
         ]
