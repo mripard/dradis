@@ -195,6 +195,38 @@ impl v4l2_pix_format {
         self.xfer_func = func;
         self
     }
+
+    /// Creates a [`v4l2_mbus_framefmt`] out of the current [`v4l2_pix_format`]
+    ///
+    /// # Errors
+    ///
+    /// If one of the fields cannot be converted
+    pub fn to_v4l2_mbus_framefmt(
+        self,
+        code: media_bus_fmt,
+    ) -> Result<v4l2_mbus_framefmt, ConversionError> {
+        Ok(v4l2_mbus_framefmt {
+            width: self.width,
+            height: self.height,
+            code,
+            field: self.field,
+            colorspace: self.colorspace,
+            encoding: {
+                // Because the encoding changes representation between the various structures, we
+                // can't really have one that would have the same layout than all the users. Let's
+                // try to convert it into a valid enum first, and once we know it's valid, we can
+                // store it as the raw underlying representation.
+                let enc_raw: u32 = self.encoding;
+                let enc: v4l2_encoding = enc_raw.try_into()?;
+
+                enc.into()
+            },
+            quantization: self.quantization.into(),
+            xfer_func: self.xfer_func.into(),
+            flags: 0, // FIXME: Carry over the flags
+            _reserved: [0; 10],
+        })
+    }
 }
 
 impl TryFrom<raw::v4l2_pix_format> for v4l2_pix_format {
@@ -629,27 +661,7 @@ impl TryFrom<v4l2_pix_format> for v4l2_mbus_framefmt {
     type Error = ConversionError;
 
     fn try_from(value: v4l2_pix_format) -> Result<Self, Self::Error> {
-        Ok(Self {
-            width: value.width,
-            height: value.height,
-            code: value.pixelformat.try_into()?,
-            field: value.field,
-            colorspace: value.colorspace,
-            encoding: {
-                // Because the encoding changes representation between the various structures, we
-                // can't really have one that would have the same layout than all the users. Let's
-                // try to convert it into a valid enum first, and once we know it's valid, we can
-                // store it as the raw underlying representation.
-                let enc_raw: u32 = value.encoding;
-                let enc: v4l2_encoding = enc_raw.try_into()?;
-
-                enc.into()
-            },
-            quantization: value.quantization.into(),
-            xfer_func: value.xfer_func.into(),
-            flags: 0, // FIXME: Carry over the flags
-            _reserved: [0; 10],
-        })
+        value.to_v4l2_mbus_framefmt(value.pixelformat.try_into()?)
     }
 }
 
