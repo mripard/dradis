@@ -7,7 +7,7 @@ use tracing::instrument;
 
 use crate::{
     ConversionError,
-    format::{v4l2_mbus_pixelcode, v4l2_pix_fmt},
+    format::{media_bus_fmt, v4l2_pix_fmt},
     raw::{
         self, V4L2_EVENT_ALL, V4L2_EVENT_CTRL, V4L2_EVENT_CTRL_CH_DIMENSIONS,
         V4L2_EVENT_CTRL_CH_FLAGS, V4L2_EVENT_CTRL_CH_RANGE, V4L2_EVENT_CTRL_CH_VALUE,
@@ -558,7 +558,7 @@ pub fn v4l2_ioctl_try_fmt(fd: BorrowedFd<'_>, fmt: v4l2_format) -> io::Result<v4
 pub struct v4l2_mbus_framefmt {
     width: u32,
     height: u32,
-    code: v4l2_mbus_pixelcode,
+    code: media_bus_fmt,
     field: v4l2_field,
     colorspace: v4l2_colorspace,
     encoding: u16,
@@ -698,7 +698,7 @@ impl Default for v4l2_mbus_framefmt {
         Self {
             width: 0,
             height: 0,
-            code: v4l2_mbus_pixelcode::V4L2_MBUS_FMT_FIXED,
+            code: media_bus_fmt::MEDIA_BUS_FMT_FIXED,
             field: v4l2_field::V4L2_FIELD_ANY,
             colorspace: v4l2_colorspace::V4L2_COLORSPACE_DEFAULT,
             encoding: v4l2_encoding::YCbCr(v4l2_ycbcr_encoding::V4L2_YCBCR_ENC_DEFAULT).into(),

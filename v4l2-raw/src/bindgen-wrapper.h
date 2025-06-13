@@ -1,6 +1,30 @@
 #include <linux/v4l2-subdev.h>
 #include <linux/videodev2.h>
 
+/** Introduced with Linux 6.2 */
+#define MEDIA_BUS_FMT_Y16_1X16			0x202e
+
+/** Introduced with Linux 6.3 */
+#define MEDIA_BUS_FMT_BGR666_1X18		0x1023
+#define MEDIA_BUS_FMT_BGR666_1X24_CPADHI	0x1024
+#define MEDIA_BUS_FMT_RGB565_1X24_CPADHI	0x1022
+
+/** Introduced with Linux 6.7 */
+#define MEDIA_BUS_FMT_RGB666_2X9_BE		0x1025
+
+/** Introduced with Linux 6.10 */
+#define MEDIA_BUS_FMT_META_8			0x8001
+#define MEDIA_BUS_FMT_META_10			0x8002
+#define MEDIA_BUS_FMT_META_12			0x8003
+#define MEDIA_BUS_FMT_META_14			0x8004
+#define MEDIA_BUS_FMT_META_16			0x8005
+#define MEDIA_BUS_FMT_META_20			0x8006
+#define MEDIA_BUS_FMT_META_24			0x8007
+
+/** Introduced with Linux 6.13 */
+#define MEDIA_BUS_FMT_RGB101010_1X7X5_SPWG	0x1026
+#define MEDIA_BUS_FMT_RGB101010_1X7X5_JEIDA	0x1027
+
 /** <div rustbindgen attribute="#[derive(facet::Facet, facet_enum_repr::FacetEnumRepr)]" */
 enum v4l2_buf_type;
 
