@@ -6,7 +6,7 @@ use facet::Facet;
 use facet_enum_repr::FacetEnumRepr;
 use facet_reflect::Peek;
 
-use crate::{ConversionError, raw::bindgen};
+use crate::raw::bindgen;
 
 /// Macro to create a fourcc u32 representation
 #[macro_export]
@@ -798,16 +798,6 @@ pub enum media_bus_fmt {
     MEDIA_BUS_FMT_META_16 = bindgen::MEDIA_BUS_FMT_META_16,
     MEDIA_BUS_FMT_META_20 = bindgen::MEDIA_BUS_FMT_META_20,
     MEDIA_BUS_FMT_META_24 = bindgen::MEDIA_BUS_FMT_META_24,
-}
-
-impl TryFrom<v4l2_pix_fmt> for media_bus_fmt {
-    type Error = ConversionError;
-
-    fn try_from(value: v4l2_pix_fmt) -> Result<Self, Self::Error> {
-        value
-            .to_mipi_csi2_mbus_pixelcode()
-            .ok_or(Self::Error::InvalidValue(format!("{value:#?}")))
-    }
 }
 
 impl fmt::Display for media_bus_fmt {

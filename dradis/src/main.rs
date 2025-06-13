@@ -270,12 +270,19 @@ fn test_prepare_queue(
             continue;
         };
 
-        let mbus_fmt = pix_fmt.try_into().map_err(|_e| {
-            SetupError::from(io::Error::new(
-                Errno::INVAL.kind(),
-                "Couldn't find a mediabus format for the pixel format",
-            ))
-        })?;
+        let mbus_fmt = pix_fmt
+            .to_v4l2_mbus_framefmt(pix_fmt.pixel_format().to_mipi_csi2_mbus_pixelcode().ok_or(
+                SetupError::from(io::Error::new(
+                    Errno::INVAL.kind(),
+                    "Couldn't find a mediabus format for the pixel format",
+                )),
+            )?)
+            .map_err(|_e| {
+                SetupError::from(io::Error::new(
+                    Errno::INVAL.kind(),
+                    "Couldn't convert v4l2_pix_format to v4l2_mbus_framefmt",
+                ))
+            })?;
 
         if let Some(source_pad) = source_pad {
             let subdev_fmt = v4l2_subdev_format::new_active()

@@ -657,14 +657,6 @@ impl TryFrom<raw::v4l2_mbus_framefmt> for v4l2_mbus_framefmt {
     }
 }
 
-impl TryFrom<v4l2_pix_format> for v4l2_mbus_framefmt {
-    type Error = ConversionError;
-
-    fn try_from(value: v4l2_pix_format) -> Result<Self, Self::Error> {
-        value.to_v4l2_mbus_framefmt(value.pixelformat.try_into()?)
-    }
-}
-
 impl fmt::Debug for v4l2_mbus_framefmt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("v4l2_mbus_framefmt")
