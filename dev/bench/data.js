@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749807434319,
+  "lastUpdate": 1749807740849,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -569,6 +569,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 486556,
             "range": "± 2822",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "distinct": true,
+          "id": "b76f1b38c030eb2c38a873c3c81db9603d2412f8",
+          "message": "github: Dump context to logs\n\nSigned-off-by: Maxime Ripard <mripard@kernel.org>",
+          "timestamp": "2025-06-13T11:38:10+02:00",
+          "tree_id": "0bbb0ab53db76e8938e80cf46a3085cc87567b55",
+          "url": "https://github.com/mripard/dradis/commit/b76f1b38c030eb2c38a873c3c81db9603d2412f8"
+        },
+        "date": 1749807740085,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 481712,
+            "range": "± 1815",
             "unit": "ns/iter"
           }
         ]
