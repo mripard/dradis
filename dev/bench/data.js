@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749039167151,
+  "lastUpdate": 1749804257428,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -449,6 +449,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 496103,
             "range": "± 4230",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "12502590e0a385747af0573d09c1a9c5d8db5c57",
+          "message": "Merge pull request #220 from mripard/better-tracing-fixes\n\nImprove tracing, and several fixes",
+          "timestamp": "2025-06-13T10:40:00+02:00",
+          "tree_id": "a0c1b7974e217351847545eaa2db3cdd3f0d4625",
+          "url": "https://github.com/mripard/dradis/commit/12502590e0a385747af0573d09c1a9c5d8db5c57"
+        },
+        "date": 1749804256836,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 473598,
+            "range": "± 1400",
             "unit": "ns/iter"
           }
         ]
