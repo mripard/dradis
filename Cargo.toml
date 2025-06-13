@@ -24,7 +24,7 @@ authors = ["Maxime Ripard <mripard@kernel.org>"]
 edition = "2021"
 license-file = "./LICENSE"
 repository = "https://github.com/mripard/dradis.git"
-version = "0.5.1"
+version = "0.5.2"
 
 [workspace.dependencies]
 anyhow = { version = "1.0.98", default-features = false }

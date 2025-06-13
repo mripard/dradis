@@ -133,7 +133,7 @@ checksum = "1b8e56985ec62d17e9c1001dc89c88ecd7dc08e47eba5ec7c29c7b5eeecde967"
 
 [[package]]
 name = "boomer"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -482,7 +482,7 @@ dependencies = [
 
 [[package]]
 name = "dradis"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "anyhow",
  "built",
@@ -510,7 +510,7 @@ dependencies = [
 
 [[package]]
 name = "dradis-frame-check"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "criterion",
  "dradis-threads-pool",
@@ -526,7 +526,7 @@ dependencies = [
 
 [[package]]
 name = "dradis-threads-pool"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "tracing",
 ]
@@ -682,10 +682,10 @@ dependencies = [
 
 [[package]]
 name = "facet-enum-repr"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "facet",
- "facet-enum-repr-derive 0.5.1",
+ "facet-enum-repr-derive 0.5.2",
  "facet-reflect",
  "thiserror",
 ]
@@ -701,7 +701,7 @@ dependencies = [
 
 [[package]]
 name = "facet-enum-repr-derive"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "facet-derive-parse",
  "unsynn",
@@ -1139,21 +1139,21 @@ dependencies = [
 
 [[package]]
 name = "linux-mc"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "bindgen 0.71.1",
  "bitflags 2.9.1",
  "bytemuck",
  "clap",
  "facet",
- "facet-enum-repr 0.5.1",
+ "facet-enum-repr 0.5.2",
  "linux-raw",
  "rustix",
 ]
 
 [[package]]
 name = "linux-raw"
-version = "0.5.1"
+version = "0.5.2"
 
 [[package]]
 name = "linux-raw-sys"
@@ -2076,11 +2076,11 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "v4l2-raw"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "bindgen 0.71.1",
  "facet",
- "facet-enum-repr 0.5.1",
+ "facet-enum-repr 0.5.2",
  "facet-reflect",
  "linux-raw",
  "rustix",
@@ -2089,7 +2089,7 @@ dependencies = [
 
 [[package]]
 name = "v4lise"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "bitflags 2.9.1",
  "rustix",
