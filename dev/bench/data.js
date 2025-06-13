@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749809391111,
+  "lastUpdate": 1749809433947,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -689,6 +689,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 488841,
             "range": "± 3128",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "distinct": true,
+          "id": "c4eea05929ac03e33928bebeae081ce8f30125e3",
+          "message": "github: Stop dropping context\n\nSigned-off-by: Maxime Ripard <mripard@kernel.org>",
+          "timestamp": "2025-06-13T12:06:48+02:00",
+          "tree_id": "44f57e8c1587ae9b2820fac55066c89788539f28",
+          "url": "https://github.com/mripard/dradis/commit/c4eea05929ac03e33928bebeae081ce8f30125e3"
+        },
+        "date": 1749809433532,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 485921,
+            "range": "± 3414",
             "unit": "ns/iter"
           }
         ]
