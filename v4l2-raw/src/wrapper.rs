@@ -122,6 +122,12 @@ pub struct v4l2_pix_format {
 }
 
 impl v4l2_pix_format {
+    /// Returns the current image pixel format.
+    #[must_use]
+    pub fn pixel_format(&self) -> v4l2_pix_fmt {
+        self.pixelformat
+    }
+
     /// Sets the image colorspace.
     ///
     /// This function is only effective for output streams. The colorspace will be ignored and set
