@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749809433947,
+  "lastUpdate": 1749814222502,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -719,6 +719,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 485921,
             "range": "± 3414",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "distinct": true,
+          "id": "aa5bc7881c7e594d3f41497f4818387fc08c022e",
+          "message": "cargo: Add Cargo.lock\n\nSigned-off-by: Maxime Ripard <mripard@kernel.org>",
+          "timestamp": "2025-06-13T13:26:07+02:00",
+          "tree_id": "7ee0ede04e827441993643a2551c3913c183dbd9",
+          "url": "https://github.com/mripard/dradis/commit/aa5bc7881c7e594d3f41497f4818387fc08c022e"
+        },
+        "date": 1749814221524,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 484953,
+            "range": "± 3347",
             "unit": "ns/iter"
           }
         ]
