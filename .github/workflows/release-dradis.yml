@@ -29,3 +29,4 @@ jobs:
       - uses: ncipollo/release-action@v1
         with:
           artifacts: ${{ needs.build_deb_pkg_release.outputs.artifact_name }}
+          generateReleaseNotes: true
