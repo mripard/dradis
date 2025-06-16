@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749823337615,
+  "lastUpdate": 1750081394207,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -809,6 +809,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 488417,
             "range": "± 3720",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "80bbb2a26b045636ee7e3c22185eb0f84a29633d",
+          "message": "Merge pull request #221 from mripard/dradis-fix-rgb888\n\nv4l2-raw: Reintroduce RGB24",
+          "timestamp": "2025-06-16T15:39:06+02:00",
+          "tree_id": "2ce70e1c440cdf2574dfe3de641322676f5260c5",
+          "url": "https://github.com/mripard/dradis/commit/80bbb2a26b045636ee7e3c22185eb0f84a29633d"
+        },
+        "date": 1750081393757,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 484338,
+            "range": "± 18584",
             "unit": "ns/iter"
           }
         ]
