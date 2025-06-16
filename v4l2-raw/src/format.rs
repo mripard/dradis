@@ -656,6 +656,14 @@ impl v4l2_pix_fmt {
         )]
         match self {
             Self::V4L2_PIX_FMT_BGR24 => Some(media_bus_fmt::MEDIA_BUS_FMT_BGR888_1X24),
+
+            // This doesn't make much sense for CSI-2, but there's currently a kernel bug we need
+            // to solve and keep compatibility with.
+            //
+            // See:
+            // https://lore.kernel.org/r/20250606-rpi-unicam-rgb-bgr-fix-v1-1-9930b963f3eb@kernel.org/
+            // https://lore.kernel.org/r/20250612-csi-bgr-rgb-v1-0-dc8a309118f8@kernel.org
+            Self::V4L2_PIX_FMT_RGB24 => Some(media_bus_fmt::MEDIA_BUS_FMT_RGB888_1X24),
             _ => None,
         }
     }
