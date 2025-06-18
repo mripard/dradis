@@ -180,7 +180,10 @@ where
     /// # Errors
     ///
     /// If we can't access the path.
-    pub fn write_to_raw(&self, path: &Path) -> io::Result<()> {
+    pub fn write_to_raw<PA>(&self, path: PA) -> io::Result<()>
+    where
+        PA: AsRef<Path>,
+    {
         fs::write(path, self.0.as_u8_slice())
     }
 }
@@ -191,7 +194,10 @@ impl FrameInner<Rgb8> {
     /// # Errors
     ///
     /// If we can't access the path.
-    pub fn write_to_png(&self, path: &Path) -> io::Result<()> {
+    pub fn write_to_png<P>(&self, path: P) -> io::Result<()>
+    where
+        P: AsRef<Path>,
+    {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
@@ -439,19 +445,19 @@ fn dump_image_to_file(
         if valid { "valid" } else { "broken" }
     ));
 
-    if let Err(e) = frame_with_qr.write_to_raw(&base_path.with_extension("with.rgb888.raw")) {
+    if let Err(e) = frame_with_qr.write_to_raw(base_path.with_extension("with.rgb888.raw")) {
         error!("Error writing file: {e}");
     }
 
-    if let Err(e) = frame_without_qr.write_to_raw(&base_path.with_extension("without.rgb888.raw")) {
+    if let Err(e) = frame_without_qr.write_to_raw(base_path.with_extension("without.rgb888.raw")) {
         error!("Error writing file: {e}");
     }
 
-    if let Err(e) = frame_with_qr.write_to_png(&base_path.with_extension("with.png")) {
+    if let Err(e) = frame_with_qr.write_to_png(base_path.with_extension("with.png")) {
         error!("Error writing file: {e}");
     }
 
-    if let Err(e) = frame_without_qr.write_to_raw(&base_path.with_extension("without.png")) {
+    if let Err(e) = frame_without_qr.write_to_raw(base_path.with_extension("without.png")) {
         error!("Error writing file: {e}");
     }
 }
