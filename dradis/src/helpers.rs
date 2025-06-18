@@ -45,7 +45,7 @@ const VFREQ_TOLERANCE_HZ: u32 = 1;
 const VIC_1_HFREQ_HZ: u32 = 31_469;
 const VIC_1_VFREQ_HZ: u32 = 60;
 
-pub(crate) fn dequeue_buffer(dev: &Device) -> io::Result<u32> {
+pub(crate) fn dequeue_buffer(dev: &Device) -> io::Result<v4l2_buffer> {
     let mut raw_struct = v4l2_buffer {
         type_: BUFFER_TYPE.into(),
         memory: MEMORY_TYPE.into(),
@@ -54,7 +54,7 @@ pub(crate) fn dequeue_buffer(dev: &Device) -> io::Result<u32> {
 
     raw_struct = v4l2_ioctl_dqbuf(dev.as_fd(), raw_struct)?;
 
-    Ok(raw_struct.index)
+    Ok(raw_struct)
 }
 
 pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> io::Result<()> {

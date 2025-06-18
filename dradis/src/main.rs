@@ -433,7 +433,7 @@ fn test_run(
 
         let frame_dequeue_start = Instant::now();
 
-        let idx = loop {
+        let vbuf = loop {
             if frame_dequeue_start.elapsed() > FRAMES_DEQUEUED_TIMEOUT {
                 return Err(TestError::NoFrameReceived);
             }
@@ -450,14 +450,14 @@ fn test_run(
                 debug!("No Event to Dequeue.");
             }
 
-            let buffer_idx = dequeue_buffer(root_device);
-            match buffer_idx {
-                Ok(_) => break buffer_idx,
+            let res = dequeue_buffer(root_device);
+            match res {
+                Ok(_) => break res,
                 Err(ref e) => match Errno::from_io_error(e) {
                     Some(Errno::AGAIN) => {
                         debug!("No buffer to dequeue.");
                     }
-                    _ => break buffer_idx,
+                    _ => break res,
                 },
             }
 
@@ -465,6 +465,7 @@ fn test_run(
         }
         .expect("Couldn't dequeue our buffer");
 
+        let idx = vbuf.index;
         let buf = &buffers[idx as usize];
         debug_span!("Frame Processing").in_scope(|| {
             if let Ok(metadata) = buf.read(
