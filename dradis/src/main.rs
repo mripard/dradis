@@ -27,9 +27,7 @@ use anyhow::Context;
 use clap::Parser;
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
-use frame_check::{
-    DecodeCheckArgs, DecodeCheckArgsDump, DecodeCheckArgsDumpOptions, decode_and_check_frame,
-};
+use frame_check::{DecodeCheckArgs, DecodeCheckArgsDump, decode_and_check_frame};
 use linux_mc::{MediaController, MediaControllerEntity, MediaControllerPad, media_entity_function};
 use redid::EdidTypeConversionError;
 use rustix::io::Errno;
@@ -474,11 +472,7 @@ fn test_run(
                     // actually stores the CSI format (blue first). We need to
                     // do a conversion to make it meaningful to us.
                     swap_channels: true,
-                    dump: DecodeCheckArgsDump::Dump(DecodeCheckArgsDumpOptions {
-                        threads_pool: pool.clone(),
-                        dump_on_corrupted_frame: true,
-                        dump_on_valid_frame: true,
-                    }),
+                    dump: DecodeCheckArgsDump::Corrupted(pool.clone()),
                 }),
             ) {
                 debug!("Frame {} Valid", metadata.index);

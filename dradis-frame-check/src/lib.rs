@@ -392,27 +392,14 @@ impl Deref for Frame {
     }
 }
 
-/// [`DecodeCheckArgs`] Frame Dump Options
-#[derive(Clone, Debug)]
-pub struct DecodeCheckArgsDumpOptions {
-    /// Pool of thread to defer our dumps to.
-    pub threads_pool: Rc<RefCell<ThreadPool<()>>>,
-
-    /// Should we dump our frames if corrupted?
-    pub dump_on_corrupted_frame: bool,
-
-    /// Should we dump our frames if valid?
-    pub dump_on_valid_frame: bool,
-}
-
 /// [`DecodeCheckArgs`] Frame Dump Options, if any
 #[derive(Debug)]
 pub enum DecodeCheckArgsDump {
-    /// Should we dump frames, ...
-    Dump(DecodeCheckArgsDumpOptions),
+    /// Dump corrupted frames only
+    Corrupted(Rc<RefCell<ThreadPool<()>>>),
 
-    /// ... Or not?
-    Ignore,
+    /// Never dump frames
+    Never,
 }
 
 /// [`decode_and_check_frame`] Arguments
@@ -473,6 +460,10 @@ fn dump_image_to_file(
 /// # Errors
 ///
 /// If the frame metadata can't be decoded, or if the frame is invalid.
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Yes, clippy, that's really what we want."
+)]
 pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Metadata, FrameError> {
     let last_frame_index = args.previous_frame_idx;
 
@@ -506,19 +497,17 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
     let cleared = image.cleared_frame_with_metadata(&metadata);
     let hash = debug_span!("Checksum Computation").in_scope(|| cleared.compute_checksum());
 
-    if let DecodeCheckArgsDump::Dump(o) = args.dump {
-        if o.dump_on_corrupted_frame {
-            o.threads_pool.borrow_mut().spawn_and_queue(move || {
-                dump_image_to_file(&image, &cleared, hash == metadata.hash, metadata.index);
-            });
-        }
-    }
-
     if hash != metadata.hash {
         warn!(
             "Hash mismatch: {:#x} vs expected {:#x}",
             hash, metadata.hash
         );
+
+        if let DecodeCheckArgsDump::Corrupted(pool) = &args.dump {
+            pool.borrow_mut().spawn_and_queue(move || {
+                dump_image_to_file(&image, &cleared, hash == metadata.hash, metadata.index);
+            });
+        }
 
         return Err(FrameError::IntegrityFailure);
     }
