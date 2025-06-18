@@ -342,6 +342,7 @@ fn test_prepare_queue(
 
 #[expect(clippy::too_many_lines)]
 fn test_run(
+    cli: &Cli,
     suite: &Dradis<'_>,
     queue: &Queue<'_>,
     test: &TestItem,
@@ -384,7 +385,11 @@ fn test_run(
         .expect("Couldn't request our buffers");
 
     let mut buffers = Vec::with_capacity(NUM_BUFFERS as usize);
-    let pool = Rc::new(RefCell::new(ThreadPool::new(Some(10))));
+    let pool = if cli.dump_frames_limit > 0 {
+        Rc::new(RefCell::new(ThreadPool::new(Some(cli.dump_frames_limit))))
+    } else {
+        Rc::new(RefCell::new(ThreadPool::new(None)))
+    };
 
     for idx in 0..NUM_BUFFERS {
         let mut rbuf = v4l2_buffer {
@@ -554,7 +559,7 @@ fn test_display_one_mode(
     bridge_set_edid(args, bridge, &test.edid)?;
 
     loop {
-        match test_run(suite, &queue, test) {
+        match test_run(args, suite, &queue, test) {
             Ok(()) => break,
             Err(e) => match e {
                 TestError::Retry => {
@@ -653,6 +658,13 @@ struct Cli {
 
     #[arg(long = "dump-edid", help = "Folder to dump test EDIDs in.")]
     dump_edid: Option<PathBuf>,
+
+    #[arg(
+        long = "dump-frames-limit",
+        default_value_t = 10,
+        help = "Maximum Number of Frames to Dump. 0 for no limit."
+    )]
+    dump_frames_limit: usize,
 
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
