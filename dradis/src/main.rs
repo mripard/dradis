@@ -24,7 +24,7 @@ use std::{
 };
 
 use anyhow::Context;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
 use frame_check::{DecodeCheckArgs, DecodeCheckArgsDump, decode_and_check_frame};
@@ -479,7 +479,10 @@ fn test_run(
                     // actually stores the CSI format (blue first). We need to
                     // do a conversion to make it meaningful to us.
                     swap_channels: true,
-                    dump: DecodeCheckArgsDump::Corrupted(pool.clone()),
+                    dump: match cli.dump_frames {
+                        CliDump::Corrupted => DecodeCheckArgsDump::Corrupted(pool.clone()),
+                        CliDump::Never => DecodeCheckArgsDump::Never,
+                    },
                 }),
             ) {
                 debug!("Frame {} Valid", metadata.index);
@@ -646,6 +649,15 @@ pub(crate) struct Dradis<'a> {
     heap: &'a Heap,
 }
 
+#[derive(Clone, ValueEnum)]
+enum CliDump {
+    /// Dump Corrupted Frames Only
+    Corrupted,
+
+    /// Never Dump Any Frame
+    Never,
+}
+
 #[derive(Parser)]
 #[command(version, about = "DRADIS DRM/KMS Test Program")]
 struct Cli {
@@ -659,6 +671,9 @@ struct Cli {
 
     #[arg(long = "dump-edid", help = "Folder to dump test EDIDs in.")]
     dump_edid: Option<PathBuf>,
+
+    #[arg(long = "dump-frames", value_enum, default_value_t = CliDump::Never, help = "Dump Received Frames")]
+    dump_frames: CliDump,
 
     #[arg(
         long = "dump-frames-limit",
