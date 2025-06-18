@@ -651,11 +651,11 @@ struct Cli {
     )]
     device: PathBuf,
 
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    verbose: u8,
-
     #[arg(long = "dump-edid", help = "Folder to dump test EDIDs in.")]
     dump_edid: Option<PathBuf>,
+
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    verbose: u8,
 
     #[arg(help = "Test Configuration File")]
     test: PathBuf,
