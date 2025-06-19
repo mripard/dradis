@@ -405,6 +405,9 @@ pub enum DecodeCheckArgsDump {
 /// [`decode_and_check_frame`] Arguments
 #[derive(Debug)]
 pub struct DecodeCheckArgs {
+    /// V4L2 Sequence Number
+    pub sequence: u32,
+
     /// Previous processed frame index, if any.
     pub previous_frame_idx: Option<usize>,
 
