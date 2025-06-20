@@ -480,6 +480,7 @@ fn test_run(
                     // do a conversion to make it meaningful to us.
                     swap_channels: true,
                     dump: match cli.dump_frames {
+                        CliDump::Always => DecodeCheckArgsDump::Always(pool.clone()),
                         CliDump::Corrupted => DecodeCheckArgsDump::Corrupted(pool.clone()),
                         CliDump::Never => DecodeCheckArgsDump::Never,
                     },
@@ -651,6 +652,9 @@ pub(crate) struct Dradis<'a> {
 
 #[derive(Clone, ValueEnum)]
 enum CliDump {
+    /// Dump All Received Frames
+    Always,
+
     /// Dump Corrupted Frames Only
     Corrupted,
 

@@ -395,6 +395,10 @@ impl Deref for Frame {
 /// [`DecodeCheckArgs`] Frame Dump Options, if any
 #[derive(Debug)]
 pub enum DecodeCheckArgsDump {
+    /// Always dump received frames. In this case, the farme index used in the file name is the
+    /// `v4l2_buffer` sequence number.
+    Always(Rc<RefCell<ThreadPool<()>>>),
+
     /// Dump corrupted frames only
     Corrupted(Rc<RefCell<ThreadPool<()>>>),
 
@@ -453,6 +457,24 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
             Arc::new(QRCodeFrame::from_raw_bytes(args.width, args.height, data))
         }
     });
+
+    if let DecodeCheckArgsDump::Always(pool) = &args.dump {
+        let thread_image = image.clone();
+
+        pool.borrow_mut().spawn_and_queue(move || {
+            if let Err(e) =
+                thread_image.write_to_png(format!("dumped-buffer-{}.png", args.sequence))
+            {
+                error!("Error writing file: {e}");
+            }
+
+            if let Err(e) =
+                thread_image.write_to_raw(format!("dumped-buffer-{}.rgb888.raw", args.sequence))
+            {
+                error!("Error writing file: {e}");
+            }
+        });
+    }
 
     let metadata = image.metadata()?;
     if metadata.version.0 != HEADER_VERSION_MAJOR {
