@@ -10,7 +10,7 @@ use core::{cell::RefCell, fmt, hash::Hasher as _, ops::Deref};
 use std::{
     fs::{self, File},
     io::{self, BufWriter},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use pix::{
@@ -424,34 +424,6 @@ pub struct DecodeCheckArgs {
     pub dump: DecodeCheckArgsDump,
 }
 
-fn dump_image_to_file(
-    frame_with_qr: &QRCodeFrame<Rgb8>,
-    frame_without_qr: &ClearedFrame<Rgb8>,
-    valid: bool,
-    idx: usize,
-) {
-    let base_path = PathBuf::from(format!(
-        "dumped-buffer-{}-{idx}",
-        if valid { "valid" } else { "broken" }
-    ));
-
-    if let Err(e) = frame_with_qr.write_to_raw(base_path.with_extension("with.rgb888.raw")) {
-        error!("Error writing file: {e}");
-    }
-
-    if let Err(e) = frame_without_qr.write_to_raw(base_path.with_extension("without.rgb888.raw")) {
-        error!("Error writing file: {e}");
-    }
-
-    if let Err(e) = frame_with_qr.write_to_png(base_path.with_extension("with.png")) {
-        error!("Error writing file: {e}");
-    }
-
-    if let Err(e) = frame_without_qr.write_to_raw(base_path.with_extension("without.png")) {
-        error!("Error writing file: {e}");
-    }
-}
-
 /// Decodes a raw frame buffer and checks whether the frame is valid or not.
 ///
 /// To consider a frame valid, the frame needs to:
@@ -508,7 +480,18 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
 
         if let DecodeCheckArgsDump::Corrupted(pool) = &args.dump {
             pool.borrow_mut().spawn_and_queue(move || {
-                dump_image_to_file(&image, &cleared, hash == metadata.hash, metadata.index);
+                if let Err(e) =
+                    image.write_to_png(format!("dumped-buffer-broken-{}.png", metadata.index))
+                {
+                    error!("Error writing file: {e}");
+                }
+
+                if let Err(e) = image.write_to_raw(format!(
+                    "dumped-buffer-broken-{}.rgb888.raw",
+                    metadata.index
+                )) {
+                    error!("Error writing file: {e}");
+                }
             });
         }
 
