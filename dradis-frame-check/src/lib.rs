@@ -5,7 +5,7 @@
 
 extern crate alloc;
 
-use alloc::rc::Rc;
+use alloc::{rc::Rc, sync::Arc};
 use core::{cell::RefCell, fmt, hash::Hasher as _, ops::Deref};
 use std::{
     fs::{self, File},
@@ -444,9 +444,13 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
 
     let image = trace_span!("Framebuffer Importation").in_scope(|| {
         if args.swap_channels {
-            QRCodeFrame::from_raw_bytes_with_swapped_channels(args.width, args.height, data)
+            Arc::new(QRCodeFrame::from_raw_bytes_with_swapped_channels(
+                args.width,
+                args.height,
+                data,
+            ))
         } else {
-            QRCodeFrame::from_raw_bytes(args.width, args.height, data)
+            Arc::new(QRCodeFrame::from_raw_bytes(args.width, args.height, data))
         }
     });
 
@@ -479,14 +483,16 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
         );
 
         if let DecodeCheckArgsDump::Corrupted(pool) = &args.dump {
+            let thread_image = image.clone();
+
             pool.borrow_mut().spawn_and_queue(move || {
-                if let Err(e) =
-                    image.write_to_png(format!("dumped-buffer-broken-{}.png", metadata.index))
+                if let Err(e) = thread_image
+                    .write_to_png(format!("dumped-buffer-broken-{}.png", metadata.index))
                 {
                     error!("Error writing file: {e}");
                 }
 
-                if let Err(e) = image.write_to_raw(format!(
+                if let Err(e) = thread_image.write_to_raw(format!(
                     "dumped-buffer-broken-{}.rgb888.raw",
                     metadata.index
                 )) {
