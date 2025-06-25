@@ -12,9 +12,10 @@ It relies on the DUT sending frames with a QR-Code containing some metadata that
 Dradis will decode and check. This will allow it to make sure the frame has been
 properly sent and thus report whether or not the HDMI output is functional.
 
-A system image for a RaspberryPi4 can be found [here](). In addition to dradis,
-it also has a dnsmasq instance already set up to work as a DHCP proxy server
-that will allow the DUT to network boot the Linux Kernel image we want to test.
+A system image for a RaspberryPi4 can be found
+[here](https://github.com/mripard/pegasus-debian). In addition to dradis, it
+also has a dnsmasq instance already set up to work as a DHCP proxy server that
+will allow the DUT to network boot the Linux Kernel image we want to test.
 It also embeds the latest version of the
 [GitHub Actions Runner](https://github.com/actions/runner) in order to register
 as a self-hosted runner that will be able to perform the HDMI output test and be
