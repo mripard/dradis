@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1750081394207,
+  "lastUpdate": 1750862307701,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -839,6 +839,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 484338,
             "range": "± 18584",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f72d44759bc4edb9357715920f4eb733c3c0357b",
+          "message": "Merge pull request #223 from JoseExposito/readme-broken-links\n\nREADME: Update links",
+          "timestamp": "2025-06-25T16:33:36+02:00",
+          "tree_id": "e38b820550a0d6a5a142e452044c3bc82de795f9",
+          "url": "https://github.com/mripard/dradis/commit/f72d44759bc4edb9357715920f4eb733c3c0357b"
+        },
+        "date": 1750862306756,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 478937,
+            "range": "± 1265",
             "unit": "ns/iter"
           }
         ]
