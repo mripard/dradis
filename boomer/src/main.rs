@@ -176,7 +176,10 @@ fn main() -> Result<()> {
         })
         .init();
 
-    let device = Device::new(&args.device).context("Couldn't open the KMS device file")?;
+    let device = Device::new(&args.device).context(format!(
+        "Couldn't open the KMS device file \"{}\"",
+        &args.device.display(),
+    ))?;
 
     let connector = find_connector(&device).context("No Active Connector")?;
     info!("Running from Connector {}", connector);
