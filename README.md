@@ -23,5 +23,5 @@ part of the usual Github Actions CI system.
 
 On the DUT side, Boomer, a reference implementation of a KMS application setting
 up a test pattern and a QR-Code at boot can be found
-[here](https://github.com/mripard/boomer), and a system image embedding Boomer
-can be found [here]().
+[here](https://github.com/mripard/dradis/tree/main/boomer), and a system image
+embedding Boomer can be found [here]().
