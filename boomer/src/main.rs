@@ -10,8 +10,8 @@ use clap::Parser;
 use frame_check::{Frame, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
 use image::{Rgba, imageops::FilterType};
 use nucleid::{
-    BufferType, Connector, ConnectorStatus, ConnectorUpdate, Device, Format, Framebuffer, Mode,
-    Object as _, ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
+    BufferType, Connector, ConnectorStatus, ConnectorType, ConnectorUpdate, Device, Format,
+    Framebuffer, Mode, Object as _, ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
 };
 use pix::{Raster, bgr::Bgra8, rgb::Rgba8};
 use qrcode::QrCode;
@@ -36,14 +36,22 @@ struct CliArgs {
     )]
     device: PathBuf,
 
+    #[arg(short = 'C', long, help = "Connector name, for example: HDMI-A-1")]
+    connector_name: Option<String>,
+
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
 }
 
-fn find_connector(device: &Device) -> Option<Rc<Connector>> {
-    device
-        .connectors()
-        .find(|con| con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected)
+fn find_connector(device: &Device, connector_name: Option<&str>) -> Option<Rc<Connector>> {
+    if let Some(name) = connector_name {
+        device.connectors().find(|con| con.to_string() == name)
+    } else {
+        device.connectors().find(|con| {
+            con.connector_type() == ConnectorType::HDMIA
+                && con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected
+        })
+    }
 }
 
 fn find_mode_for_connector(connector: &Rc<Connector>) -> io::Result<Mode> {
@@ -176,9 +184,13 @@ fn main() -> Result<()> {
         })
         .init();
 
-    let device = Device::new(&args.device).context("Couldn't open the KMS device file")?;
+    let device = Device::new(&args.device).context(format!(
+        "Couldn't open the KMS device file \"{}\"",
+        &args.device.display(),
+    ))?;
 
-    let connector = find_connector(&device).context("No Active Connector")?;
+    let connector =
+        find_connector(&device, args.connector_name.as_deref()).context("No Active Connector")?;
     info!("Running from Connector {}", connector);
 
     let mode =
