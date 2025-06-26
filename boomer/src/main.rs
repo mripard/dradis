@@ -10,8 +10,8 @@ use clap::Parser;
 use frame_check::{Frame, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
 use image::{Rgba, imageops::FilterType};
 use nucleid::{
-    BufferType, Connector, ConnectorStatus, ConnectorUpdate, Device, Format, Framebuffer, Mode,
-    Object as _, ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
+    BufferType, Connector, ConnectorStatus, ConnectorType, ConnectorUpdate, Device, Format,
+    Framebuffer, Mode, Object as _, ObjectUpdate as _, Output, Plane, PlaneType, PlaneUpdate,
 };
 use pix::{Raster, bgr::Bgra8, rgb::Rgba8};
 use qrcode::QrCode;
@@ -41,9 +41,10 @@ struct CliArgs {
 }
 
 fn find_connector(device: &Device) -> Option<Rc<Connector>> {
-    device
-        .connectors()
-        .find(|con| con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected)
+    device.connectors().find(|con| {
+        con.connector_type() == ConnectorType::HDMIA
+            && con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected
+    })
 }
 
 fn find_mode_for_connector(connector: &Rc<Connector>) -> io::Result<Mode> {
