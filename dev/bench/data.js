@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1750921367770,
+  "lastUpdate": 1750923525630,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -929,6 +929,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 491047,
             "range": "± 3225",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "51892122df412d7b264cdcb909dc2c3b982bd734",
+          "message": "Merge pull request #225 from mripard/boomer-plane-fix\n\nboomer: Use Primary planes instead of overlays",
+          "timestamp": "2025-06-26T09:33:10+02:00",
+          "tree_id": "b50bcd741c24c755bf89cc66629fc72c8ebdd99a",
+          "url": "https://github.com/mripard/dradis/commit/51892122df412d7b264cdcb909dc2c3b982bd734"
+        },
+        "date": 1750923524678,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 494743,
+            "range": "± 3877",
             "unit": "ns/iter"
           }
         ]
