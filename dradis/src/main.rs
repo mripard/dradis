@@ -24,12 +24,10 @@ use std::{
 };
 
 use anyhow::Context;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
-use frame_check::{
-    DecodeCheckArgs, DecodeCheckArgsDump, DecodeCheckArgsDumpOptions, decode_and_check_frame,
-};
+use frame_check::{DecodeCheckArgs, DecodeCheckArgsDump, decode_and_check_frame};
 use linux_mc::{MediaController, MediaControllerEntity, MediaControllerPad, media_entity_function};
 use redid::EdidTypeConversionError;
 use rustix::io::Errno;
@@ -344,6 +342,7 @@ fn test_prepare_queue(
 
 #[expect(clippy::too_many_lines)]
 fn test_run(
+    cli: &Cli,
     suite: &Dradis<'_>,
     queue: &Queue<'_>,
     test: &TestItem,
@@ -386,7 +385,11 @@ fn test_run(
         .expect("Couldn't request our buffers");
 
     let mut buffers = Vec::with_capacity(NUM_BUFFERS as usize);
-    let pool = Rc::new(RefCell::new(ThreadPool::new(Some(10))));
+    let pool = if cli.dump_frames_limit > 0 {
+        Rc::new(RefCell::new(ThreadPool::new(Some(cli.dump_frames_limit))))
+    } else {
+        Rc::new(RefCell::new(ThreadPool::new(None)))
+    };
 
     for idx in 0..NUM_BUFFERS {
         let mut rbuf = v4l2_buffer {
@@ -430,7 +433,7 @@ fn test_run(
 
         let frame_dequeue_start = Instant::now();
 
-        let idx = loop {
+        let vbuf = loop {
             if frame_dequeue_start.elapsed() > FRAMES_DEQUEUED_TIMEOUT {
                 return Err(TestError::NoFrameReceived);
             }
@@ -447,14 +450,14 @@ fn test_run(
                 debug!("No Event to Dequeue.");
             }
 
-            let buffer_idx = dequeue_buffer(root_device);
-            match buffer_idx {
-                Ok(_) => break buffer_idx,
+            let res = dequeue_buffer(root_device);
+            match res {
+                Ok(_) => break res,
                 Err(ref e) => match Errno::from_io_error(e) {
                     Some(Errno::AGAIN) => {
                         debug!("No buffer to dequeue.");
                     }
-                    _ => break buffer_idx,
+                    _ => break res,
                 },
             }
 
@@ -462,11 +465,13 @@ fn test_run(
         }
         .expect("Couldn't dequeue our buffer");
 
+        let idx = vbuf.index;
         let buf = &buffers[idx as usize];
         debug_span!("Frame Processing").in_scope(|| {
             if let Ok(metadata) = buf.read(
                 |b, a| decode_and_check_frame(b, a.expect("Missing arguments")).map_err(Into::into),
                 Some(DecodeCheckArgs {
+                    sequence: vbuf.sequence,
                     previous_frame_idx: last_frame_index,
                     width: test.expected_width,
                     height: test.expected_height,
@@ -474,11 +479,11 @@ fn test_run(
                     // actually stores the CSI format (blue first). We need to
                     // do a conversion to make it meaningful to us.
                     swap_channels: true,
-                    dump: DecodeCheckArgsDump::Dump(DecodeCheckArgsDumpOptions {
-                        threads_pool: pool.clone(),
-                        dump_on_corrupted_frame: true,
-                        dump_on_valid_frame: true,
-                    }),
+                    dump: match cli.dump_frames {
+                        CliDump::Always => DecodeCheckArgsDump::Always(pool.clone()),
+                        CliDump::Corrupted => DecodeCheckArgsDump::Corrupted(pool.clone()),
+                        CliDump::Never => DecodeCheckArgsDump::Never,
+                    },
                 }),
             ) {
                 debug!("Frame {} Valid", metadata.index);
@@ -559,7 +564,7 @@ fn test_display_one_mode(
     bridge_set_edid(args, bridge, &test.edid)?;
 
     loop {
-        match test_run(suite, &queue, test) {
+        match test_run(args, suite, &queue, test) {
             Ok(()) => break,
             Err(e) => match e {
                 TestError::Retry => {
@@ -645,6 +650,18 @@ pub(crate) struct Dradis<'a> {
     heap: &'a Heap,
 }
 
+#[derive(Clone, ValueEnum)]
+enum CliDump {
+    /// Dump All Received Frames
+    Always,
+
+    /// Dump Corrupted Frames Only
+    Corrupted,
+
+    /// Never Dump Any Frame
+    Never,
+}
+
 #[derive(Parser)]
 #[command(version, about = "DRADIS DRM/KMS Test Program")]
 struct Cli {
@@ -656,11 +673,21 @@ struct Cli {
     )]
     device: PathBuf,
 
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    verbose: u8,
-
     #[arg(long = "dump-edid", help = "Folder to dump test EDIDs in.")]
     dump_edid: Option<PathBuf>,
+
+    #[arg(long = "dump-frames", value_enum, default_value_t = CliDump::Never, help = "Dump Received Frames")]
+    dump_frames: CliDump,
+
+    #[arg(
+        long = "dump-frames-limit",
+        default_value_t = 10,
+        help = "Maximum Number of Frames to Dump. 0 for no limit."
+    )]
+    dump_frames_limit: usize,
+
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    verbose: u8,
 
     #[arg(help = "Test Configuration File")]
     test: PathBuf,

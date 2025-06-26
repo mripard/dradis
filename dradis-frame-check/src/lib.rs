@@ -5,12 +5,12 @@
 
 extern crate alloc;
 
-use alloc::rc::Rc;
+use alloc::{rc::Rc, sync::Arc};
 use core::{cell::RefCell, fmt, hash::Hasher as _, ops::Deref};
 use std::{
     fs::{self, File},
     io::{self, BufWriter},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use pix::{
@@ -180,7 +180,10 @@ where
     /// # Errors
     ///
     /// If we can't access the path.
-    pub fn write_to_raw(&self, path: &Path) -> io::Result<()> {
+    pub fn write_to_raw<PA>(&self, path: PA) -> io::Result<()>
+    where
+        PA: AsRef<Path>,
+    {
         fs::write(path, self.0.as_u8_slice())
     }
 }
@@ -191,7 +194,10 @@ impl FrameInner<Rgb8> {
     /// # Errors
     ///
     /// If we can't access the path.
-    pub fn write_to_png(&self, path: &Path) -> io::Result<()> {
+    pub fn write_to_png<P>(&self, path: P) -> io::Result<()>
+    where
+        P: AsRef<Path>,
+    {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
@@ -386,32 +392,26 @@ impl Deref for Frame {
     }
 }
 
-/// [`DecodeCheckArgs`] Frame Dump Options
-#[derive(Clone, Debug)]
-pub struct DecodeCheckArgsDumpOptions {
-    /// Pool of thread to defer our dumps to.
-    pub threads_pool: Rc<RefCell<ThreadPool<()>>>,
-
-    /// Should we dump our frames if corrupted?
-    pub dump_on_corrupted_frame: bool,
-
-    /// Should we dump our frames if valid?
-    pub dump_on_valid_frame: bool,
-}
-
 /// [`DecodeCheckArgs`] Frame Dump Options, if any
 #[derive(Debug)]
 pub enum DecodeCheckArgsDump {
-    /// Should we dump frames, ...
-    Dump(DecodeCheckArgsDumpOptions),
+    /// Always dump received frames. In this case, the farme index used in the file name is the
+    /// `v4l2_buffer` sequence number.
+    Always(Rc<RefCell<ThreadPool<()>>>),
 
-    /// ... Or not?
-    Ignore,
+    /// Dump corrupted frames only
+    Corrupted(Rc<RefCell<ThreadPool<()>>>),
+
+    /// Never dump frames
+    Never,
 }
 
 /// [`decode_and_check_frame`] Arguments
 #[derive(Debug)]
 pub struct DecodeCheckArgs {
+    /// V4L2 Sequence Number
+    pub sequence: u32,
+
     /// Previous processed frame index, if any.
     pub previous_frame_idx: Option<usize>,
 
@@ -428,34 +428,6 @@ pub struct DecodeCheckArgs {
     pub dump: DecodeCheckArgsDump,
 }
 
-fn dump_image_to_file(
-    frame_with_qr: &QRCodeFrame<Rgb8>,
-    frame_without_qr: &ClearedFrame<Rgb8>,
-    valid: bool,
-    idx: usize,
-) {
-    let base_path = PathBuf::from(format!(
-        "dumped-buffer-{}-{idx}",
-        if valid { "valid" } else { "broken" }
-    ));
-
-    if let Err(e) = frame_with_qr.write_to_raw(&base_path.with_extension("with.rgb888.raw")) {
-        error!("Error writing file: {e}");
-    }
-
-    if let Err(e) = frame_without_qr.write_to_raw(&base_path.with_extension("without.rgb888.raw")) {
-        error!("Error writing file: {e}");
-    }
-
-    if let Err(e) = frame_with_qr.write_to_png(&base_path.with_extension("with.png")) {
-        error!("Error writing file: {e}");
-    }
-
-    if let Err(e) = frame_without_qr.write_to_raw(&base_path.with_extension("without.png")) {
-        error!("Error writing file: {e}");
-    }
-}
-
 /// Decodes a raw frame buffer and checks whether the frame is valid or not.
 ///
 /// To consider a frame valid, the frame needs to:
@@ -467,16 +439,42 @@ fn dump_image_to_file(
 /// # Errors
 ///
 /// If the frame metadata can't be decoded, or if the frame is invalid.
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Yes, clippy, that's really what we want."
+)]
 pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Metadata, FrameError> {
     let last_frame_index = args.previous_frame_idx;
 
     let image = trace_span!("Framebuffer Importation").in_scope(|| {
         if args.swap_channels {
-            QRCodeFrame::from_raw_bytes_with_swapped_channels(args.width, args.height, data)
+            Arc::new(QRCodeFrame::from_raw_bytes_with_swapped_channels(
+                args.width,
+                args.height,
+                data,
+            ))
         } else {
-            QRCodeFrame::from_raw_bytes(args.width, args.height, data)
+            Arc::new(QRCodeFrame::from_raw_bytes(args.width, args.height, data))
         }
     });
+
+    if let DecodeCheckArgsDump::Always(pool) = &args.dump {
+        let thread_image = image.clone();
+
+        pool.borrow_mut().spawn_and_queue(move || {
+            if let Err(e) =
+                thread_image.write_to_png(format!("dumped-buffer-{}.png", args.sequence))
+            {
+                error!("Error writing file: {e}");
+            }
+
+            if let Err(e) =
+                thread_image.write_to_raw(format!("dumped-buffer-{}.rgb888.raw", args.sequence))
+            {
+                error!("Error writing file: {e}");
+            }
+        });
+    }
 
     let metadata = image.metadata()?;
     if metadata.version.0 != HEADER_VERSION_MAJOR {
@@ -500,19 +498,30 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
     let cleared = image.cleared_frame_with_metadata(&metadata);
     let hash = debug_span!("Checksum Computation").in_scope(|| cleared.compute_checksum());
 
-    if let DecodeCheckArgsDump::Dump(o) = args.dump {
-        if o.dump_on_corrupted_frame {
-            o.threads_pool.borrow_mut().spawn_and_queue(move || {
-                dump_image_to_file(&image, &cleared, hash == metadata.hash, metadata.index);
-            });
-        }
-    }
-
     if hash != metadata.hash {
         warn!(
             "Hash mismatch: {:#x} vs expected {:#x}",
             hash, metadata.hash
         );
+
+        if let DecodeCheckArgsDump::Corrupted(pool) = &args.dump {
+            let thread_image = image.clone();
+
+            pool.borrow_mut().spawn_and_queue(move || {
+                if let Err(e) = thread_image
+                    .write_to_png(format!("dumped-buffer-broken-{}.png", metadata.index))
+                {
+                    error!("Error writing file: {e}");
+                }
+
+                if let Err(e) = thread_image.write_to_raw(format!(
+                    "dumped-buffer-broken-{}.rgb888.raw",
+                    metadata.index
+                )) {
+                    error!("Error writing file: {e}");
+                }
+            });
+        }
 
         return Err(FrameError::IntegrityFailure);
     }

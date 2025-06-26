@@ -545,6 +545,10 @@ mod tests_v4l2_format {
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the given file descriptor
+///
+/// # Panics
+///
+/// If the kernel returns an unexpected value
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_g_fmt(fd: BorrowedFd<'_>, kind: v4l2_buf_type) -> io::Result<v4l2_format> {
     let fmt = raw::v4l2_format {
@@ -566,6 +570,10 @@ pub fn v4l2_ioctl_g_fmt(fd: BorrowedFd<'_>, kind: v4l2_buf_type) -> io::Result<v
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the given file descriptor
+///
+/// # Panics
+///
+/// If the kernel returns an unexpected value
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_s_fmt(fd: BorrowedFd<'_>, fmt: v4l2_format) -> io::Result<v4l2_format> {
     raw::v4l2_ioctl_s_fmt(fd, fmt.into()).map(|f| {
@@ -582,6 +590,10 @@ pub fn v4l2_ioctl_s_fmt(fd: BorrowedFd<'_>, fmt: v4l2_format) -> io::Result<v4l2
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the given file descriptor
+///
+/// # Panics
+///
+/// If the kernel returns an unexpected value
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_try_fmt(fd: BorrowedFd<'_>, fmt: v4l2_format) -> io::Result<v4l2_format> {
     raw::v4l2_ioctl_try_fmt(fd, fmt.into()).map(|f| {
@@ -956,6 +968,10 @@ mod tests_v4l2_subdev_format {
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the file descriptor.
+///
+/// # Panics
+///
+/// If the kernel returns an unexpected value
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_subdev_s_fmt(
     fd: BorrowedFd<'_>,
@@ -1090,6 +1106,10 @@ mod tests_v4l2_requestbuffers {
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the given file descriptor
+///
+/// # Panics
+///
+/// If the kernel returns an unexpected value
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_reqbufs(
     fd: BorrowedFd<'_>,
@@ -1127,6 +1147,10 @@ pub fn v4l2_ioctl_streamoff(fd: BorrowedFd<'_>, buf_kind: v4l2_buf_type) -> io::
 ///
 /// If there's an I/O Error while accessing the file descriptor, or if the EDIDs length isn't
 /// aligned to a block size (128 bytes)
+#[expect(
+    clippy::missing_panics_doc,
+    reason = "We return an error if the number of blocks is greater than 255, and 255 fits in a u32."
+)]
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_s_edid(fd: BorrowedFd<'_>, edid: &mut [u8]) -> io::Result<()> {
     if (edid.len() % 128) != 0 {
@@ -1161,6 +1185,10 @@ pub fn v4l2_ioctl_s_edid(fd: BorrowedFd<'_>, edid: &mut [u8]) -> io::Result<()> 
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the file descriptor.
+#[expect(
+    clippy::missing_panics_doc,
+    reason = "We return an error if the number of blocks is greater than 255, and 255 fits in a u32."
+)]
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_subdev_s_edid(fd: BorrowedFd<'_>, edid: &mut [u8]) -> io::Result<()> {
     if (edid.len() % 128) != 0 {
@@ -1278,6 +1306,10 @@ pub fn v4l2_ioctl_subdev_s_dv_timings(
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the file descriptor.
+///
+/// # Panics
+///
+/// If the kernel returns an unexpected value
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_query_dv_timings(fd: BorrowedFd<'_>) -> io::Result<v4l2_dv_timings> {
     let arg = raw::v4l2_dv_timings::default();
@@ -1293,6 +1325,10 @@ pub fn v4l2_ioctl_query_dv_timings(fd: BorrowedFd<'_>) -> io::Result<v4l2_dv_tim
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the file descriptor.
+///
+/// # Panics
+///
+/// If the kernel returns an unexpected value
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_subdev_query_dv_timings(fd: BorrowedFd<'_>) -> io::Result<v4l2_dv_timings> {
     let arg = raw::v4l2_dv_timings::default();
@@ -1784,6 +1820,10 @@ mod tests_v4l2_event {
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the file descriptor.
+///
+/// # Panics
+///
+/// If the kernel returns an unexpected value
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_dqevent(fd: BorrowedFd<'_>) -> io::Result<v4l2_event> {
     raw::v4l2_ioctl_dqevent(fd).map(|f| {
