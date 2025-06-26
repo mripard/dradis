@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1750862307701,
+  "lastUpdate": 1750921362491,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -869,6 +869,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 478937,
             "range": "± 1265",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b61ac7a98e5b61bd84f41f5a2fbc3278d7d85932",
+          "message": "Merge pull request #224 from JoseExposito/select-connector\n\nAllow to select connector",
+          "timestamp": "2025-06-26T08:57:52+02:00",
+          "tree_id": "9dc48ab25414faf22bbc886e9f3d9ef6b756afd1",
+          "url": "https://github.com/mripard/dradis/commit/b61ac7a98e5b61bd84f41f5a2fbc3278d7d85932"
+        },
+        "date": 1750921361610,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 484293,
+            "range": "± 2264",
             "unit": "ns/iter"
           }
         ]
