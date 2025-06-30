@@ -61,7 +61,7 @@ fn find_mode_for_connector(connector: &Rc<Connector>) -> io::Result<Mode> {
 fn find_plane_for_output(output: &Output) -> Option<Rc<Plane>> {
     output.planes().into_iter().find(|plane| {
         plane.formats().any(|fmt| fmt == Format::XRGB8888)
-            && plane.plane_type() == PlaneType::Primary
+            && plane.plane_type().expect("Can't get plane type") == PlaneType::Primary
     })
 }
 
