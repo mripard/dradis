@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1750923525630,
+  "lastUpdate": 1751280863186,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -959,6 +959,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 494743,
             "range": "± 3877",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bcab80597006d784bd2bd479616b70fe3031221d",
+          "message": "Merge pull request #226 from JoseExposito/log-output\n\nboomer: Log output information",
+          "timestamp": "2025-06-30T12:49:53+02:00",
+          "tree_id": "a3ea5e605c6147a46ba38f873c89526462c19fbd",
+          "url": "https://github.com/mripard/dradis/commit/bcab80597006d784bd2bd479616b70fe3031221d"
+        },
+        "date": 1751280862348,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 482919,
+            "range": "± 1635",
             "unit": "ns/iter"
           }
         ]
