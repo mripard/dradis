@@ -1252,7 +1252,7 @@ dependencies = [
 [[package]]
 name = "nucleid"
 version = "0.2.0"
-source = "git+https://github.com/mripard/nucleid.git#eed816783b980231bd888a2a6f6f59c6cfbfcab0"
+source = "git+https://github.com/mripard/nucleid.git?rev=d59453f199e03e2928049f6dd7f00c89c1bea737#d59453f199e03e2928049f6dd7f00c89c1bea737"
 dependencies = [
  "bindgen 0.72.0",
  "bytemuck",

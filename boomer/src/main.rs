@@ -205,6 +205,8 @@ fn main() -> Result<()> {
         .output_from_connector(&connector)
         .context("Couldn't find a valid output for that connector")?;
 
+    info!("Using output: {}", output);
+
     let plane =
         find_plane_for_output(&output).context("Couldn't find a plane with the proper format")?;
 
