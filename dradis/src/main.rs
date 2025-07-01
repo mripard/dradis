@@ -469,7 +469,13 @@ fn test_run(
         let buf = &buffers[idx as usize];
         debug_span!("Frame Processing").in_scope(|| {
             if let Ok(metadata) = buf.read(
-                |b, a| decode_and_check_frame(b, a.expect("Missing arguments")).map_err(Into::into),
+                |b, a| {
+                    decode_and_check_frame(
+                        &b[..(vbuf.bytesused as usize)],
+                        a.expect("Missing arguments"),
+                    )
+                    .map_err(Into::into)
+                },
                 Some(DecodeCheckArgs {
                     sequence: vbuf.sequence,
                     previous_frame_idx: last_frame_index,
