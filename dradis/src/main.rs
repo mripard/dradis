@@ -333,9 +333,11 @@ fn test_prepare_queue(
         }
     }
 
-    queue
+    let ret_fmt = queue
         .set_format(v4l2_format::VideoCapture(pix_fmt))
         .expect("Couldn't change our queue format");
+
+    debug!("Format set {:#?}", ret_fmt);
 
     Ok(())
 }
