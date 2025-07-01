@@ -43,18 +43,11 @@ jobs:
           apt-get install -y clang curl libclang-dev
 
       - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: stable
-            override: true
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-deb
-        uses: actions-rs/install@v0.1
-        env:
-          RUSTFLAGS:
-        with:
-          crate: cargo-deb
-          version: latest
+        run: |
+          cargo install cargo-deb
 
       - uses: actions/checkout@v2
 
