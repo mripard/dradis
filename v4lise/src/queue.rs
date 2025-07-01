@@ -108,8 +108,8 @@ impl<'a> Queue<'a> {
         Ok(())
     }
 
-    pub fn set_format(&self, fmt: v4l2_format) -> io::Result<()> {
-        v4l2_raw::wrapper::v4l2_ioctl_s_fmt(self.dev.as_fd(), fmt).map(|_| ())
+    pub fn set_format(&self, fmt: v4l2_format) -> io::Result<v4l2_format> {
+        v4l2_raw::wrapper::v4l2_ioctl_s_fmt(self.dev.as_fd(), fmt)
     }
 }
 
