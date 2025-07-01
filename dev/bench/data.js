@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751280863186,
+  "lastUpdate": 1751360621151,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -989,6 +989,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 482919,
             "range": "± 1635",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f55525f2ba2b09c925bd6d1a46e34a6e66cd7c89",
+          "message": "Merge pull request #232 from mripard/ci-updates\n\n.github: Update workflows",
+          "timestamp": "2025-07-01T10:59:59+02:00",
+          "tree_id": "323a75d7622e13827681a4ff233b9622df1dfa8e",
+          "url": "https://github.com/mripard/dradis/commit/f55525f2ba2b09c925bd6d1a46e34a6e66cd7c89"
+        },
+        "date": 1751360620759,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 481901,
+            "range": "± 2321",
             "unit": "ns/iter"
           }
         ]
