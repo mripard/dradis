@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751360724271,
+  "lastUpdate": 1751360764818,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1049,6 +1049,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 481794,
             "range": "± 2156",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "faa875412f1d47d6b6897341a0de926bcf789c3a",
+          "message": "Merge pull request #228 from mripard/dependabot/cargo/tracelimit-01d7560\n\nbuild(deps): bump tracelimit from `3c2dda8` to `01d7560`",
+          "timestamp": "2025-07-01T11:01:44+02:00",
+          "tree_id": "80875f926ed85ff0dab171da06ddeec689d0c7e8",
+          "url": "https://github.com/mripard/dradis/commit/faa875412f1d47d6b6897341a0de926bcf789c3a"
+        },
+        "date": 1751360764267,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 488708,
+            "range": "± 13008",
             "unit": "ns/iter"
           }
         ]
