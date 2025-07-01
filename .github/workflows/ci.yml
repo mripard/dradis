@@ -26,10 +26,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Build
-        uses: "actions-rs/cargo@v1"
-        with:
-          command: build
-          args: --all-features --all-targets --verbose
+        run: |
+          cargo build --workspace --all-features --all-targets --verbose
 
   clippy:
     name: Clippy
@@ -86,10 +84,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Run Tests
-        uses: "actions-rs/cargo@v1"
-        with:
-          command: test
-          args: --all-features --verbose
+        run: |
+          cargo test --workspace --all-features --verbose
 
   bench:
     name: Benchmarks
