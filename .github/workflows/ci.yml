@@ -23,10 +23,7 @@ jobs:
           sudo apt-get install libclang-dev
 
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Build
         uses: "actions-rs/cargo@v1"
@@ -47,11 +44,9 @@ jobs:
           sudo apt-get install libclang-dev
 
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: clippy
-          override: true
 
       - name: Check clippy
         uses: actions-rs/clippy-check@v1
@@ -65,11 +60,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly
           components: rustfmt
-          override: true
 
       - name: Check Format
         uses: "actions-rs/cargo@v1"
@@ -87,10 +80,7 @@ jobs:
           sudo apt-get install libclang-dev
 
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Run Tests
         uses: "actions-rs/cargo@v1"
@@ -109,10 +99,7 @@ jobs:
           sudo apt-get install libclang-dev
 
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Run benchmark
         run: |
