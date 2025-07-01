@@ -252,6 +252,9 @@ fn test_prepare_queue(
             .set_width(test.expected_width)
             .set_height(test.expected_height)
             .set_pixel_format(v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
+            // From v4l2-ctl: "G_FMT might return a bytesperline value > width, reset this to 0 to
+            // force the driver to update it to the closest value for the new width".
+            .set_bytes_per_line(0)
             .set_field(v4l2_field::V4L2_FIELD_NONE)
     } else {
         unreachable!()
