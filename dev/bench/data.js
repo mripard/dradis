@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751361069434,
+  "lastUpdate": 1751361870789,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1109,6 +1109,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 480710,
             "range": "± 2026",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5c8fba23e91f92599af91d3516517cd0cf635dff",
+          "message": "Merge pull request #227 from JoseExposito/unwrap-plane-type\n\nboomer: Unwrap plane.plane_type()",
+          "timestamp": "2025-07-01T11:20:17+02:00",
+          "tree_id": "72153d3dfa7a1cc884b861b497002dd2ef5da1e7",
+          "url": "https://github.com/mripard/dradis/commit/5c8fba23e91f92599af91d3516517cd0cf635dff"
+        },
+        "date": 1751361869902,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 492638,
+            "range": "± 3390",
             "unit": "ns/iter"
           }
         ]
