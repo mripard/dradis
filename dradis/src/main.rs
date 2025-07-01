@@ -251,6 +251,8 @@ fn test_prepare_queue(
         pix_fmt
             .set_width(test.expected_width)
             .set_height(test.expected_height)
+            // Reset the bytes per line field to avoid inheriting the one from the previous format.
+            .set_bytes_per_line(0)
             .set_pixel_format(v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
             .set_field(v4l2_field::V4L2_FIELD_NONE)
     } else {
