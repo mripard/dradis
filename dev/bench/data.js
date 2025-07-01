@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751361870789,
+  "lastUpdate": 1751384768078,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1139,6 +1139,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 492638,
             "range": "± 3390",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2ccff037dce4e7a3bd89dad43e5c4003d76f6f6d",
+          "message": "Merge pull request #229 from mripard/dependabot/cargo/redid-862de87\n\nbuild(deps): bump redid from `4e966cc` to `862de87`",
+          "timestamp": "2025-07-01T17:41:56+02:00",
+          "tree_id": "57e0333a57f6cb01c335336c1bc5176fe3e14574",
+          "url": "https://github.com/mripard/dradis/commit/2ccff037dce4e7a3bd89dad43e5c4003d76f6f6d"
+        },
+        "date": 1751384767198,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 482447,
+            "range": "± 1281",
             "unit": "ns/iter"
           }
         ]
