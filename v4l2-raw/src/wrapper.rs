@@ -128,6 +128,13 @@ impl v4l2_pix_format {
         self.pixelformat
     }
 
+    /// Sets the image bytes per line.
+    #[must_use]
+    pub fn set_bytes_per_line(mut self, bytesperline: u32) -> Self {
+        self.bytesperline = bytesperline;
+        self
+    }
+
     /// Sets the image colorspace.
     ///
     /// This function is only effective for output streams. The colorspace will be ignored and set
