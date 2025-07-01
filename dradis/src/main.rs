@@ -589,7 +589,7 @@ struct TestEdidDetailedTiming {
     hsync: u16,
     vfp: u8,
     vdisplay: u16,
-    vbp: u8,
+    vbp: u16,
     vsync: u8,
 }
 

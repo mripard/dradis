@@ -12,6 +12,7 @@ use std::{
 use num_traits::{One, ToPrimitive, Zero};
 use redid::{
     EdidChromaticityPoint, EdidChromaticityPoints, EdidDescriptorDetailedTiming,
+    EdidDescriptorDetailedTimingHorizontal, EdidDescriptorDetailedTimingVertical,
     EdidDetailedTimingDigitalSeparateSync, EdidDetailedTimingDigitalSync,
     EdidDetailedTimingDigitalSyncKind, EdidDetailedTimingStereo, EdidDetailedTimingSync,
     EdidDisplayColorType, EdidDisplayTransferCharacteristics, EdidEstablishedTiming, EdidExtension,
@@ -247,7 +248,9 @@ pub(crate) fn bridge_set_edid(
                         .dfp1_compatible(true)
                         .build(),
                 ))
-                .display_transfer_characteristic(EdidDisplayTransferCharacteristics::try_from(2.2)?)
+                .display_transfer_characteristics(EdidDisplayTransferCharacteristics::try_from(
+                    2.2,
+                )?)
                 .feature_support(
                     EdidR3FeatureSupport::builder()
                         .display_type(EdidDisplayColorType::RGBColor)
@@ -270,21 +273,29 @@ pub(crate) fn bridge_set_edid(
                 .build(),
         ))
         .add_established_timing(EdidEstablishedTiming::ET_640_480_60hz)
-        .add_descriptor(EdidR3Descriptor::DetailedTiming(
+        .preferred_timing(
             EdidDescriptorDetailedTiming::builder()
                 .pixel_clock(dtd.clock_khz.try_into()?)
-                .horizontal_front_porch(dtd.hfp.try_into()?)
-                .horizontal_addressable(dtd.hdisplay.try_into()?)
-                .horizontal_blanking((dtd.hfp + dtd.hsync + dtd.hbp).try_into()?)
-                .horizontal_sync_pulse(dtd.hsync.try_into()?)
-                .horizontal_border(0.try_into()?)
-                .horizontal_size(1600.try_into()?)
-                .vertical_front_porch(dtd.vfp.try_into()?)
-                .vertical_addressable(dtd.vdisplay.try_into()?)
-                .vertical_blanking(u16::from(dtd.vfp + dtd.vsync + dtd.vbp).try_into()?)
-                .vertical_sync_pulse(dtd.vsync.try_into()?)
-                .vertical_border(0.try_into()?)
-                .vertical_size(900.try_into()?)
+                .horizontal(
+                    EdidDescriptorDetailedTimingHorizontal::builder()
+                        .active(dtd.hdisplay.try_into()?)
+                        .border(0.try_into()?)
+                        .front_porch(dtd.hfp.try_into()?)
+                        .sync_pulse(dtd.hsync.try_into()?)
+                        .back_porch(dtd.hbp.try_into()?)
+                        .size_mm(1600.try_into()?)
+                        .build(),
+                )
+                .vertical(
+                    EdidDescriptorDetailedTimingVertical::builder()
+                        .active(dtd.vdisplay.try_into()?)
+                        .border(0.try_into()?)
+                        .front_porch(dtd.vfp.try_into()?)
+                        .sync_pulse(dtd.vsync.try_into()?)
+                        .back_porch(dtd.vbp.try_into()?)
+                        .size_mm(900.try_into()?)
+                        .build(),
+                )
                 .sync_type(EdidDetailedTimingSync::Digital(
                     EdidDetailedTimingDigitalSync::builder()
                         .kind(EdidDetailedTimingDigitalSyncKind::Separate(
@@ -297,7 +308,7 @@ pub(crate) fn bridge_set_edid(
                 ))
                 .stereo(EdidDetailedTimingStereo::None)
                 .build(),
-        ))
+        )
         .add_descriptor(EdidR3Descriptor::ProductName("Dradis".try_into()?))
         .add_descriptor(EdidR3Descriptor::DisplayRangeLimits(
             EdidR3DisplayRangeLimits::builder()
