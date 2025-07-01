@@ -63,11 +63,15 @@ jobs:
         with:
           components: rustfmt
 
-      - name: Check Format
-        uses: "actions-rs/cargo@v1"
+      - uses: mbrobbel/rustfmt-check@0.19.0
+        if: github.event_name == 'pull_request'
         with:
-          command: "fmt"
-          args: "--all -- --check"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          mode: review
+
+      - if: github.event_name == 'push'
+        run: |
+          cargo fmt --all -- --check
 
   tests:
     name: Tests
