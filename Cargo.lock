@@ -70,24 +70,6 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "bindgen"
-version = "0.71.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f58bf3d7db68cfbac37cfc485a8d711e87e064c3d0fe0435b92f7a407f9d6b3"
-dependencies = [
- "bitflags 2.9.1",
- "cexpr",
- "clang-sys",
- "itertools 0.13.0",
- "proc-macro2",
- "quote",
- "regex",
- "rustc-hash",
- "shlex",
- "syn",
-]
-
-[[package]]
-name = "bindgen"
 version = "0.72.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f72209734318d0b619a5e0f5129918b848c416e122a3c4ce054e03cb87b726f"
@@ -95,7 +77,7 @@ dependencies = [
  "bitflags 2.9.1",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "regex",
@@ -1147,7 +1129,7 @@ dependencies = [
 name = "linux-mc"
 version = "0.5.2"
 dependencies = [
- "bindgen 0.71.1",
+ "bindgen",
  "bitflags 2.9.1",
  "bytemuck",
  "clap",
@@ -1260,7 +1242,7 @@ name = "nucleid"
 version = "0.2.0"
 source = "git+https://github.com/mripard/nucleid.git?rev=d59453f199e03e2928049f6dd7f00c89c1bea737#d59453f199e03e2928049f6dd7f00c89c1bea737"
 dependencies = [
- "bindgen 0.72.0",
+ "bindgen",
  "bytemuck",
  "facet",
  "facet-derive",
@@ -2130,7 +2112,7 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 name = "v4l2-raw"
 version = "0.5.2"
 dependencies = [
- "bindgen 0.71.1",
+ "bindgen",
  "facet",
  "facet-enum-repr 0.5.2",
  "facet-reflect",
