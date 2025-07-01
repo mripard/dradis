@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751360764818,
+  "lastUpdate": 1751361069434,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1079,6 +1079,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 488708,
             "range": "± 13008",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bda7d5e24b830470877981c7c5dddcb8f0d31964",
+          "message": "Merge pull request #230 from mripard/dependabot/cargo/bindgen-0.72.0\n\nbuild(deps): bump bindgen from 0.71.1 to 0.72.0",
+          "timestamp": "2025-07-01T11:06:33+02:00",
+          "tree_id": "609c6aa35b5ed0a20aae1898314addd25a4bc6e4",
+          "url": "https://github.com/mripard/dradis/commit/bda7d5e24b830470877981c7c5dddcb8f0d31964"
+        },
+        "date": 1751361068910,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 480710,
+            "range": "± 2026",
             "unit": "ns/iter"
           }
         ]
