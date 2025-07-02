@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751436398635,
+  "lastUpdate": 1751442161579,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1199,6 +1199,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 480798,
             "range": "± 1865",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "42c5a41743c4c4c711e4999d0216ea8c14d6c996",
+          "message": "Merge pull request #233 from mripard/fix-used-buffer-bytes\n\ndradis: Only access the memory actually used",
+          "timestamp": "2025-07-02T09:38:42+02:00",
+          "tree_id": "5b8e4b19ad98369cad239d3f4b670b7889b4b5cc",
+          "url": "https://github.com/mripard/dradis/commit/42c5a41743c4c4c711e4999d0216ea8c14d6c996"
+        },
+        "date": 1751442161102,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 491445,
+            "range": "± 2281",
             "unit": "ns/iter"
           }
         ]
