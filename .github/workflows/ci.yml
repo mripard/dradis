@@ -93,6 +93,9 @@ jobs:
     needs: [ build, tests ]
 
     permissions:
+      contents:
+        write
+
       pull-requests:
         write
 
