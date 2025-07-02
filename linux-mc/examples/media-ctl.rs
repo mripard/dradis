@@ -1,4 +1,5 @@
 #![allow(missing_docs)]
+#![allow(unused_crate_dependencies)]
 
 use std::{io, path::PathBuf};
 
