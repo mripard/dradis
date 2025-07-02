@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751384768078,
+  "lastUpdate": 1751436398635,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1169,6 +1169,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 482447,
             "range": "± 1281",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1bab1d1040aff80ac3637f9d91df4964e8e8593b",
+          "message": "Merge pull request #235 from JoseExposito/gitignore-dumped-buffers\n\ngitignore: Ignore dumped buffers",
+          "timestamp": "2025-07-02T08:02:32+02:00",
+          "tree_id": "6a7fddcdda58a5b83c4012ea58893d9a273f809c",
+          "url": "https://github.com/mripard/dradis/commit/1bab1d1040aff80ac3637f9d91df4964e8e8593b"
+        },
+        "date": 1751436398194,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 480798,
+            "range": "± 1865",
             "unit": "ns/iter"
           }
         ]
