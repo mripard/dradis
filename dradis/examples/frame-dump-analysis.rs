@@ -4,10 +4,11 @@ use clap::Parser;
 use frame_check::{FrameError, QRCodeFrame};
 use pix::{chan::Ch8, el::Pixel, rgb::Rgb8};
 use tracelimit::{error_ratelimited, warn_ratelimited};
-use tracing::{Level, debug, error, info};
+use tracing::{Level, debug, error, info, warn};
 
 const LIMITED_RGB_LO_LEVEL: u8 = 16;
 const LIMITED_RGB_HI_LEVEL: u8 = 235;
+const LIMITED_RGB_DET_LEVEL: usize = 0;
 
 fn within_limited_rgb_bounds(ch: u8) -> bool {
     (LIMITED_RGB_LO_LEVEL..=LIMITED_RGB_HI_LEVEL).contains(&ch)
@@ -100,8 +101,17 @@ fn eq_ignore_limited_threshold(a: FullRangeRgb8, b: FullRangeRgb8) -> bool {
 ///
 /// We expect the bytes to be stored with RGB left-to-right (ie, RGB24 for v4l2, BGR24 for KMS),
 /// and with pixels left-to-right, scanlines being top to bottom.
-fn check_frame(bytes: &[u8], width: u32, height: u32) -> Result<u64, Box<dyn std::error::Error>> {
-    let frame = QRCodeFrame::from_raw_bytes(width, height, bytes);
+fn check_frame(
+    bytes: &[u8],
+    width: u32,
+    height: u32,
+    swap_channels: bool,
+) -> Result<u64, Box<dyn std::error::Error>> {
+    let frame = if swap_channels {
+        QRCodeFrame::from_raw_bytes_with_swapped_channels(width, height, bytes)
+    } else {
+        QRCodeFrame::from_raw_bytes(width, height, bytes)
+    };
 
     let _content = match frame.qrcode_content() {
         Ok(s) => {
@@ -180,8 +190,8 @@ fn scan_different_pixels(bytes_a: &[u8], bytes_b: &[u8], width: u32, height: u32
 }
 
 fn compare_two_frames(bytes_a: &[u8], bytes_b: &[u8], width: u32, height: u32) {
-    let hash_a = check_frame(bytes_a, width, height).ok();
-    let hash_b = check_frame(bytes_b, width, height).ok();
+    let hash_a = check_frame(bytes_a, width, height, false).ok();
+    let hash_b = check_frame(bytes_b, width, height, false).ok();
 
     match (hash_a, hash_b) {
         // Both frames have a QR Code and are valid. We just need to make sure the hashes match.
@@ -214,17 +224,17 @@ struct CliArgs {
     frame_a: PathBuf,
     frame_b: Option<PathBuf>,
 
-    #[arg(short = 'H', long)]
+    #[arg(long)]
     height: u32,
 
-    #[arg(short, long)]
+    #[arg(long)]
     width: u32,
 
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
 }
 
-fn main() {
+fn main() -> Result<(), anyhow::Error> {
     let args = CliArgs::parse();
 
     tracing_subscriber::fmt()
@@ -241,13 +251,49 @@ fn main() {
         (frame_a, None) => {
             let bytes = fs::read(&frame_a).unwrap();
 
-            check_frame(&bytes, args.width, args.height).unwrap();
+            if check_frame(&bytes, args.width, args.height, false).is_ok() {
+                return Ok(());
+            }
+
+            warn!("Frame doesn't match as is. Trying to swap R/B components");
+
+            if check_frame(&bytes, args.width, args.height, true).is_ok() {
+                error!("Frame has swapped R/B components");
+                return Err(FrameError::IntegrityFailure.into());
+            }
+
+            warn!(
+                "Frame doesn't match with swapped R/B components either. Trying to see if it uses Limited Range RGB."
+            );
+
+            let (num_below, num_above) =
+                bytes
+                    .iter()
+                    .fold((0, 0), |(mut num_below, mut num_above), val| {
+                        if *val > LIMITED_RGB_HI_LEVEL {
+                            num_above += 1
+                        } else if *val < LIMITED_RGB_LO_LEVEL {
+                            num_below += 1
+                        }
+
+                        (num_below, num_above)
+                    });
+
+            if num_below <= LIMITED_RGB_DET_LEVEL || num_above <= LIMITED_RGB_DET_LEVEL {
+                error!("Frame is encoded using Limited Range RGB.");
+                return Err(FrameError::IntegrityFailure.into());
+            }
+
+            info!("Frame looks good to me, but somehow fails integrity check. ¯\\_(ツ)_/¯");
+            Err(FrameError::IntegrityFailure.into())
         }
         (frame_a, Some(frame_b)) => {
             let bytes_a = fs::read(&frame_a).unwrap();
             let bytes_b = fs::read(&frame_b).unwrap();
 
             compare_two_frames(&bytes_a, &bytes_b, args.width, args.height);
+
+            Ok(())
         }
     }
 }
