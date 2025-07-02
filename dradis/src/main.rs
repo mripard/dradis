@@ -489,7 +489,7 @@ fn test_run(
                     // actually stores the CSI format (blue first). We need to
                     // do a conversion to make it meaningful to us.
                     swap_channels: true,
-                    ignore_hash_check: false,
+                    ignore_hash_check: cli.ignore_frame_hash,
                     dump: match cli.dump_frames {
                         CliDump::Always => DecodeCheckArgsDump::Always(pool.clone()),
                         CliDump::Corrupted => DecodeCheckArgsDump::Corrupted(pool.clone()),
@@ -696,6 +696,12 @@ struct Cli {
         help = "Maximum Number of Frames to Dump. 0 for no limit."
     )]
     dump_frames_limit: usize,
+
+    #[arg(
+        long = "ignore-frame-hash",
+        help = "Consider Frames Valid if the QR code can be detected, even if the hash don't match"
+    )]
+    ignore_frame_hash: bool,
 
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
