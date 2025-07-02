@@ -100,8 +100,17 @@ fn eq_ignore_limited_threshold(a: FullRangeRgb8, b: FullRangeRgb8) -> bool {
 ///
 /// We expect the bytes to be stored with RGB left-to-right (ie, RGB24 for v4l2, BGR24 for KMS),
 /// and with pixels left-to-right, scanlines being top to bottom.
-fn check_frame(bytes: &[u8], width: u32, height: u32) -> Result<u64, Box<dyn std::error::Error>> {
-    let frame = QRCodeFrame::from_raw_bytes(width, height, bytes);
+fn check_frame(
+    bytes: &[u8],
+    width: u32,
+    height: u32,
+    swap_channels: bool,
+) -> Result<u64, Box<dyn std::error::Error>> {
+    let frame = if swap_channels {
+        QRCodeFrame::from_raw_bytes_with_swapped_channels(width, height, bytes)
+    } else {
+        QRCodeFrame::from_raw_bytes(width, height, bytes)
+    };
 
     let _content = match frame.qrcode_content() {
         Ok(s) => {
@@ -180,8 +189,8 @@ fn scan_different_pixels(bytes_a: &[u8], bytes_b: &[u8], width: u32, height: u32
 }
 
 fn compare_two_frames(bytes_a: &[u8], bytes_b: &[u8], width: u32, height: u32) {
-    let hash_a = check_frame(bytes_a, width, height).ok();
-    let hash_b = check_frame(bytes_b, width, height).ok();
+    let hash_a = check_frame(bytes_a, width, height, false).ok();
+    let hash_b = check_frame(bytes_b, width, height, false).ok();
 
     match (hash_a, hash_b) {
         // Both frames have a QR Code and are valid. We just need to make sure the hashes match.
@@ -241,7 +250,7 @@ fn main() -> Result<(), anyhow::Error> {
         (frame_a, None) => {
             let bytes = fs::read(&frame_a).unwrap();
 
-            check_frame(&bytes, args.width, args.height).unwrap();
+            check_frame(&bytes, args.width, args.height, false).unwrap();
 
             Ok(())
         }
