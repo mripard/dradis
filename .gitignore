@@ -1,1 +1,4 @@
 **/target
+
+/dumped-buffer-*.png
+/dumped-buffer-*.rgb888.raw
