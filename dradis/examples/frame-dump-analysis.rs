@@ -8,6 +8,7 @@ use tracing::{Level, debug, error, info, warn};
 
 const LIMITED_RGB_LO_LEVEL: u8 = 16;
 const LIMITED_RGB_HI_LEVEL: u8 = 235;
+const LIMITED_RGB_DET_LEVEL: usize = 0;
 
 fn within_limited_rgb_bounds(ch: u8) -> bool {
     (LIMITED_RGB_LO_LEVEL..=LIMITED_RGB_HI_LEVEL).contains(&ch)
@@ -261,8 +262,30 @@ fn main() -> Result<(), anyhow::Error> {
                 return Err(FrameError::IntegrityFailure.into());
             }
 
-            info!("Frame looks good to me.");
-            Ok(())
+            warn!(
+                "Frame doesn't match with swapped R/B components either. Trying to see if it uses Limited Range RGB."
+            );
+
+            let (num_below, num_above) =
+                bytes
+                    .iter()
+                    .fold((0, 0), |(mut num_below, mut num_above), val| {
+                        if *val > LIMITED_RGB_HI_LEVEL {
+                            num_above += 1
+                        } else if *val < LIMITED_RGB_LO_LEVEL {
+                            num_below += 1
+                        }
+
+                        (num_below, num_above)
+                    });
+
+            if num_below <= LIMITED_RGB_DET_LEVEL || num_above <= LIMITED_RGB_DET_LEVEL {
+                error!("Frame is encoded using Limited Range RGB.");
+                return Err(FrameError::IntegrityFailure.into());
+            }
+
+            info!("Frame looks good to me, but somehow fails integrity check. ¯\\_(ツ)_/¯");
+            Err(FrameError::IntegrityFailure.into())
         }
         (frame_a, Some(frame_b)) => {
             let bytes_a = fs::read(&frame_a).unwrap();
