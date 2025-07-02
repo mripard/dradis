@@ -224,7 +224,7 @@ struct CliArgs {
     verbose: u8,
 }
 
-fn main() {
+fn main() -> Result<(), anyhow::Error> {
     let args = CliArgs::parse();
 
     tracing_subscriber::fmt()
@@ -242,12 +242,16 @@ fn main() {
             let bytes = fs::read(&frame_a).unwrap();
 
             check_frame(&bytes, args.width, args.height).unwrap();
+
+            Ok(())
         }
         (frame_a, Some(frame_b)) => {
             let bytes_a = fs::read(&frame_a).unwrap();
             let bytes_b = fs::read(&frame_b).unwrap();
 
             compare_two_frames(&bytes_a, &bytes_b, args.width, args.height);
+
+            Ok(())
         }
     }
 }
