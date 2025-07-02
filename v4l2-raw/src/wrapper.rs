@@ -138,6 +138,13 @@ impl v4l2_pix_format {
         self
     }
 
+    /// Sets the image bytes per line (aka, stride).
+    #[must_use]
+    pub fn set_bytes_per_line(mut self, bpl: u32) -> Self {
+        self.bytesperline = bpl;
+        self
+    }
+
     /// Sets the image color encoding.
     ///
     /// This function is only effective for output streams. The colorspace will be ignored and set

@@ -251,6 +251,8 @@ fn test_prepare_queue(
         pix_fmt
             .set_width(test.expected_width)
             .set_height(test.expected_height)
+            // Reset the bytes per line field to avoid inheriting the one from the previous format.
+            .set_bytes_per_line(0)
             .set_pixel_format(v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
             .set_field(v4l2_field::V4L2_FIELD_NONE)
     } else {
@@ -333,9 +335,11 @@ fn test_prepare_queue(
         }
     }
 
-    queue
+    let ret_fmt = queue
         .set_format(v4l2_format::VideoCapture(pix_fmt))
         .expect("Couldn't change our queue format");
+
+    debug!("Format set {:#?}", ret_fmt);
 
     Ok(())
 }
@@ -469,7 +473,13 @@ fn test_run(
         let buf = &buffers[idx as usize];
         debug_span!("Frame Processing").in_scope(|| {
             if let Ok(metadata) = buf.read(
-                |b, a| decode_and_check_frame(b, a.expect("Missing arguments")).map_err(Into::into),
+                |b, a| {
+                    decode_and_check_frame(
+                        &b[..(vbuf.bytesused as usize)],
+                        a.expect("Missing arguments"),
+                    )
+                    .map_err(Into::into)
+                },
                 Some(DecodeCheckArgs {
                     sequence: vbuf.sequence,
                     previous_frame_idx: last_frame_index,
