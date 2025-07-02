@@ -4,7 +4,7 @@ use clap::Parser;
 use frame_check::{FrameError, QRCodeFrame};
 use pix::{chan::Ch8, el::Pixel, rgb::Rgb8};
 use tracelimit::{error_ratelimited, warn_ratelimited};
-use tracing::{Level, debug, error, info};
+use tracing::{Level, debug, error, info, warn};
 
 const LIMITED_RGB_LO_LEVEL: u8 = 16;
 const LIMITED_RGB_HI_LEVEL: u8 = 235;
@@ -250,8 +250,18 @@ fn main() -> Result<(), anyhow::Error> {
         (frame_a, None) => {
             let bytes = fs::read(&frame_a).unwrap();
 
-            check_frame(&bytes, args.width, args.height, false).unwrap();
+            if check_frame(&bytes, args.width, args.height, false).is_ok() {
+                return Ok(());
+            }
 
+            warn!("Frame doesn't match as is. Trying to swap R/B components");
+
+            if check_frame(&bytes, args.width, args.height, true).is_ok() {
+                error!("Frame has swapped R/B components");
+                return Err(FrameError::IntegrityFailure.into());
+            }
+
+            info!("Frame looks good to me.");
             Ok(())
         }
         (frame_a, Some(frame_b)) => {
