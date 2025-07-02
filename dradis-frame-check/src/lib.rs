@@ -424,6 +424,9 @@ pub struct DecodeCheckArgs {
     /// Are the Red and Blue color channels inverted?
     pub swap_channels: bool,
 
+    /// Should we ignore the hash check?
+    pub ignore_hash_check: bool,
+
     /// Frame Dump options.
     pub dump: DecodeCheckArgsDump,
 }
@@ -495,35 +498,37 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
         }
     }
 
-    let cleared = image.cleared_frame_with_metadata(&metadata);
-    let hash = debug_span!("Checksum Computation").in_scope(|| cleared.compute_checksum());
+    if !args.ignore_hash_check {
+        let cleared = image.cleared_frame_with_metadata(&metadata);
+        let hash = debug_span!("Checksum Computation").in_scope(|| cleared.compute_checksum());
 
-    if hash != metadata.hash {
-        warn!(
-            "Hash mismatch: {:#x} vs expected {:#x}",
-            hash, metadata.hash
-        );
+        if hash != metadata.hash {
+            warn!(
+                "Hash mismatch: {:#x} vs expected {:#x}",
+                hash, metadata.hash
+            );
 
-        if let DecodeCheckArgsDump::Corrupted(pool) = &args.dump {
-            let thread_image = image.clone();
+            if let DecodeCheckArgsDump::Corrupted(pool) = &args.dump {
+                let thread_image = image.clone();
 
-            pool.borrow_mut().spawn_and_queue(move || {
-                if let Err(e) = thread_image
-                    .write_to_png(format!("dumped-buffer-broken-{}.png", metadata.index))
-                {
-                    error!("Error writing file: {e}");
-                }
+                pool.borrow_mut().spawn_and_queue(move || {
+                    if let Err(e) = thread_image
+                        .write_to_png(format!("dumped-buffer-broken-{}.png", metadata.index))
+                    {
+                        error!("Error writing file: {e}");
+                    }
 
-                if let Err(e) = thread_image.write_to_raw(format!(
-                    "dumped-buffer-broken-{}.rgb888.raw",
-                    metadata.index
-                )) {
-                    error!("Error writing file: {e}");
-                }
-            });
+                    if let Err(e) = thread_image.write_to_raw(format!(
+                        "dumped-buffer-broken-{}.rgb888.raw",
+                        metadata.index
+                    )) {
+                        error!("Error writing file: {e}");
+                    }
+                });
+            }
+
+            return Err(FrameError::IntegrityFailure);
         }
-
-        return Err(FrameError::IntegrityFailure);
     }
 
     Ok(metadata)

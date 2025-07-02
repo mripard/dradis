@@ -489,6 +489,7 @@ fn test_run(
                     // actually stores the CSI format (blue first). We need to
                     // do a conversion to make it meaningful to us.
                     swap_channels: true,
+                    ignore_hash_check: false,
                     dump: match cli.dump_frames {
                         CliDump::Always => DecodeCheckArgsDump::Always(pool.clone()),
                         CliDump::Corrupted => DecodeCheckArgsDump::Corrupted(pool.clone()),
