@@ -214,10 +214,10 @@ struct CliArgs {
     frame_a: PathBuf,
     frame_b: Option<PathBuf>,
 
-    #[arg(short = 'H', long)]
+    #[arg(long)]
     height: u32,
 
-    #[arg(short, long)]
+    #[arg(long)]
     width: u32,
 
     #[arg(short, long, action = clap::ArgAction::Count)]
