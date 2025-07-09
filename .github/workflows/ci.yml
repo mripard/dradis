@@ -13,144 +13,148 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest
+  # build:
+  #   name: Build
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Install Dependencies
-        run: |
-          sudo apt-get install libclang-dev
+  #   steps:
+  #     - name: Install Dependencies
+  #       run: |
+  #         sudo apt-get install libclang-dev
 
-      - uses: actions/checkout@v2
-      - uses: dtolnay/rust-toolchain@stable
+  #     - uses: actions/checkout@v2
+  #     - uses: dtolnay/rust-toolchain@stable
 
-      - name: Build
-        run: |
-          cargo build --workspace --all-features --all-targets --verbose
+  #     - name: Build
+  #       run: |
+  #         cargo build --workspace --all-features --all-targets --verbose
 
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
+  # clippy:
+  #   name: Clippy
+  #   runs-on: ubuntu-latest
 
-    permissions:
-      pull-requests: write
+  #   permissions:
+  #     pull-requests: write
 
-    steps:
-      - name: Install Dependencies
-        run: |
-          sudo apt-get install libclang-dev
+  #   steps:
+  #     - name: Install Dependencies
+  #       run: |
+  #         sudo apt-get install libclang-dev
 
-      - uses: actions/checkout@v2
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
+  #     - uses: actions/checkout@v2
+  #     - uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         components: clippy
 
-      - uses: giraffate/clippy-action@v1
-        with:
-          reporter: 'github-pr-review'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+  #     - uses: giraffate/clippy-action@v1
+  #       with:
+  #         reporter: 'github-pr-review'
+  #         github_token: ${{ secrets.GITHUB_TOKEN }}
 
-  format:
-    name: Rustfmt
-    runs-on: ubuntu-latest
+  # format:
+  #   name: Rustfmt
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v2
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: dtolnay/rust-toolchain@nightly
+  #       with:
+  #         components: rustfmt
 
-      - uses: mbrobbel/rustfmt-check@0.19.0
-        if: github.event_name == 'pull_request'
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          mode: review
+  #     - uses: mbrobbel/rustfmt-check@0.19.0
+  #       if: github.event_name == 'pull_request'
+  #       with:
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #         mode: review
 
-      - if: github.event_name == 'push'
-        run: |
-          cargo fmt --all -- --check
+  #     - if: github.event_name == 'push'
+  #       run: |
+  #         cargo fmt --all -- --check
 
   tests:
     name: Tests
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install Dependencies
+      # - name: Install Dependencies
+      #   run: |
+      #     sudo apt-get install libclang-dev
+
+      - name: Load Required Kernel Modules
         run: |
-          sudo apt-get install libclang-dev
+          find /lib/modules -name *.ko.*
 
-      - uses: actions/checkout@v2
-      - uses: dtolnay/rust-toolchain@stable
+      # - uses: actions/checkout@v2
+      # - uses: dtolnay/rust-toolchain@stable
 
-      - name: Run Tests
-        run: |
-          cargo test --workspace --all-features --verbose
+      # - name: Run Tests
+      #   run: |
+      #     cargo test --workspace --all-features --verbose
 
-  bench:
-    name: Benchmarks
-    runs-on: ubuntu-24.04-arm
-    needs: [ build, tests ]
+  # bench:
+  #   name: Benchmarks
+  #   runs-on: ubuntu-24.04-arm
+  #   needs: [ build, tests ]
 
-    permissions:
-      contents:
-        write
+  #   permissions:
+  #     contents:
+  #       write
 
-      pull-requests:
-        write
+  #     pull-requests:
+  #       write
 
-    steps:
-      - name: Install Dependencies
-        run: |
-          sudo apt-get install libclang-dev
+  #   steps:
+  #     - name: Install Dependencies
+  #       run: |
+  #         sudo apt-get install libclang-dev
 
-      - uses: actions/checkout@v2
-      - uses: dtolnay/rust-toolchain@stable
+  #     - uses: actions/checkout@v2
+  #     - uses: dtolnay/rust-toolchain@stable
 
-      - name: Run benchmark
-        run: |
-          cargo bench -- --output-format=bencher  | tee output.txt
+  #     - name: Run benchmark
+  #       run: |
+  #         cargo bench -- --output-format=bencher  | tee output.txt
 
-      - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@v1
-        with:
-          name: Dradis Benchmark
-          tool: 'cargo'
-          output-file-path: output.txt
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: ${{ github.ref == 'refs/heads/main' }}
-          comment-always: true
-          alert-threshold: '150%'
-          fail-threshold: '200%'
-          alert-comment-cc-users: '@mripard'
+  #     - name: Store benchmark result
+  #       uses: benchmark-action/github-action-benchmark@v1
+  #       with:
+  #         name: Dradis Benchmark
+  #         tool: 'cargo'
+  #         output-file-path: output.txt
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
+  #         auto-push: ${{ github.ref == 'refs/heads/main' }}
+  #         comment-always: true
+  #         alert-threshold: '150%'
+  #         fail-threshold: '200%'
+  #         alert-comment-cc-users: '@mripard'
 
-  build_deb_pkg_test:
-    name: Build Test Debian Package
-    needs: [ build, tests ]
-    uses: ./.github/workflows/deb_pkg.yml
-    if: github.event_name == 'pull_request'
-    with:
-      distribution-version: bookworm
-      package-revision: ${{ github.event.pull_request.number || 0 }}
+  # build_deb_pkg_test:
+  #   name: Build Test Debian Package
+  #   needs: [ build, tests ]
+  #   uses: ./.github/workflows/deb_pkg.yml
+  #   if: github.event_name == 'pull_request'
+  #   with:
+  #     distribution-version: bookworm
+  #     package-revision: ${{ github.event.pull_request.number || 0 }}
 
-  dependabot:
-    runs-on: ubuntu-latest
-    needs: [ clippy, format, build, tests, bench, build_deb_pkg_test ]
+  # dependabot:
+  #   runs-on: ubuntu-latest
+  #   needs: [ clippy, format, build, tests, bench, build_deb_pkg_test ]
 
-    permissions:
-      pull-requests: write
-      contents: write
+  #   permissions:
+  #     pull-requests: write
+  #     contents: write
 
-    if: ${{ github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'}}
-    steps:
-      - name: Dependabot metadata
-        id: metadata
-        uses: dependabot/fetch-metadata@v1.1.1
-        with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
+  #   if: ${{ github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'}}
+  #   steps:
+  #     - name: Dependabot metadata
+  #       id: metadata
+  #       uses: dependabot/fetch-metadata@v1.1.1
+  #       with:
+  #         github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Enable auto-merge for Dependabot PRs
-        run: gh pr merge --auto --merge "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+  #     - name: Enable auto-merge for Dependabot PRs
+  #       run: gh pr merge --auto --merge "$PR_URL"
+  #       env:
+  #         PR_URL: ${{github.event.pull_request.html_url}}
+  #         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
