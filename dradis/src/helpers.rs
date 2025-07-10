@@ -224,7 +224,7 @@ pub(crate) fn bridge_set_edid(
     )))?;
 
     let mode_vfreq_hz = mode_hfreq_hz
-        / u32::from(u16::from(dtd.vfp) + dtd.vdisplay + u16::from(dtd.vbp) + u16::from(dtd.vsync));
+        / u32::from(u16::from(dtd.vfp) + dtd.vdisplay + dtd.vbp + u16::from(dtd.vsync));
     let min_vfreq_hz = round_down(min(mode_vfreq_hz, VIC_1_VFREQ_HZ), VFREQ_TOLERANCE_HZ)
         .to_u8()
         .ok_or(SetupError::Value(String::from(
