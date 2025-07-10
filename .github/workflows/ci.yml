@@ -80,9 +80,17 @@ jobs:
       #   run: |
       #     sudo apt-get install libclang-dev
 
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt -y install linux-modules-extra-$(uname -r)
+
       - name: Load Required Kernel Modules
         run: |
           find /lib/modules -name *.ko.*
+          sudo modprobe vimc
+          ls /dev
 
       # - uses: actions/checkout@v2
       # - uses: dtolnay/rust-toolchain@stable
