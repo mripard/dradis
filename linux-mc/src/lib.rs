@@ -25,8 +25,9 @@ use linux_raw::KernelVersion;
 /// Raw, unsafe, abstraction
 pub mod raw;
 use raw::{
-    media_device_info, media_ioctl_device_info, media_v2_entity, media_v2_interface, media_v2_link,
-    media_v2_pad, media_v2_topology,
+    media_device_info, media_ioctl_device_info, media_ioctl_setup_link, media_link_desc,
+    media_pad_desc, media_v2_entity, media_v2_interface, media_v2_link, media_v2_pad,
+    media_v2_topology,
 };
 
 /// Revocable Objects
@@ -1281,6 +1282,52 @@ impl MediaController {
             .iter()
             .map(|e| MediaControllerLink::from_raw(self, e.clone()))
             .collect())
+    }
+
+    /// Modify the properties of a link
+    ///
+    /// # Errors
+    ///
+    /// If the Media Controller device file access fails.
+    ///
+    /// # Panics
+    ///
+    /// If the `source_pad` or `sink_pad` index don't fit into a u16.
+    #[expect(clippy::unwrap_in_result, reason = "A pad index must fit into a u16.")]
+    pub fn setup_link(
+        &self,
+        source_pad: &MediaControllerPad,
+        sink_pad: &MediaControllerPad,
+        flags: u32,
+    ) -> Result<(), io::Error> {
+        let source_pad_index = u16::try_from(source_pad.index().valid())
+            .expect("Source pad index must be a valid u16");
+        let source_entity_id = source_pad.entity_id().valid();
+
+        let sink_pad_index =
+            u16::try_from(sink_pad.index().valid()).expect("Sink pad index must be a valid u16");
+        let sink_entity_id = sink_pad.entity_id().valid();
+
+        let link_description = media_link_desc {
+            source: media_pad_desc {
+                index: source_pad_index,
+                entity: source_entity_id,
+                flags: MediaControllerPadFlags::SOURCE.bits(),
+                ..Default::default()
+            },
+            sink: media_pad_desc {
+                index: sink_pad_index,
+                entity: sink_entity_id,
+                flags: MediaControllerPadFlags::SINK.bits(),
+                ..Default::default()
+            },
+            flags,
+            ..Default::default()
+        };
+
+        media_ioctl_setup_link(self.0.borrow().fd.as_fd(), link_description)?;
+
+        Ok(())
     }
 }
 

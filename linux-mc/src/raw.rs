@@ -45,6 +45,7 @@ pub(crate) mod bindgen {
 
 const MEDIA_IOC_MAGIC: u8 = b'|';
 const MEDIA_IOC_DEVICE_INFO: u8 = 0x00;
+const MEDIA_IOC_SETUP_LINK: u8 = 0x03;
 const MEDIA_IOC_G_TOPOLOGY: u8 = 0x04;
 
 pub use bindgen::media_device_info;
@@ -95,5 +96,33 @@ pub fn media_ioctl_g_topology(
     // kernel there.
     unsafe { ioctl(fd, ioctl_obj) }
         .map(|()| topo)
+        .map_err(<Errno as Into<io::Error>>::into)
+}
+
+pub use bindgen::{media_link_desc, media_pad_desc};
+
+const MEDIA_IOC_SETUP_LINK_OPCODE: u32 =
+    opcode::read_write::<media_link_desc>(MEDIA_IOC_MAGIC, MEDIA_IOC_SETUP_LINK);
+
+/// Modify the properties of a link
+///
+/// # Errors
+///
+/// If the struct `media_link_desc` references a non-existing link, or the link is immutable and an
+/// attempt to modify its configuration was made.
+pub fn media_ioctl_setup_link(
+    fd: BorrowedFd<'_>,
+    mut link_description: media_link_desc,
+) -> io::Result<media_link_desc> {
+    // SAFETY: We checked both the opcode and the type.
+    let ioctl_obj = unsafe {
+        Updater::<MEDIA_IOC_SETUP_LINK_OPCODE, media_link_desc>::new(&mut link_description)
+    };
+
+    // SAFETY: This function is unsafe because the driver isn't guaranteed to implement the ioctl
+    // properly. We don't have much of a choice and still have to trust the
+    // kernel there.
+    unsafe { ioctl(fd, ioctl_obj) }
+        .map(|()| link_description)
         .map_err(<Errno as Into<io::Error>>::into)
 }
