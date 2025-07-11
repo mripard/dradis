@@ -13,6 +13,23 @@ pub struct KernelVersion {
 }
 
 impl KernelVersion {
+    /// Returns the Linux version we run from.
+    ///
+    /// # Panics
+    ///
+    /// If the kernel returns a poorly formatted string.
+    #[must_use]
+    pub fn current() -> Self {
+        let uname = rustix::system::uname();
+        let version_str = uname
+            .release()
+            .to_str()
+            .expect("The kernel release name is always in ASCII.");
+
+        KernelVersion::from_str(version_str)
+            .expect("The version comes straight from uname. It's valid.")
+    }
+
     /// Creates a new kernel version, with no sublevel version number or extra version.
     #[must_use]
     pub fn new(major: u16, minor: u8, patch: u8) -> Self {
