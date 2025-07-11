@@ -842,6 +842,32 @@ impl MediaControllerPad {
         self.flags().map(Into::into)
     }
 
+    /// Returns the links to this pad, if the pad is still valid.
+    ///
+    /// # Errors
+    ///
+    /// If the Media Controller device file access fails.
+    pub fn links(&self) -> RevocableResult<Vec<MediaControllerLink>, io::Error> {
+        let inner = self.0.borrow();
+        let controller: MediaController = inner.controller.clone().into();
+
+        let pad_id = try_value!(self.id());
+        let pad_kind = try_value!(self.kind());
+        RevocableResult::Ok(
+            try_result_to_revocable!(controller.links())
+                .into_iter()
+                .filter(|l| {
+                    let link_pad_id = match pad_kind {
+                        MediaControllerPadKind::Sink => l.sink_id(),
+                        MediaControllerPadKind::Source => l.source_id(),
+                    };
+
+                    RevocableValue::Value(pad_id) == link_pad_id
+                })
+                .collect(),
+        )
+    }
+
     /// Returns whether this pad must be connected or not, if the pad is still valid.
     pub fn must_connect(&self) -> RevocableValue<bool> {
         self.flags()
