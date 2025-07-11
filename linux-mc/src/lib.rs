@@ -219,7 +219,7 @@ impl fmt::Display for media_entity_function {
 }
 
 /// An ALSA Device Node Interface Kind
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MediaControllerInterfaceAlsaKind {
     /// Device node interface for ALSA PCM Capture
     PcmCapture,
@@ -232,7 +232,7 @@ pub enum MediaControllerInterfaceAlsaKind {
 }
 
 /// A DVB Device Node Interface Kind
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MediaControllerInterfaceDvbKind {
     /// Device node interface for the Digital TV frontend
     Fe,
@@ -251,7 +251,7 @@ pub enum MediaControllerInterfaceDvbKind {
 }
 
 /// A V4L2 Device Node Interface Kind
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MediaControllerInterfaceV4lKind {
     /// Device node interface for video (V4L)
     Video,
@@ -273,7 +273,7 @@ pub enum MediaControllerInterfaceV4lKind {
 }
 
 /// A Device Node Interface Kind
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MediaControllerInterfaceKind {
     /// ALSA Device Node Interface
     Alsa(MediaControllerInterfaceAlsaKind),
