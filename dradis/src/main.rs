@@ -10,6 +10,7 @@
 #![allow(clippy::unreadable_literal)]
 
 mod helpers;
+mod quirks;
 
 use core::fmt;
 use std::{
@@ -48,8 +49,11 @@ use v4l2_raw::{
 };
 use v4lise::{Device, MemoryType, Queue, QueueType, v4l2_buffer};
 
-use crate::helpers::{
-    bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
+use crate::{
+    helpers::{
+        bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
+    },
+    quirks::apply_quirks,
 };
 
 pub mod built_info {
@@ -759,6 +763,10 @@ fn main() -> anyhow::Result<()> {
             ))
         })
         .collect::<Result<Vec<_>, io::Error>>()?;
+
+    if let Err(e) = apply_quirks(&mc, &pipeline) {
+        error!("Error appliying quirks: {e}");
+    }
 
     let dradis = Dradis {
         cfg: test_config,
