@@ -215,7 +215,7 @@ macro_rules! try_value {
 /// Represents the returned value of a revocable object that can be either a success value or an
 /// error value if the object was still valid, or Revoked if it wasn't.
 #[must_use]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum RevocableResult<T, E> {
     /// The Object we were accessing was valid, and the operation was successful.
     Ok(T),
