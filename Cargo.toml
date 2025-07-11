@@ -66,6 +66,7 @@ rustix = { version = "1.0.8", default-features = false, features = [
     "system",
     "time",
 ] }
+rstest = { version = "0.25.0", default-features = false }
 serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.143", default-features = false, features = [
     "std",
@@ -75,6 +76,7 @@ serde_with = { version = "3.14.0", default-features = false, features = [
     "std",
 ] }
 serde_yaml = { version = "0.9.34", default-features = false }
+test-log = { version = "0.2.16", default-features = false, features = ["trace"] }
 thiserror = { version = "2.0.16", default-features = false }
 threads_pool = { package = "dradis-threads-pool", path = "./dradis-threads-pool" }
 tracelimit = { git = "https://github.com/microsoft/openvmm.git", default-features = false }
