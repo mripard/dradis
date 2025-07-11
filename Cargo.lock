@@ -1167,6 +1167,9 @@ dependencies = [
 [[package]]
 name = "linux-raw"
 version = "0.5.2"
+dependencies = [
+ "rustix",
+]
 
 [[package]]
 name = "linux-raw-sys"
