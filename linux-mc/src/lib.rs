@@ -432,11 +432,13 @@ impl MediaControllerEntity {
     }
 
     fn flags(&self) -> RevocableValue<MediaControllerEntityFlags> {
-        if let Some(entity) = self.0.borrow().entity.try_access() {
-            RevocableValue::Value(entity.flags.into())
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .entity
+            .try_access()
+            .map_or(RevocableValue::Revoked, |e| {
+                RevocableValue::Value(e.flags.into())
+            })
     }
 
     /// Returns an iterator over the flag names set for this entity, if the entity is still valid.
@@ -450,26 +452,28 @@ impl MediaControllerEntity {
     ///
     /// If the function returned by the kernel is unknown
     pub fn function(&self) -> RevocableValue<media_entity_function> {
-        if let Some(entity) = self.0.borrow().entity.try_access() {
-            let function = entity.function;
+        self.0
+            .borrow()
+            .entity
+            .try_access()
+            .map_or(RevocableValue::Revoked, |e| {
+                let function = e.function;
 
-            RevocableValue::Value(
-                function
-                    .try_into()
-                    .unwrap_or_else(|_e| panic!("Unknown function {function:x}")),
-            )
-        } else {
-            RevocableValue::Revoked
-        }
+                RevocableValue::Value(
+                    function
+                        .try_into()
+                        .unwrap_or_else(|_e| panic!("Unknown function {function:x}")),
+                )
+            })
     }
 
     /// Returns this entity ID, if the entity is still valid.
     pub fn id(&self) -> RevocableValue<u32> {
-        if let Some(entity) = self.0.borrow().entity.try_access() {
-            RevocableValue::Value(entity.id)
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .entity
+            .try_access()
+            .map_or(RevocableValue::Revoked, |e| RevocableValue::Value(e.id))
     }
 
     /// Returns a list of interfaces attached to this entity, if the entity is still valid.
@@ -571,11 +575,13 @@ impl MediaControllerEntity {
 
     /// Returns this entity name, if the entity is still valid.
     pub fn name(&self) -> RevocableValue<String> {
-        if let Some(entity) = self.0.borrow().entity.try_access() {
-            RevocableValue::Value(chars_to_string(&entity.name, false))
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .entity
+            .try_access()
+            .map_or(RevocableValue::Revoked, |e| {
+                RevocableValue::Value(chars_to_string(&e.name, false))
+            })
     }
 
     /// Returns this entity pads number, if the entity is still valid.
@@ -640,11 +646,11 @@ impl MediaControllerInterface {
 
     /// Returns this interface id, if the interface is still valid.
     pub fn id(&self) -> RevocableValue<u32> {
-        if let Some(interface) = self.0.borrow().interface.try_access() {
-            RevocableValue::Value(interface.id)
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .interface
+            .try_access()
+            .map_or(RevocableValue::Revoked, |i| RevocableValue::Value(i.id))
     }
 
     /// Returns this interface kind, if the interface is still valid.
@@ -653,16 +659,18 @@ impl MediaControllerInterface {
     ///
     /// If the interface kind returned by the kernel is unknown
     pub fn kind(&self) -> RevocableValue<MediaControllerInterfaceKind> {
-        if let Some(interface) = self.0.borrow().interface.try_access() {
-            let kind = interface.intf_type;
+        self.0
+            .borrow()
+            .interface
+            .try_access()
+            .map_or(RevocableValue::Revoked, |i| {
+                let kind = i.intf_type;
 
-            RevocableValue::Value(
-                MediaControllerInterfaceKind::try_from(kind)
-                    .unwrap_or_else(|()| panic!("Unknown Interface Type {kind:x}")),
-            )
-        } else {
-            RevocableValue::Revoked
-        }
+                RevocableValue::Value(
+                    MediaControllerInterfaceKind::try_from(kind)
+                        .unwrap_or_else(|()| panic!("Unknown Interface Type {kind:x}")),
+                )
+            })
     }
 
     /// Returns this interface device node if it exists, and if the interface is still
@@ -672,16 +680,18 @@ impl MediaControllerInterface {
     ///
     /// If the Media Controller device file access fails.
     pub fn device_node(&self) -> RevocableResult<Option<DeviceNode>, io::Error> {
-        if let Some(interface) = self.0.borrow().interface.try_access() {
-            // SAFETY: All known interface types are device node interfaces.
-            let devnode = unsafe { interface.__bindgen_anon_1.devnode };
+        self.0
+            .borrow()
+            .interface
+            .try_access()
+            .map_or(RevocableResult::Revoked, |i| {
+                // SAFETY: All known interface types are device node interfaces.
+                let devnode = unsafe { i.__bindgen_anon_1.devnode };
 
-            DeviceNode::new(devnode.major, devnode.minor)
-                .map(Some)
-                .into()
-        } else {
-            RevocableResult::Revoked
-        }
+                DeviceNode::new(devnode.major, devnode.minor)
+                    .map(Some)
+                    .into()
+            })
     }
 }
 
@@ -773,19 +783,23 @@ impl MediaControllerPad {
 
     /// Returns the entity ID this pad is connected to, if the pad is still valid.
     pub fn entity_id(&self) -> RevocableValue<u32> {
-        if let Some(pad) = self.0.borrow().pad.try_access() {
-            RevocableValue::Value(pad.entity_id)
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .pad
+            .try_access()
+            .map_or(RevocableValue::Revoked, |p| {
+                RevocableValue::Value(p.entity_id)
+            })
     }
 
     fn flags(&self) -> RevocableValue<MediaControllerPadFlags> {
-        if let Some(entity) = self.0.borrow().pad.try_access() {
-            RevocableValue::Value(entity.flags.into())
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .pad
+            .try_access()
+            .map_or(RevocableValue::Revoked, |p| {
+                RevocableValue::Value(p.flags.into())
+            })
     }
 
     /// Returns an iterator over the flag names set for this pad, if the pad is still valid.
@@ -795,20 +809,20 @@ impl MediaControllerPad {
 
     /// Returns this pad ID, if the pad is still valid.
     pub fn id(&self) -> RevocableValue<u32> {
-        if let Some(pad) = self.0.borrow().pad.try_access() {
-            RevocableValue::Value(pad.id)
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .pad
+            .try_access()
+            .map_or(RevocableValue::Revoked, |p| RevocableValue::Value(p.id))
     }
 
     /// Returns the pad index, if the pad is still valid.
     pub fn index(&self) -> RevocableValue<u32> {
-        if let Some(pad) = self.0.borrow().pad.try_access() {
-            RevocableValue::Value(pad.index)
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .pad
+            .try_access()
+            .map_or(RevocableValue::Revoked, |p| RevocableValue::Value(p.index))
     }
 
     /// Returns whether this pad is a sink or not, if the pad is still valid.
@@ -933,19 +947,19 @@ impl MediaControllerLink {
 
     /// Returns this link ID, if the link is still valid.
     pub fn id(&self) -> RevocableValue<u32> {
-        if let Some(link) = self.0.borrow().link.try_access() {
-            RevocableValue::Value(link.id)
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .link
+            .try_access()
+            .map_or(RevocableValue::Revoked, |l| RevocableValue::Value(l.id))
     }
 
     fn flags(&self) -> RevocableValue<u32> {
-        if let Some(link) = self.0.borrow().link.try_access() {
-            RevocableValue::Value(link.flags)
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .link
+            .try_access()
+            .map_or(RevocableValue::Revoked, |l| RevocableValue::Value(l.flags))
     }
 
     fn flags_without_kind(&self) -> RevocableValue<u32> {
@@ -993,20 +1007,24 @@ impl MediaControllerLink {
 
     /// Returns the ID of the sink, if the link is still valid.
     pub fn sink_id(&self) -> RevocableValue<u32> {
-        if let Some(link) = self.0.borrow().link.try_access() {
-            RevocableValue::Value(link.sink_id)
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .link
+            .try_access()
+            .map_or(RevocableValue::Revoked, |l| {
+                RevocableValue::Value(l.sink_id)
+            })
     }
 
     /// Returns the ID of the source, if the link is still valid.
     pub fn source_id(&self) -> RevocableValue<u32> {
-        if let Some(link) = self.0.borrow().link.try_access() {
-            RevocableValue::Value(link.source_id)
-        } else {
-            RevocableValue::Revoked
-        }
+        self.0
+            .borrow()
+            .link
+            .try_access()
+            .map_or(RevocableValue::Revoked, |l| {
+                RevocableValue::Value(l.source_id)
+            })
     }
 }
 
