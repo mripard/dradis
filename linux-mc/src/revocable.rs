@@ -75,6 +75,64 @@ impl<T> Deref for RevocableGuard<'_, T> {
     }
 }
 
+/// Unwraps an `Option<RevocableGuard<T>>` or returns `RevocableValue::Revoked` if None.
+///
+/// # Examples
+///
+/// ```
+/// use linux_mc::{Revocable, RevocableValue, try_option_to_value};
+///
+/// fn add_two(val: Revocable<u32>) -> RevocableValue<u32> {
+///     let inner = try_option_to_value!(val.try_access());
+///
+///     RevocableValue::Value(*inner + 2)
+/// }
+///
+/// assert_eq!(add_two(Revocable::new(2)), RevocableValue::Value(4));
+///
+/// let revoked = Revocable::new(2);
+/// revoked.revoke();
+/// assert_eq!(add_two(revoked), RevocableValue::Revoked);
+/// ```
+#[macro_export]
+macro_rules! try_option_to_value {
+    ($a:expr) => {
+        match $a {
+            Some(v) => v,
+            None => return RevocableValue::Revoked.into(),
+        }
+    };
+}
+
+/// Unwraps an `Option<RevocableGuard<T>>` or returns `RevocableResult::Revoked` if None.
+///
+/// # Examples
+///
+/// ```
+/// use linux_mc::{Revocable, RevocableResult, try_option_to_result};
+///
+/// fn add_two(val: Revocable<u32>) -> RevocableResult<u32, ()> {
+///     let inner = try_option_to_result!(val.try_access());
+///
+///     RevocableResult::Ok(*inner + 2)
+/// }
+///
+/// assert_eq!(add_two(Revocable::new(2)), RevocableResult::Ok(4));
+///
+/// let revoked = Revocable::new(2);
+/// revoked.revoke();
+/// assert_eq!(add_two(revoked), RevocableResult::Revoked);
+/// ```
+#[macro_export]
+macro_rules! try_option_to_result {
+    ($a:expr) => {
+        match $a {
+            Some(v) => v,
+            None => return RevocableResult::Revoked.into(),
+        }
+    };
+}
+
 /// Represents a returned value from an object that is valid or has been revoked
 #[must_use]
 #[derive(Debug, PartialEq)]
