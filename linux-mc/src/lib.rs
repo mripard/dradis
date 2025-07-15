@@ -929,7 +929,7 @@ struct MediaControllerLinkInner {
     source_id: u32,
     sink_id: u32,
     kind: MediaControllerLinkKind,
-    flags: u32,
+    flags: MediaControllerLinkFlags,
 }
 
 /// A Representation of a Media Controller Link
@@ -941,9 +941,7 @@ impl MediaControllerLink {
         self.0
             .borrow()
             .try_access()
-            .map_or(RevocableValue::Revoked, |p| {
-                RevocableValue::Value(p.flags.try_into().expect("Unknown Link Flag"))
-            })
+            .map_or(RevocableValue::Revoked, |p| RevocableValue::Value(p.flags))
     }
 
     /// Returns an iterator over the flag names set for this links, if the link is still valid.
@@ -1223,7 +1221,11 @@ fn update_topology(
                         .map_err(|_e| {
                             io::Error::new(io::ErrorKind::InvalidData, "Unexpected link type")
                         })?,
-                    flags: l.flags & !raw::bindgen::MEDIA_LNK_FL_LINK_TYPE,
+                    flags: (l.flags & !raw::bindgen::MEDIA_LNK_FL_LINK_TYPE)
+                        .try_into()
+                        .map_err(|_e| {
+                            io::Error::new(io::ErrorKind::InvalidData, "Unexpected link flags")
+                        })?,
                 },
             ))))
         })
