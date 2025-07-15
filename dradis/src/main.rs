@@ -333,6 +333,16 @@ fn test_prepare_queue(
                 }
             }
         }
+
+        if let (Some(source), Some(sink)) = (source_pad, sink_pad) {
+            let link = suite
+                .mc
+                .find_data_link_by_pads(source, sink)
+                .valid()?
+                .expect("Missing link between pads.");
+
+            link.enable().valid()?;
+        }
     }
 
     let ret_fmt = queue
@@ -656,6 +666,7 @@ struct PipelineItem(
 #[derive(Debug)]
 pub(crate) struct Dradis<'a> {
     cfg: Test,
+    mc: MediaController,
     pipeline: Vec<PipelineItem>,
     heap: &'a Heap,
 }
@@ -762,6 +773,7 @@ fn main() -> anyhow::Result<()> {
 
     let dradis = Dradis {
         cfg: test_config,
+        mc,
         pipeline,
         heap: &heap,
     };
