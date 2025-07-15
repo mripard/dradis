@@ -1160,7 +1160,7 @@ pub fn v4l2_ioctl_streamoff(fd: BorrowedFd<'_>, buf_kind: v4l2_buf_type) -> io::
 )]
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_s_edid(fd: BorrowedFd<'_>, edid: &mut [u8]) -> io::Result<()> {
-    if (edid.len() % 128) != 0 {
+    if !edid.len().is_multiple_of(128) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "EDIDs size must be aligned to 128 bytes",
@@ -1198,7 +1198,7 @@ pub fn v4l2_ioctl_s_edid(fd: BorrowedFd<'_>, edid: &mut [u8]) -> io::Result<()> 
 )]
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_subdev_s_edid(fd: BorrowedFd<'_>, edid: &mut [u8]) -> io::Result<()> {
-    if (edid.len() % 128) != 0 {
+    if !edid.len().is_multiple_of(128) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "EDIDs size must be aligned to 128 bytes",
