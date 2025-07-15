@@ -21,6 +21,7 @@ use bytemuck::cast_slice;
 use facet::Facet;
 use facet_enum_repr::FacetEnumRepr;
 use linux_raw::KernelVersion;
+use tracing::{debug, trace};
 
 /// Raw, unsafe, abstraction
 pub mod raw;
@@ -1808,6 +1809,38 @@ impl MediaController {
 
         let inner = self.0.borrow();
         Ok(inner.links.iter().map(Into::into).collect())
+    }
+
+    /// Looks for a data link between two pads, if valid.
+    ///
+    /// # Errors
+    ///
+    /// If the Media Controller device file access fails.
+    pub fn find_data_link_by_pads(
+        &self,
+        source: &MediaControllerPad,
+        sink: &MediaControllerPad,
+    ) -> RevocableResult<Option<MediaControllerLink>, io::Error> {
+        let source_id = try_value!(source.id());
+        let sink_id = try_value!(sink.id());
+
+        debug!("Trying to find link between source pad {source} and sink pad {sink}");
+
+        for link in try_result_to_revocable!(self.links()) {
+            if let Some(inner) = link.0.borrow().try_access() {
+                if try_value!(inner.source.id()) == source_id
+                    && try_value!(inner.sink.id()) == sink_id
+                {
+                    trace!("Found a match! Returning.");
+                    return RevocableResult::Ok(Some(MediaControllerLink::from(&link.0)));
+                }
+            } else {
+                return RevocableResult::Revoked;
+            }
+        }
+
+        trace!("Found no match. Returning.");
+        RevocableResult::Ok(None)
     }
 }
 
