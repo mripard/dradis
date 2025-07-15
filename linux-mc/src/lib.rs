@@ -1019,6 +1019,25 @@ impl MediaControllerLink {
             })
     }
 
+    /// Returns the Sink Pad of the link, if the link is still valid.
+    ///
+    /// # Panics
+    ///
+    /// If the sink is not a pad
+    pub fn sink_pad(&self) -> RevocableValue<MediaControllerPad> {
+        self.0
+            .borrow()
+            .try_access()
+            .map_or(RevocableValue::Revoked, |l| {
+                RevocableValue::Value(match &l.sink {
+                    MediaControllerLinkEnd::Pad(pad) => MediaControllerPad(pad.clone()),
+                    MediaControllerLinkEnd::Entity(_) | MediaControllerLinkEnd::Interface(_) => {
+                        panic!("Link Sink is not a pad")
+                    }
+                })
+            })
+    }
+
     /// Returns the ID of the source, if the link is still valid.
     pub fn source_id(&self) -> RevocableValue<u32> {
         self.0
@@ -1026,6 +1045,25 @@ impl MediaControllerLink {
             .try_access()
             .map_or(RevocableValue::Revoked, |l| {
                 RevocableValue::Value(l.source.id()).flatten()
+            })
+    }
+
+    /// Returns the Source Pad of the link, if the link is still valid.
+    ///
+    /// # Panics
+    ///
+    /// If the source is not a pad
+    pub fn source_pad(&self) -> RevocableValue<MediaControllerPad> {
+        self.0
+            .borrow()
+            .try_access()
+            .map_or(RevocableValue::Revoked, |l| {
+                RevocableValue::Value(match &l.source {
+                    MediaControllerLinkEnd::Pad(pad) => MediaControllerPad(pad.clone()),
+                    MediaControllerLinkEnd::Entity(_) | MediaControllerLinkEnd::Interface(_) => {
+                        panic!("Link Source is not a pad")
+                    }
+                })
             })
     }
 }
