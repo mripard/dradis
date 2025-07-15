@@ -267,6 +267,33 @@ impl<T> RevocableValue<T> {
     }
 }
 
+impl<T> RevocableValue<RevocableValue<T>> {
+    /// Converts from `RecoverableValue<RecoverableValue<T>>` to `RecoverableValue<T>`
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use linux_mc::RevocableValue;
+    ///
+    /// let val: RevocableValue<RevocableValue<u32>> = RevocableValue::Value(RevocableValue::Value(42));
+    /// assert_eq!(RevocableValue::Value(42), val.flatten());
+    ///
+    /// let val: RevocableValue<RevocableValue<u32>> = RevocableValue::Value(RevocableValue::Revoked);
+    /// assert_eq!(RevocableValue::Revoked, val.flatten());
+    ///
+    /// let val: RevocableValue<RevocableValue<u32>> = RevocableValue::Revoked;
+    /// assert_eq!(RevocableValue::Revoked, val.flatten());
+    /// ```
+    pub fn flatten(self) -> RevocableValue<T> {
+        match self {
+            RevocableValue::Value(inner) => inner,
+            RevocableValue::Revoked => RevocableValue::Revoked,
+        }
+    }
+}
+
 impl<T> fmt::Display for RevocableValue<T>
 where
     T: fmt::Display,
@@ -430,6 +457,40 @@ impl<T, E> RevocableResult<T, E> {
                 panic!("Called `RevocableResult::valid()` on a `Revoked` value")
             }
             RevocableResult::Err(e) => Err(e),
+        }
+    }
+}
+
+impl<T, E> RevocableResult<RevocableResult<T, E>, E> {
+    /// Converts from `RecoverableResult<RecoverableResult<T, E>, E>` to `RecoverableResult<T, E>`
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use linux_mc::RevocableResult;
+    ///
+    /// let val: RevocableResult<RevocableResult<u32, u32>, u32> = RevocableResult::Ok(RevocableResult::Ok(42));
+    /// assert_eq!(RevocableResult::Ok(42), val.flatten());
+    ///
+    /// let val: RevocableResult<RevocableResult<u32, u32>, u32> = RevocableResult::Ok(RevocableResult::Revoked);
+    /// assert_eq!(RevocableResult::Revoked, val.flatten());
+    ///
+    /// let val: RevocableResult<RevocableResult<u32, u32>, u32> = RevocableResult::Ok(RevocableResult::Err(14));
+    /// assert_eq!(RevocableResult::Err(14), val.flatten());
+    ///
+    /// let val: RevocableResult<RevocableResult<u32, u32>, u32> = RevocableResult::Revoked;
+    /// assert_eq!(RevocableResult::Revoked, val.flatten());
+    ///
+    /// let val: RevocableResult<RevocableResult<u32, u32>, u32> = RevocableResult::Err(14);
+    /// assert_eq!(RevocableResult::Err(14), val.flatten());
+    /// ```
+    pub fn flatten(self) -> RevocableResult<T, E> {
+        match self {
+            RevocableResult::Ok(inner) => inner,
+            RevocableResult::Err(e) => RevocableResult::Err(e),
+            RevocableResult::Revoked => RevocableResult::Revoked,
         }
     }
 }
