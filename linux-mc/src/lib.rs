@@ -1668,6 +1668,34 @@ impl MediaController {
             .map(|e| MediaControllerLink(e.clone()))
             .collect())
     }
+
+    /// Looks for a data link between two pads, if valid.
+    ///
+    /// # Errors
+    ///
+    /// If the Media Controller device file access fails.
+    pub fn find_data_link_by_pads(
+        &self,
+        source: &MediaControllerPad,
+        sink: &MediaControllerPad,
+    ) -> RevocableResult<Option<MediaControllerLink>, io::Error> {
+        let source_id = try_value!(source.id());
+        let sink_id = try_value!(sink.id());
+
+        for link in try_result_to_revocable!(self.links()) {
+            if let Some(inner) = link.0.borrow().try_access() {
+                if try_value!(inner.source.id()) == source_id
+                    && try_value!(inner.sink.id()) == sink_id
+                {
+                    return RevocableResult::Ok(Some(MediaControllerLink(link.0.clone())));
+                }
+            } else {
+                return RevocableResult::Revoked;
+            }
+        }
+
+        RevocableResult::Ok(None)
+    }
 }
 
 impl From<Rc<RefCell<MediaControllerInner>>> for MediaController {
