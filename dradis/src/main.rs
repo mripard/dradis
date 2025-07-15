@@ -234,6 +234,7 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
     Ok(outputs)
 }
 
+#[expect(clippy::too_many_lines, reason = "Yup, this function is long indeed.")]
 fn test_prepare_queue(
     suite: &Dradis<'_>,
     queue: &Queue<'_>,
@@ -339,6 +340,33 @@ fn test_prepare_queue(
                     }
                 }
             }
+        }
+    }
+
+    for items_slice in suite.pipeline.windows(2) {
+        let sink_item = &items_slice[0];
+        let source_item = &items_slice[1];
+
+        debug!("Found Sink {}, Source {}", sink_item, source_item);
+
+        if let (Some(source), Some(sink)) = (&source_item.source_pad, &sink_item.sink_pad) {
+            debug!(
+                "Enabling link between source {}:{} and sink {}:{}",
+                source_item.entity.entity.name(),
+                source.index(),
+                sink_item.entity.entity.name(),
+                sink.index()
+            );
+
+            let link = suite
+                .mc
+                .find_data_link_by_pads(source, sink)
+                .valid()?
+                .expect("Missing link between pads.");
+
+            link.enable().valid()?;
+        } else {
+            unreachable!();
         }
     }
 
@@ -699,6 +727,7 @@ impl fmt::Display for PipelineItem {
 #[derive(Debug)]
 pub(crate) struct Dradis<'a> {
     cfg: Test,
+    mc: MediaController,
     pipeline: Vec<PipelineItem>,
     heap: &'a Heap,
 }
@@ -811,6 +840,7 @@ fn main() -> anyhow::Result<()> {
 
     let dradis = Dradis {
         cfg: test_config,
+        mc,
         pipeline,
         heap: &heap,
     };
