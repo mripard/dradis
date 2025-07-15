@@ -107,7 +107,7 @@ fn dump_topology(media: &MediaController) -> RevocableResult<(), io::Error> {
             };
 
             let remote_pad = try_result!(pad.remote_pad()).unwrap();
-            let remote_entity = try_result!(remote_pad.entity());
+            let remote_entity = try_value!(remote_pad.entity());
 
             let flags = try_value!(pad.flag_names())
                 .collect::<Vec<&str>>()
