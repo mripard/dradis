@@ -724,7 +724,7 @@ impl From<u32> for MediaControllerPadFlags {
 
 struct MediaControllerPadInner {
     controller: Rc<RefCell<MediaControllerInner>>,
-    entity_id: u32,
+    entity: Rc<RefCell<Revocable<MediaControllerEntityInner>>>,
     id: u32,
     index: u32,
     flags: u32,
@@ -733,7 +733,7 @@ struct MediaControllerPadInner {
 impl fmt::Debug for MediaControllerPadInner {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MediaControllerPadInner")
-            .field("entity_id", &self.entity_id)
+            .field("entity", &self.entity)
             .field("id", &self.id)
             .field("index", &self.index)
             .field("flags", &self.flags)
@@ -747,24 +747,13 @@ pub struct MediaControllerPad(Rc<RefCell<Revocable<MediaControllerPadInner>>>);
 
 impl MediaControllerPad {
     /// Returns the entity this pad is attached to, if the pad is still valid.
-    ///
-    /// # Errors
-    ///
-    /// If the Media Controller device file access fails.
-    pub fn entity(&self) -> RevocableResult<MediaControllerEntity, io::Error> {
-        let inner_ref = self.0.borrow();
-        let inner = try_option_to_result!(inner_ref.try_access());
-        let controller = inner.controller.borrow();
-
-        for entity in &controller.entities {
-            let entity_ref = entity.borrow();
-            let entity_inner = try_option_to_result!(entity_ref.try_access());
-            if inner.entity_id == entity_inner.id {
-                return RevocableResult::Ok(MediaControllerEntity(entity.clone()));
-            }
-        }
-
-        unreachable!("A pad is always attached to an entity.");
+    pub fn entity(&self) -> RevocableValue<MediaControllerEntity> {
+        self.0
+            .borrow()
+            .try_access()
+            .map_or(RevocableValue::Revoked, |p| {
+                RevocableValue::Value(MediaControllerEntity(p.entity.clone()))
+            })
     }
 
     /// Returns the entity ID this pad is connected to, if the pad is still valid.
@@ -773,7 +762,10 @@ impl MediaControllerPad {
             .borrow()
             .try_access()
             .map_or(RevocableValue::Revoked, |p| {
-                RevocableValue::Value(p.entity_id)
+                p.entity
+                    .borrow()
+                    .try_access()
+                    .map_or(RevocableValue::Revoked, |e| RevocableValue::Value(e.id))
             })
     }
 
@@ -1140,6 +1132,7 @@ struct MediaControllerInner {
     pads: Vec<Rc<RefCell<Revocable<MediaControllerPadInner>>>>,
 }
 
+#[expect(clippy::too_many_lines)]
 fn update_topology(
     mc: &Rc<RefCell<MediaControllerInner>>,
     count: Option<media_v2_topology>,
@@ -1220,15 +1213,37 @@ fn update_topology(
     let pads = raw_pads
         .into_iter()
         .map(|p| {
-            Rc::new(RefCell::new(Revocable::new(MediaControllerPadInner {
-                controller: mc.clone(),
-                entity_id: p.entity_id,
-                id: p.id,
-                index: p.index,
-                flags: p.flags,
-            })))
+            let entity = inner
+                .entities
+                .iter()
+                .find_map(|e| {
+                    if let Some(inner) = e.borrow().try_access() {
+                        if inner.id == p.entity_id {
+                            Some(Ok(e))
+                        } else {
+                            None
+                        }
+                    } else {
+                        Some(Err(io::Error::new(
+                            io::ErrorKind::Interrupted,
+                            "Entity has been revoked",
+                        )))
+                    }
+                })
+                .transpose()?
+                .ok_or(io::Error::new(io::ErrorKind::NotFound, "Entity not found"))?;
+
+            Ok::<_, io::Error>(Rc::new(RefCell::new(Revocable::new(
+                MediaControllerPadInner {
+                    controller: mc.clone(),
+                    entity: entity.clone(),
+                    id: p.id,
+                    index: p.index,
+                    flags: p.flags,
+                },
+            ))))
         })
-        .collect();
+        .collect::<Result<Vec<_>, io::Error>>()?;
 
     inner.pads = pads;
 

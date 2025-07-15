@@ -200,7 +200,7 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
             .valid()?
             .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
 
-        let entity = sink_pad.entity().valid()?;
+        let entity = sink_pad.entity().valid();
 
         let source_pad = find_internal_routed_pad(&entity, &sink_pad)?;
 
