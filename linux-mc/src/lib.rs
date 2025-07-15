@@ -484,8 +484,8 @@ impl MediaControllerEntity {
             let link_ref = link.borrow();
             let link_inner = try_option_to_result!(link_ref.try_access());
 
-            if link_inner.sink_id == inner.id {
-                itf_ids.push(link_inner.source_id);
+            if try_value!(link_inner.sink.id()) == inner.id {
+                itf_ids.push(try_value!(link_inner.source.id()));
             }
         }
 
@@ -831,8 +831,8 @@ impl MediaControllerPad {
             let link_ref = link.borrow();
             let link_inner = try_option_to_result!(link_ref.try_access());
             let link_pad_id = match pad_kind {
-                MediaControllerPadKind::Sink => link_inner.sink_id,
-                MediaControllerPadKind::Source => link_inner.source_id,
+                MediaControllerPadKind::Sink => try_value!(link_inner.sink.id()),
+                MediaControllerPadKind::Source => try_value!(link_inner.source.id()),
             };
 
             if link_pad_id == inner.id {
@@ -867,8 +867,8 @@ impl MediaControllerPad {
             let link_inner = try_option_to_result!(link_ref.try_access());
 
             let link_pad_id = match pad_kind {
-                MediaControllerPadKind::Sink => link_inner.sink_id,
-                MediaControllerPadKind::Source => link_inner.source_id,
+                MediaControllerPadKind::Sink => try_value!(link_inner.sink.id()),
+                MediaControllerPadKind::Source => try_value!(link_inner.source.id()),
             };
 
             if inner.id == link_pad_id {
@@ -881,8 +881,8 @@ impl MediaControllerPad {
         let link_ref = link.borrow();
         let link_inner = try_option_to_result!(link_ref.try_access());
         let remote_pad_id = match pad_kind {
-            MediaControllerPadKind::Sink => link_inner.source_id,
-            MediaControllerPadKind::Source => link_inner.sink_id,
+            MediaControllerPadKind::Sink => try_value!(link_inner.source.id()),
+            MediaControllerPadKind::Source => try_value!(link_inner.sink.id()),
         };
 
         for pad in &controller.pads {
@@ -951,11 +951,37 @@ impl TryFrom<u32> for MediaControllerLinkKind {
     }
 }
 
+#[derive(Debug)]
+enum MediaControllerLinkEnd {
+    Entity(Rc<RefCell<Revocable<MediaControllerEntityInner>>>),
+    Interface(Rc<RefCell<Revocable<MediaControllerInterfaceInner>>>),
+    Pad(Rc<RefCell<Revocable<MediaControllerPadInner>>>),
+}
+
+impl MediaControllerLinkEnd {
+    fn id(&self) -> RevocableValue<u32> {
+        match self {
+            MediaControllerLinkEnd::Entity(ent) => ent
+                .borrow()
+                .try_access()
+                .map_or(RevocableValue::Revoked, |e| RevocableValue::Value(e.id)),
+            MediaControllerLinkEnd::Interface(itf) => itf
+                .borrow()
+                .try_access()
+                .map_or(RevocableValue::Revoked, |i| RevocableValue::Value(i.id)),
+            MediaControllerLinkEnd::Pad(pad) => pad
+                .borrow()
+                .try_access()
+                .map_or(RevocableValue::Revoked, |p| RevocableValue::Value(p.id)),
+        }
+    }
+}
+
 struct MediaControllerLinkInner {
     _controller: Rc<RefCell<MediaControllerInner>>,
     id: u32,
-    source_id: u32,
-    sink_id: u32,
+    source: MediaControllerLinkEnd,
+    sink: MediaControllerLinkEnd,
     kind: MediaControllerLinkKind,
     flags: MediaControllerLinkFlags,
 }
@@ -964,8 +990,8 @@ impl fmt::Debug for MediaControllerLinkInner {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MediaControllerLinkInner")
             .field("id", &self.id)
-            .field("source_id", &self.source_id)
-            .field("sink_id", &self.sink_id)
+            .field("source", &self.source)
+            .field("sink", &self.sink)
             .field("flags", &self.flags)
             .finish_non_exhaustive()
     }
@@ -1028,7 +1054,7 @@ impl MediaControllerLink {
             .borrow()
             .try_access()
             .map_or(RevocableValue::Revoked, |l| {
-                RevocableValue::Value(l.sink_id)
+                RevocableValue::Value(l.sink.id()).flatten()
             })
     }
 
@@ -1038,7 +1064,7 @@ impl MediaControllerLink {
             .borrow()
             .try_access()
             .map_or(RevocableValue::Revoked, |l| {
-                RevocableValue::Value(l.source_id)
+                RevocableValue::Value(l.source.id()).flatten()
             })
     }
 }
@@ -1249,17 +1275,155 @@ fn update_topology(
     let links = raw_links
         .into_iter()
         .map(|l| {
+            let kind = (l.flags & raw::bindgen::MEDIA_LNK_FL_LINK_TYPE)
+                .try_into()
+                .map_err(|_e| io::Error::new(io::ErrorKind::InvalidData, "Unexpected link type"))?;
+
+            let source = match kind {
+                MediaControllerLinkKind::Data => MediaControllerLinkEnd::Pad(
+                    inner
+                        .pads
+                        .iter()
+                        .find_map(|p| {
+                            if let Some(inner) = p.borrow().try_access() {
+                                if inner.id == l.source_id {
+                                    Some(Ok(p))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                Some(Err(io::Error::new(
+                                    io::ErrorKind::Interrupted,
+                                    "Entity has been revoked",
+                                )))
+                            }
+                        })
+                        .transpose()?
+                        .ok_or(io::Error::new(io::ErrorKind::NotFound, "Entity not found"))?
+                        .clone(),
+                ),
+                MediaControllerLinkKind::Interface => MediaControllerLinkEnd::Interface(
+                    inner
+                        .interfaces
+                        .iter()
+                        .find_map(|i| {
+                            if let Some(inner) = i.borrow().try_access() {
+                                if inner.id == l.source_id {
+                                    Some(Ok(i))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                Some(Err(io::Error::new(
+                                    io::ErrorKind::Interrupted,
+                                    "Entity has been revoked",
+                                )))
+                            }
+                        })
+                        .transpose()?
+                        .ok_or(io::Error::new(io::ErrorKind::NotFound, "Entity not found"))?
+                        .clone(),
+                ),
+                MediaControllerLinkKind::Ancillary => MediaControllerLinkEnd::Entity(
+                    inner
+                        .entities
+                        .iter()
+                        .find_map(|e| {
+                            if let Some(inner) = e.borrow().try_access() {
+                                if inner.id == l.source_id {
+                                    Some(Ok(e))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                Some(Err(io::Error::new(
+                                    io::ErrorKind::Interrupted,
+                                    "Entity has been revoked",
+                                )))
+                            }
+                        })
+                        .transpose()?
+                        .ok_or(io::Error::new(io::ErrorKind::NotFound, "Entity not found"))?
+                        .clone(),
+                ),
+            };
+
+            let sink = match kind {
+                MediaControllerLinkKind::Data => MediaControllerLinkEnd::Pad(
+                    inner
+                        .pads
+                        .iter()
+                        .find_map(|p| {
+                            if let Some(inner) = p.borrow().try_access() {
+                                if inner.id == l.sink_id {
+                                    Some(Ok(p))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                Some(Err(io::Error::new(
+                                    io::ErrorKind::Interrupted,
+                                    "Entity has been revoked",
+                                )))
+                            }
+                        })
+                        .transpose()?
+                        .ok_or(io::Error::new(io::ErrorKind::NotFound, "Entity not found"))?
+                        .clone(),
+                ),
+                MediaControllerLinkKind::Interface => MediaControllerLinkEnd::Entity(
+                    inner
+                        .entities
+                        .iter()
+                        .find_map(|i| {
+                            if let Some(inner) = i.borrow().try_access() {
+                                if inner.id == l.sink_id {
+                                    Some(Ok(i))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                Some(Err(io::Error::new(
+                                    io::ErrorKind::Interrupted,
+                                    "Entity has been revoked",
+                                )))
+                            }
+                        })
+                        .transpose()?
+                        .ok_or(io::Error::new(io::ErrorKind::NotFound, "Entity not found"))?
+                        .clone(),
+                ),
+                MediaControllerLinkKind::Ancillary => MediaControllerLinkEnd::Entity(
+                    inner
+                        .entities
+                        .iter()
+                        .find_map(|e| {
+                            if let Some(inner) = e.borrow().try_access() {
+                                if inner.id == l.sink_id {
+                                    Some(Ok(e))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                Some(Err(io::Error::new(
+                                    io::ErrorKind::Interrupted,
+                                    "Entity has been revoked",
+                                )))
+                            }
+                        })
+                        .transpose()?
+                        .ok_or(io::Error::new(io::ErrorKind::NotFound, "Entity not found"))?
+                        .clone(),
+                ),
+            };
+
             Ok(Rc::new(RefCell::new(Revocable::new(
                 MediaControllerLinkInner {
                     _controller: mc.clone(),
                     id: l.id,
-                    source_id: l.source_id,
-                    sink_id: l.sink_id,
-                    kind: (l.flags & !raw::bindgen::MEDIA_LNK_FL_LINK_TYPE)
-                        .try_into()
-                        .map_err(|_e| {
-                            io::Error::new(io::ErrorKind::InvalidData, "Unexpected link type")
-                        })?,
+                    source,
+                    sink,
+                    kind,
                     flags: (l.flags & !raw::bindgen::MEDIA_LNK_FL_LINK_TYPE)
                         .try_into()
                         .map_err(|_e| {
