@@ -25,8 +25,9 @@ use linux_raw::KernelVersion;
 /// Raw, unsafe, abstraction
 pub mod raw;
 use raw::{
-    media_device_info, media_ioctl_device_info, media_v2_entity, media_v2_interface, media_v2_link,
-    media_v2_pad, media_v2_topology,
+    media_device_info, media_ioctl_device_info, media_ioctl_setup_link, media_link_desc,
+    media_pad_desc, media_v2_entity, media_v2_interface, media_v2_link, media_v2_pad,
+    media_v2_topology,
 };
 
 /// Revocable Objects
@@ -1070,7 +1071,7 @@ impl fmt::Display for MediaControllerLinkEnd {
 }
 
 struct MediaControllerLinkInner {
-    _controller: Rc<RefCell<MediaControllerInner>>,
+    controller: Rc<RefCell<MediaControllerInner>>,
     id: u32,
     source: MediaControllerLinkEnd,
     sink: MediaControllerLinkEnd,
@@ -1094,6 +1095,98 @@ impl fmt::Debug for MediaControllerLinkInner {
 pub struct MediaControllerLink(Rc<RefCell<Revocable<MediaControllerLinkInner>>>);
 
 impl MediaControllerLink {
+    fn setup_link(&self, flags: MediaControllerLinkFlags) -> RevocableResult<(), io::Error> {
+        let desc = {
+            let inner_ref = self.0.borrow();
+            let inner = try_option_to_result!(inner_ref.try_access());
+
+            if inner.kind != MediaControllerLinkKind::Data {
+                return RevocableResult::Ok(());
+            }
+
+            if let (
+                MediaControllerLinkEnd::Pad(source_pad),
+                MediaControllerLinkEnd::Pad(sink_pad),
+            ) = (&inner.source, &inner.sink)
+            {
+                let source_pad = source_pad.borrow();
+                let source_inner = try_option_to_result!(source_pad.try_access());
+                let source_ent_ref = source_inner.entity.borrow();
+                let source_ent_inner = try_option_to_result!(source_ent_ref.try_access());
+
+                let sink_pad = sink_pad.borrow();
+                let sink_inner = try_option_to_result!(sink_pad.try_access());
+                let sink_ent_ref = sink_inner.entity.borrow();
+                let sink_ent_inner = try_option_to_result!(sink_ent_ref.try_access());
+
+                let desc = media_link_desc {
+                    source: media_pad_desc {
+                        entity: source_ent_inner.id,
+                        index: source_inner
+                            .index
+                            .try_into()
+                            .expect("Source Pad Index doesn't fit in a u16"),
+                        ..Default::default()
+                    },
+                    sink: media_pad_desc {
+                        entity: sink_ent_inner.id,
+                        index: sink_inner
+                            .index
+                            .try_into()
+                            .expect("Sink Pad Index doesn't fit in a u16"),
+                        ..Default::default()
+                    },
+                    flags: flags.bits(),
+                    ..Default::default()
+                };
+
+                try_result_to_revocable!(media_ioctl_setup_link(
+                    inner.controller.borrow().fd.as_fd(),
+                    desc
+                ))
+            } else {
+                unreachable!()
+            }
+        };
+
+        let mut inner_ref = self.0.borrow_mut();
+        let mut inner_mut = try_option_to_result!(inner_ref.try_access_mut());
+        inner_mut.flags = desc
+            .flags
+            .try_into()
+            .expect("The kernel returned an unexpected flag");
+
+        RevocableResult::Ok(())
+    }
+
+    /// Disables the data link.
+    ///
+    /// If the link is an interface or ancillary link, nothing happens.
+    ///
+    /// # Errors
+    ///
+    /// If the Media Controller device file access fails.
+    pub fn disable(&self) -> RevocableResult<(), io::Error> {
+        let mut flags = try_value!(self.flags());
+        flags.remove(MediaControllerLinkFlags::ENABLED);
+
+        self.setup_link(flags)
+    }
+
+    /// Enables the data link.
+    ///
+    /// If the link is an interface or ancillary link, nothing happens.
+    ///
+    /// # Errors
+    ///
+    /// If the Media Controller device file access fails.
+    pub fn enable(&self) -> RevocableResult<(), io::Error> {
+        let mut flags = try_value!(self.flags());
+        flags.insert(MediaControllerLinkFlags::ENABLED);
+
+        self.setup_link(flags)
+    }
+
     fn flags(&self) -> RevocableValue<MediaControllerLinkFlags> {
         self.0
             .borrow()
@@ -1571,7 +1664,7 @@ fn update_topology(
 
             Ok(Rc::new(RefCell::new(Revocable::new(
                 MediaControllerLinkInner {
-                    _controller: mc.clone(),
+                    controller: mc.clone(),
                     id: l.id,
                     source,
                     sink,
