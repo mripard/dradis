@@ -407,9 +407,11 @@ bitflags! {
     }
 }
 
-impl From<u32> for MediaControllerEntityFlags {
-    fn from(value: u32) -> Self {
-        Self::from_bits_retain(value)
+impl TryFrom<u32> for MediaControllerEntityFlags {
+    type Error = ();
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Self::from_bits(value).ok_or(())
     }
 }
 
@@ -418,7 +420,7 @@ struct MediaControllerEntityInner {
     id: u32,
     name: String,
     function: media_entity_function,
-    flags: u32,
+    flags: MediaControllerEntityFlags,
 }
 
 impl fmt::Debug for MediaControllerEntityInner {
@@ -441,9 +443,7 @@ impl MediaControllerEntity {
         self.0
             .borrow()
             .try_access()
-            .map_or(RevocableValue::Revoked, |e| {
-                RevocableValue::Value(e.flags.into())
-            })
+            .map_or(RevocableValue::Revoked, |e| RevocableValue::Value(e.flags))
     }
 
     /// Returns an iterator over the flag names set for this entity, if the entity is still valid.
@@ -1192,7 +1192,9 @@ fn update_topology(
                     function: function.try_into().map_err(|_e| {
                         io::Error::new(io::ErrorKind::InvalidData, "Unexpected entity function")
                     })?,
-                    flags: e.flags,
+                    flags: e.flags.try_into().map_err(|_e| {
+                        io::Error::new(io::ErrorKind::InvalidData, "Unexpected entity flag")
+                    })?,
                 },
             ))))
         })
