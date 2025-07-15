@@ -1142,53 +1142,59 @@ struct MediaControllerInner {
     pads: Vec<Rc<Revocable<media_v2_pad>>>,
 }
 
-impl MediaControllerInner {
-    fn update_topology(&mut self, count: Option<media_v2_topology>) -> io::Result<()> {
-        let count = if let Some(count) = count {
-            count
-        } else {
-            media_ioctl_g_topology(self.fd.as_fd(), None)?
-        };
+fn update_topology(
+    mc: &Rc<RefCell<MediaControllerInner>>,
+    count: Option<media_v2_topology>,
+) -> io::Result<()> {
+    let mut inner = mc.borrow_mut();
 
-        let mut raw_entities = Vec::with_capacity(count.num_entities as usize);
-        let mut raw_interfaces = Vec::with_capacity(count.num_interfaces as usize);
-        let mut raw_links = Vec::with_capacity(count.num_links as usize);
-        let mut raw_pads = Vec::with_capacity(count.num_pads as usize);
+    let count = if let Some(count) = count {
+        count
+    } else {
+        media_ioctl_g_topology(inner.fd.as_fd(), None)?
+    };
 
-        let topo = media_ioctl_g_topology(
-            self.fd.as_fd(),
-            Some(GTopologyArgs {
-                prev: count,
-                entities: Some(&mut raw_entities),
-                interfaces: Some(&mut raw_interfaces),
-                pads: Some(&mut raw_pads),
-                links: Some(&mut raw_links),
-            }),
-        )?;
+    let mut raw_entities = Vec::with_capacity(count.num_entities as usize);
+    let mut raw_interfaces = Vec::with_capacity(count.num_interfaces as usize);
+    let mut raw_links = Vec::with_capacity(count.num_links as usize);
+    let mut raw_pads = Vec::with_capacity(count.num_pads as usize);
 
-        self.last_topology_version = Some(topo.topology_version);
+    let topo = media_ioctl_g_topology(
+        inner.fd.as_fd(),
+        Some(GTopologyArgs {
+            prev: count,
+            entities: Some(&mut raw_entities),
+            interfaces: Some(&mut raw_interfaces),
+            pads: Some(&mut raw_pads),
+            links: Some(&mut raw_links),
+        }),
+    )?;
 
-        self.entities.clear();
-        self.entities
-            .extend(raw_entities.into_iter().map(|e| Rc::new(Revocable::new(e))));
+    inner.last_topology_version = Some(topo.topology_version);
 
-        self.interfaces.clear();
-        self.interfaces.extend(
-            raw_interfaces
-                .into_iter()
-                .map(|e| Rc::new(Revocable::new(e))),
-        );
+    inner.entities.clear();
+    inner
+        .entities
+        .extend(raw_entities.into_iter().map(|e| Rc::new(Revocable::new(e))));
 
-        self.links.clear();
-        self.links
-            .extend(raw_links.into_iter().map(|e| Rc::new(Revocable::new(e))));
+    inner.interfaces.clear();
+    inner.interfaces.extend(
+        raw_interfaces
+            .into_iter()
+            .map(|e| Rc::new(Revocable::new(e))),
+    );
 
-        self.pads.clear();
-        self.pads
-            .extend(raw_pads.into_iter().map(|e| Rc::new(Revocable::new(e))));
+    inner.links.clear();
+    inner
+        .links
+        .extend(raw_links.into_iter().map(|e| Rc::new(Revocable::new(e))));
 
-        Ok(())
-    }
+    inner.pads.clear();
+    inner
+        .pads
+        .extend(raw_pads.into_iter().map(|e| Rc::new(Revocable::new(e))));
+
+    Ok(())
 }
 
 /// A Representation of a Media Controller
@@ -1204,18 +1210,18 @@ impl MediaController {
     pub fn new(path: &Path) -> Result<Self, io::Error> {
         let file = File::open(path)?;
 
-        let mut inner = MediaControllerInner {
+        let mc = Rc::new(RefCell::new(MediaControllerInner {
             fd: file.into(),
             last_topology_version: None,
             entities: Vec::new(),
             interfaces: Vec::new(),
             links: Vec::new(),
             pads: Vec::new(),
-        };
+        }));
 
-        inner.update_topology(None)?;
+        update_topology(&mc, None)?;
 
-        Ok(MediaController(Rc::new(RefCell::new(inner))))
+        Ok(MediaController(mc))
     }
 
     /// Returns Media Controller Information
@@ -1232,14 +1238,14 @@ impl MediaController {
         reason = "The expect condition can never be true, so there's no point in returning an error."
     )]
     fn check_topology_version(&self) -> io::Result<()> {
-        let mut inner = self.0.borrow_mut();
+        let inner = self.0.borrow();
         let current_version = inner.last_topology_version.expect(
             "After the initial construction in new(), the topology version will always be set",
         );
 
         let topo = raw::media_ioctl_g_topology(inner.fd.as_fd(), media_v2_topology::default())?;
         if topo.topology_version > current_version {
-            inner.update_topology(Some(topo))?;
+            update_topology(&self.0, Some(topo))?;
         }
 
         Ok(())
