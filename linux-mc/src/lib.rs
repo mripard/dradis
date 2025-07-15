@@ -611,7 +611,7 @@ struct MediaControllerInterfaceInner {
     _controller: Rc<RefCell<MediaControllerInner>>,
     id: u32,
     kind: MediaControllerInterfaceKind,
-    device_node: raw::bindgen::media_v2_intf_devnode,
+    device_node: Option<DeviceNode>,
 }
 
 /// A Representation of a Media Controller Interface
@@ -645,14 +645,12 @@ impl MediaControllerInterface {
     /// # Errors
     ///
     /// If the Media Controller device file access fails.
-    pub fn device_node(&self) -> RevocableResult<Option<DeviceNode>, io::Error> {
+    pub fn device_node(&self) -> RevocableValue<Option<DeviceNode>> {
         self.0
             .borrow()
             .try_access()
-            .map_or(RevocableResult::Revoked, |i| {
-                DeviceNode::new(i.device_node.major, i.device_node.minor)
-                    .map(Some)
-                    .into()
+            .map_or(RevocableValue::Revoked, |i| {
+                RevocableValue::Value(i.device_node.clone())
             })
     }
 }
@@ -1169,7 +1167,9 @@ fn update_topology(
                     })?,
                     device_node: {
                         // SAFETY: All known interface types are device node interfaces.
-                        unsafe { e.__bindgen_anon_1.devnode }
+                        let devnode = unsafe { e.__bindgen_anon_1.devnode };
+
+                        DeviceNode::new(devnode.major, devnode.minor).ok()
                     },
                 },
             ))))
