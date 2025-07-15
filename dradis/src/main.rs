@@ -742,7 +742,7 @@ fn main() -> anyhow::Result<()> {
         .into_iter()
         .map(|MediaPipelineItem(source, dev, sink)| {
             let node = if let Some(itf) = dev.interfaces().valid()?.first() {
-                if let Some(node) = itf.device_node().valid()? {
+                if let Some(node) = itf.device_node().valid() {
                     Some(Device::new(node.path(), true)?)
                 } else {
                     None

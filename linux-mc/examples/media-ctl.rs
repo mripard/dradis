@@ -86,7 +86,7 @@ fn dump_topology(media: &MediaController) -> RevocableResult<(), io::Error> {
         println!();
 
         if let Some(itf) = entity_interfaces.first() {
-            let device_node = try_result!(itf.device_node());
+            let device_node = try_value!(itf.device_node());
 
             println!(
                 "            device node name {}",
