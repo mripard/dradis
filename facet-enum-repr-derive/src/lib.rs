@@ -111,10 +111,6 @@ compile_error!("FacetEnumRepr only works on enums.")
     let name = val.name.to_string();
     let repr = find_enum_repr(&val);
 
-    #[expect(
-        clippy::missing_asserts_for_indexing,
-        reason = "This lint asks for us to assert the chunks slice length, but seems to not detect them properly."
-    )]
     let attrs_trees = val
         .attributes
         .iter()
@@ -151,10 +147,6 @@ compile_error!("FacetEnumRepr only works on enums.")
         })
         .unwrap_or(Vec::new());
 
-    #[expect(
-        clippy::missing_asserts_for_indexing,
-        reason = "This lint asks for us to assert the chunks slice length, but seems to not detect them properly."
-    )]
     let macro_attributes = attrs_trees
         .chunks(2)
         .filter_map(|chunk| {
