@@ -417,7 +417,7 @@ impl From<u32> for MediaControllerEntityFlags {
 struct MediaControllerEntityInner {
     controller: Rc<RefCell<MediaControllerInner>>,
     id: u32,
-    name: [i8; 64],
+    name: String,
     function: u32,
     flags: u32,
 }
@@ -563,7 +563,7 @@ impl MediaControllerEntity {
             .borrow()
             .try_access()
             .map_or(RevocableValue::Revoked, |e| {
-                RevocableValue::Value(chars_to_string(&e.name, false))
+                RevocableValue::Value(e.name.clone())
             })
     }
 
@@ -1153,7 +1153,7 @@ fn update_topology(
             Rc::new(RefCell::new(Revocable::new(MediaControllerEntityInner {
                 controller: mc.clone(),
                 id: e.id,
-                name: e.name,
+                name: chars_to_string(&e.name, false),
                 function: e.function,
                 flags: e.flags,
             })))
