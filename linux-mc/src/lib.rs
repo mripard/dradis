@@ -916,7 +916,7 @@ impl TryFrom<u32> for MediaControllerLinkFlags {
 }
 
 /// A Representation of a Media Controller Link type
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MediaControllerLinkKind {
     /// Data Connection between two pads
     Data,
@@ -956,8 +956,8 @@ struct MediaControllerLinkInner {
     id: u32,
     source_id: u32,
     sink_id: u32,
+    kind: MediaControllerLinkKind,
     flags: u32,
-    kind: u32,
 }
 
 impl fmt::Debug for MediaControllerLinkInner {
@@ -1017,17 +1017,11 @@ impl MediaControllerLink {
     }
 
     /// Returns whether this link kind, if the link is still valid.
-    ///
-    /// # Panics
-    ///
-    /// If the kernel returns an unknown Link Type
     pub fn kind(&self) -> RevocableValue<MediaControllerLinkKind> {
         self.0
             .borrow()
             .try_access()
-            .map_or(RevocableValue::Revoked, |p| {
-                RevocableValue::Value(p.kind.try_into().expect("Unknown Link Type"))
-            })
+            .map_or(RevocableValue::Revoked, |p| RevocableValue::Value(p.kind))
     }
 
     /// Returns the ID of the sink, if the link is still valid.
@@ -1257,16 +1251,22 @@ fn update_topology(
     let links = raw_links
         .into_iter()
         .map(|l| {
-            Rc::new(RefCell::new(Revocable::new(MediaControllerLinkInner {
-                _controller: mc.clone(),
-                id: l.id,
-                source_id: l.source_id,
-                sink_id: l.sink_id,
-                kind: l.flags & raw::bindgen::MEDIA_LNK_FL_LINK_TYPE,
-                flags: l.flags & !raw::bindgen::MEDIA_LNK_FL_LINK_TYPE,
-            })))
+            Ok(Rc::new(RefCell::new(Revocable::new(
+                MediaControllerLinkInner {
+                    _controller: mc.clone(),
+                    id: l.id,
+                    source_id: l.source_id,
+                    sink_id: l.sink_id,
+                    kind: (l.flags & !raw::bindgen::MEDIA_LNK_FL_LINK_TYPE)
+                        .try_into()
+                        .map_err(|_e| {
+                            io::Error::new(io::ErrorKind::InvalidData, "Unexpected link type")
+                        })?,
+                    flags: l.flags & !raw::bindgen::MEDIA_LNK_FL_LINK_TYPE,
+                },
+            ))))
         })
-        .collect();
+        .collect::<Result<Vec<_>, io::Error>>()?;
 
     inner.links = links;
 
