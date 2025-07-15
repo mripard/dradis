@@ -619,7 +619,7 @@ impl MediaControllerEntity {
 struct MediaControllerInterfaceInner {
     _controller: Rc<RefCell<MediaControllerInner>>,
     id: u32,
-    kind: u32,
+    kind: MediaControllerInterfaceKind,
     device_node: raw::bindgen::media_v2_intf_devnode,
 }
 
@@ -655,14 +655,7 @@ impl MediaControllerInterface {
         self.0
             .borrow()
             .try_access()
-            .map_or(RevocableValue::Revoked, |i| {
-                let kind = i.kind;
-
-                RevocableValue::Value(
-                    MediaControllerInterfaceKind::try_from(kind)
-                        .unwrap_or_else(|()| panic!("Unknown Interface Type {kind:x}")),
-                )
-            })
+            .map_or(RevocableValue::Revoked, |i| RevocableValue::Value(i.kind))
     }
 
     /// Returns this interface device node if it exists, and if the interface is still
@@ -1202,20 +1195,27 @@ fn update_topology(
 
     inner.entities = entities;
 
-    inner.interfaces.clear();
-    inner.interfaces.extend(raw_interfaces.into_iter().map(|e| {
-        Rc::new(RefCell::new(Revocable::new(
-            MediaControllerInterfaceInner {
-                _controller: mc.clone(),
-                id: e.id,
-                kind: e.intf_type,
-                device_node: {
-                    // SAFETY: All known interface types are device node interfaces.
-                    unsafe { e.__bindgen_anon_1.devnode }
+    let interfaces = raw_interfaces
+        .into_iter()
+        .map(|e| {
+            let intf_type = e.intf_type;
+            Ok(Rc::new(RefCell::new(Revocable::new(
+                MediaControllerInterfaceInner {
+                    _controller: mc.clone(),
+                    id: e.id,
+                    kind: intf_type.try_into().map_err(|_e| {
+                        io::Error::new(io::ErrorKind::InvalidData, "Unexpected interface type")
+                    })?,
+                    device_node: {
+                        // SAFETY: All known interface types are device node interfaces.
+                        unsafe { e.__bindgen_anon_1.devnode }
+                    },
                 },
-            },
-        )))
-    }));
+            ))))
+        })
+        .collect::<io::Result<Vec<_>>>()?;
+
+    inner.interfaces = interfaces;
 
     let pads = raw_pads
         .into_iter()
