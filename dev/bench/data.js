@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751638398486,
+  "lastUpdate": 1752581459284,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1289,6 +1289,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 487269,
             "range": "± 2775",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "be32e75b5012f10d973684fb936656f98f29c92a",
+          "message": "Merge pull request #239 from JoseExposito/clippy-error-dtd.vbp\n\ndradis: Fix clippy error",
+          "timestamp": "2025-07-15T14:07:08+02:00",
+          "tree_id": "51bfe4a9bb8ccd7260e63b63431d653e9462c3cb",
+          "url": "https://github.com/mripard/dradis/commit/be32e75b5012f10d973684fb936656f98f29c92a"
+        },
+        "date": 1752581458611,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 479550,
+            "range": "± 1656",
             "unit": "ns/iter"
           }
         ]
