@@ -1,6 +1,6 @@
 use core::{
     fmt,
-    ops::Deref,
+    ops::{Deref, DerefMut},
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -55,6 +55,20 @@ impl<T> Revocable<T> {
         }
     }
 
+    /// Tries to access the object.
+    ///
+    /// Returns None if the object is no longer accessible. Returns a guard that gives access to the
+    /// object otherwise.
+    pub fn try_access_mut(&mut self) -> Option<RevocableGuardMut<'_, T>> {
+        if self.is_available.load(Ordering::Relaxed) {
+            Some(RevocableGuardMut {
+                content_ref: &mut self.content,
+            })
+        } else {
+            None
+        }
+    }
+
     /// Revokes access to the object
     pub fn revoke(&self) {
         self.is_available.store(false, Ordering::Relaxed);
@@ -71,6 +85,25 @@ impl<T> Deref for RevocableGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
+        self.content_ref
+    }
+}
+
+/// A guard that allows mutable access to a revocable object.
+#[derive(Debug)]
+pub struct RevocableGuardMut<'a, T> {
+    content_ref: &'a mut T,
+}
+
+impl<T> Deref for RevocableGuardMut<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.content_ref
+    }
+}
+impl<T> DerefMut for RevocableGuardMut<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
         self.content_ref
     }
 }
