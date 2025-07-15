@@ -727,7 +727,7 @@ struct MediaControllerPadInner {
     entity: Rc<RefCell<Revocable<MediaControllerEntityInner>>>,
     id: u32,
     index: u32,
-    flags: u32,
+    flags: MediaControllerPadFlags,
 }
 
 impl fmt::Debug for MediaControllerPadInner {
@@ -773,9 +773,7 @@ impl MediaControllerPad {
         self.0
             .borrow()
             .try_access()
-            .map_or(RevocableValue::Revoked, |p| {
-                RevocableValue::Value(p.flags.into())
-            })
+            .map_or(RevocableValue::Revoked, |p| RevocableValue::Value(p.flags))
     }
 
     /// Returns an iterator over the flag names set for this pad, if the pad is still valid.
@@ -1239,7 +1237,7 @@ fn update_topology(
                     entity: entity.clone(),
                     id: p.id,
                     index: p.index,
-                    flags: p.flags,
+                    flags: p.flags.into(),
                 },
             ))))
         })
