@@ -137,6 +137,9 @@ style = { level = "warn", priority = -1 }
 suspicious = { level = "warn", priority = -1 }
 
 # Individual Lints
+## Allowed Lints
+multiple_crate_versions = "allow"
+
 ## Restriction Clippy Lints
 alloc_instead_of_core = "warn"
 as_pointer_underscore = "warn"
