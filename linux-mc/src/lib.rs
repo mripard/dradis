@@ -417,7 +417,7 @@ struct MediaControllerEntityInner {
     controller: Rc<RefCell<MediaControllerInner>>,
     id: u32,
     name: String,
-    function: u32,
+    function: media_entity_function,
     flags: u32,
 }
 
@@ -461,13 +461,7 @@ impl MediaControllerEntity {
             .borrow()
             .try_access()
             .map_or(RevocableValue::Revoked, |e| {
-                let function = e.function;
-
-                RevocableValue::Value(
-                    function
-                        .try_into()
-                        .unwrap_or_else(|_e| panic!("Unknown function {function:x}")),
-                )
+                RevocableValue::Value(e.function)
             })
     }
 
@@ -1185,18 +1179,26 @@ fn update_topology(
 
     inner.last_topology_version = Some(topo.topology_version);
 
-    inner.entities.clear();
-    inner
-        .entities
-        .extend(raw_entities.into_iter().map(|e: media_v2_entity| {
-            Rc::new(RefCell::new(Revocable::new(MediaControllerEntityInner {
-                controller: mc.clone(),
-                id: e.id,
-                name: chars_to_string(&e.name, false),
-                function: e.function,
-                flags: e.flags,
-            })))
-        }));
+    let entities = raw_entities
+        .into_iter()
+        .map(|e| {
+            let function = e.function;
+
+            Ok(Rc::new(RefCell::new(Revocable::new(
+                MediaControllerEntityInner {
+                    controller: mc.clone(),
+                    id: e.id,
+                    name: chars_to_string(&e.name, false),
+                    function: function.try_into().map_err(|_e| {
+                        io::Error::new(io::ErrorKind::InvalidData, "Unexpected entity function")
+                    })?,
+                    flags: e.flags,
+                },
+            ))))
+        })
+        .collect::<io::Result<Vec<_>>>()?;
+
+    inner.entities = entities;
 
     inner.interfaces.clear();
     inner.interfaces.extend(raw_interfaces.into_iter().map(|e| {
