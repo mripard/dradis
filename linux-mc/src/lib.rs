@@ -907,6 +907,14 @@ bitflags! {
     }
 }
 
+impl TryFrom<u32> for MediaControllerLinkFlags {
+    type Error = ();
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Self::from_bits(value).ok_or(())
+    }
+}
+
 /// A Representation of a Media Controller Link type
 #[derive(Debug, PartialEq)]
 pub enum MediaControllerLinkKind {
@@ -930,12 +938,26 @@ impl fmt::Display for MediaControllerLinkKind {
     }
 }
 
+impl TryFrom<u32> for MediaControllerLinkKind {
+    type Error = ();
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Ok(match value {
+            raw::bindgen::MEDIA_LNK_FL_DATA_LINK => MediaControllerLinkKind::Data,
+            raw::bindgen::MEDIA_LNK_FL_INTERFACE_LINK => MediaControllerLinkKind::Interface,
+            raw::bindgen::MEDIA_LNK_FL_ANCILLARY_LINK => MediaControllerLinkKind::Ancillary,
+            _ => return Err(()),
+        })
+    }
+}
+
 struct MediaControllerLinkInner {
     _controller: Rc<RefCell<MediaControllerInner>>,
     id: u32,
     source_id: u32,
     sink_id: u32,
     flags: u32,
+    kind: u32,
 }
 
 impl fmt::Debug for MediaControllerLinkInner {
@@ -954,13 +976,18 @@ impl fmt::Debug for MediaControllerLinkInner {
 pub struct MediaControllerLink(Rc<RefCell<Revocable<MediaControllerLinkInner>>>);
 
 impl MediaControllerLink {
+    fn flags(&self) -> RevocableValue<MediaControllerLinkFlags> {
+        self.0
+            .borrow()
+            .try_access()
+            .map_or(RevocableValue::Revoked, |p| {
+                RevocableValue::Value(p.flags.try_into().expect("Unknown Link Flag"))
+            })
+    }
+
     /// Returns an iterator over the flag names set for this links, if the link is still valid.
     pub fn flag_names(&self) -> RevocableValue<impl Iterator<Item = &str>> {
-        self.flags_without_kind().map(|f| {
-            MediaControllerLinkFlags::from_bits_retain(f)
-                .iter_names()
-                .map(|(n, _)| n)
-        })
+        self.flags().map(|f| f.iter_names().map(|(n, _)| n))
     }
 
     /// Returns this link ID, if the link is still valid.
@@ -971,54 +998,36 @@ impl MediaControllerLink {
             .map_or(RevocableValue::Revoked, |l| RevocableValue::Value(l.id))
     }
 
-    fn flags(&self) -> RevocableValue<u32> {
-        self.0
-            .borrow()
-            .try_access()
-            .map_or(RevocableValue::Revoked, |l| RevocableValue::Value(l.flags))
-    }
-
-    fn flags_without_kind(&self) -> RevocableValue<u32> {
-        self.flags()
-            .map(|f| f & !raw::bindgen::MEDIA_LNK_FL_LINK_TYPE)
-    }
-
     /// Returns whether this link is dynamic or not, if the link is still valid.
     pub fn is_dynamic(&self) -> RevocableValue<bool> {
-        self.flags_without_kind().map(|f| {
-            MediaControllerLinkFlags::from_bits_truncate(f)
-                .contains(MediaControllerLinkFlags::DYNAMIC)
-        })
+        self.flags()
+            .map(|f| f.contains(MediaControllerLinkFlags::DYNAMIC))
     }
 
     /// Returns whether this link is enabled or not, if the link is still valid.
     pub fn is_enabled(&self) -> RevocableValue<bool> {
-        self.flags_without_kind().map(|f| {
-            MediaControllerLinkFlags::from_bits_truncate(f)
-                .contains(MediaControllerLinkFlags::ENABLED)
-        })
+        self.flags()
+            .map(|f| f.contains(MediaControllerLinkFlags::ENABLED))
     }
 
     /// Returns whether this link is immutable or not, if the link is still valid.
     pub fn is_immutable(&self) -> RevocableValue<bool> {
-        self.flags_without_kind().map(|f| {
-            MediaControllerLinkFlags::from_bits_truncate(f)
-                .contains(MediaControllerLinkFlags::IMMUTABLE)
-        })
+        self.flags()
+            .map(|f| f.contains(MediaControllerLinkFlags::IMMUTABLE))
     }
 
     /// Returns whether this link kind, if the link is still valid.
+    ///
+    /// # Panics
+    ///
+    /// If the kernel returns an unknown Link Type
     pub fn kind(&self) -> RevocableValue<MediaControllerLinkKind> {
-        self.flags().map(|f| {
-            let kind = f & raw::bindgen::MEDIA_LNK_FL_LINK_TYPE;
-
-            match kind {
-                raw::bindgen::MEDIA_LNK_FL_DATA_LINK => MediaControllerLinkKind::Data,
-                raw::bindgen::MEDIA_LNK_FL_INTERFACE_LINK => MediaControllerLinkKind::Interface,
-                raw::bindgen::MEDIA_LNK_FL_ANCILLARY_LINK => MediaControllerLinkKind::Ancillary,
-                _ => unimplemented!(),
-            }
-        })
+        self.0
+            .borrow()
+            .try_access()
+            .map_or(RevocableValue::Revoked, |p| {
+                RevocableValue::Value(p.kind.try_into().expect("Unknown Link Type"))
+            })
     }
 
     /// Returns the ID of the sink, if the link is still valid.
@@ -1253,7 +1262,8 @@ fn update_topology(
                 id: l.id,
                 source_id: l.source_id,
                 sink_id: l.sink_id,
-                flags: l.flags,
+                kind: l.flags & raw::bindgen::MEDIA_LNK_FL_LINK_TYPE,
+                flags: l.flags & !raw::bindgen::MEDIA_LNK_FL_LINK_TYPE,
             })))
         })
         .collect();
