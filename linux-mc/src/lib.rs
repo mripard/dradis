@@ -416,25 +416,20 @@ impl From<u32> for MediaControllerEntityFlags {
 #[derive(Debug)]
 struct MediaControllerEntityInner {
     controller: Rc<RefCell<MediaControllerInner>>,
-    entity: Rc<Revocable<media_v2_entity>>,
+    id: u32,
+    name: [i8; 64],
+    function: u32,
+    flags: u32,
 }
 
 /// A representation of a Media Controller Entity.
 #[derive(Clone, Debug)]
-pub struct MediaControllerEntity(Rc<RefCell<MediaControllerEntityInner>>);
+pub struct MediaControllerEntity(Rc<RefCell<Revocable<MediaControllerEntityInner>>>);
 
 impl MediaControllerEntity {
-    fn from_raw(controller: &MediaController, entity: Rc<Revocable<media_v2_entity>>) -> Self {
-        Self(Rc::new(RefCell::new(MediaControllerEntityInner {
-            controller: controller.0.clone(),
-            entity,
-        })))
-    }
-
     fn flags(&self) -> RevocableValue<MediaControllerEntityFlags> {
         self.0
             .borrow()
-            .entity
             .try_access()
             .map_or(RevocableValue::Revoked, |e| {
                 RevocableValue::Value(e.flags.into())
@@ -454,7 +449,6 @@ impl MediaControllerEntity {
     pub fn function(&self) -> RevocableValue<media_entity_function> {
         self.0
             .borrow()
-            .entity
             .try_access()
             .map_or(RevocableValue::Revoked, |e| {
                 let function = e.function;
@@ -471,47 +465,37 @@ impl MediaControllerEntity {
     pub fn id(&self) -> RevocableValue<u32> {
         self.0
             .borrow()
-            .entity
             .try_access()
             .map_or(RevocableValue::Revoked, |e| RevocableValue::Value(e.id))
     }
 
     /// Returns a list of interfaces attached to this entity, if the entity is still valid.
     pub fn interfaces(&self) -> RevocableResult<Vec<MediaControllerInterface>, io::Error> {
-        let inner = self.0.borrow();
+        let inner_ref = self.0.borrow();
+        let inner = try_option_to_result!(inner_ref.try_access());
+        let controller = inner.controller.borrow();
 
-        let entity_id = try_value!(self.id());
-        let controller: MediaController = inner.controller.clone().into();
+        let mut itf_ids = Vec::new();
+        for link in &controller.links {
+            let link_ref = link.borrow();
+            let link_inner = try_option_to_result!(link_ref.try_access());
 
-        let interfaces_ids = try_result_to_revocable!(controller.links())
-            .into_iter()
-            .filter_map(|l| {
-                if let (RevocableValue::Value(sink_id), RevocableValue::Value(source_id)) =
-                    (l.sink_id(), l.source_id())
-                {
-                    if sink_id == entity_id {
-                        Some(source_id)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
+            if link_inner.sink_id == inner.id {
+                itf_ids.push(link_inner.source_id);
+            }
+        }
 
-        RevocableResult::Ok(
-            try_result_to_revocable!(controller.interfaces())
-                .into_iter()
-                .filter(|i| {
-                    if let RevocableValue::Value(itf_id) = i.id() {
-                        interfaces_ids.contains(&itf_id)
-                    } else {
-                        false
-                    }
-                })
-                .collect::<Vec<_>>(),
-        )
+        let mut out_itfs = Vec::new();
+        for itf in &controller.interfaces {
+            let itf_ref = itf.borrow();
+            let itf_inner = try_option_to_result!(itf_ref.try_access());
+
+            if itf_ids.contains(&itf_inner.id) {
+                out_itfs.push(MediaControllerInterface(itf.clone()));
+            }
+        }
+
+        RevocableResult::Ok(out_itfs)
     }
 
     /// Returns whether this entity is a connector or not, if the entity is still valid.
@@ -577,7 +561,6 @@ impl MediaControllerEntity {
     pub fn name(&self) -> RevocableValue<String> {
         self.0
             .borrow()
-            .entity
             .try_access()
             .map_or(RevocableValue::Revoked, |e| {
                 RevocableValue::Value(chars_to_string(&e.name, false))
@@ -615,40 +598,37 @@ impl MediaControllerEntity {
     ///
     /// If the Media Controller device file access fails.
     pub fn pads(&self) -> RevocableResult<Vec<MediaControllerPad>, io::Error> {
-        let entity_id = try_value!(self.id());
-
-        let inner = self.0.borrow();
-        let controller: MediaController = inner.controller.clone().into();
-        RevocableResult::Ok(
-            try_result_to_revocable!(controller.pads())
-                .into_iter()
-                .filter(|p| p.entity_id() == RevocableValue::Value(entity_id))
-                .collect(),
-        )
+        if let Some(inner) = self.0.borrow().try_access() {
+            let controller: MediaController = inner.controller.clone().into();
+            RevocableResult::Ok(
+                try_result_to_revocable!(controller.pads())
+                    .into_iter()
+                    .filter(|p| p.entity_id() == RevocableValue::Value(inner.id))
+                    .collect(),
+            )
+        } else {
+            RevocableResult::Revoked
+        }
     }
 }
 
 #[derive(Debug)]
 struct MediaControllerInterfaceInner {
-    interface: Rc<Revocable<media_v2_interface>>,
+    _controller: Rc<RefCell<MediaControllerInner>>,
+    id: u32,
+    kind: u32,
+    device_node: raw::bindgen::media_v2_intf_devnode,
 }
 
 /// A Representation of a Media Controller Interface
 #[derive(Clone, Debug)]
-pub struct MediaControllerInterface(Rc<RefCell<MediaControllerInterfaceInner>>);
+pub struct MediaControllerInterface(Rc<RefCell<Revocable<MediaControllerInterfaceInner>>>);
 
 impl MediaControllerInterface {
-    fn from_raw(_controller: &MediaController, value: Rc<Revocable<media_v2_interface>>) -> Self {
-        Self(Rc::new(RefCell::new(MediaControllerInterfaceInner {
-            interface: value,
-        })))
-    }
-
     /// Returns this interface id, if the interface is still valid.
     pub fn id(&self) -> RevocableValue<u32> {
         self.0
             .borrow()
-            .interface
             .try_access()
             .map_or(RevocableValue::Revoked, |i| RevocableValue::Value(i.id))
     }
@@ -661,10 +641,9 @@ impl MediaControllerInterface {
     pub fn kind(&self) -> RevocableValue<MediaControllerInterfaceKind> {
         self.0
             .borrow()
-            .interface
             .try_access()
             .map_or(RevocableValue::Revoked, |i| {
-                let kind = i.intf_type;
+                let kind = i.kind;
 
                 RevocableValue::Value(
                     MediaControllerInterfaceKind::try_from(kind)
@@ -682,13 +661,9 @@ impl MediaControllerInterface {
     pub fn device_node(&self) -> RevocableResult<Option<DeviceNode>, io::Error> {
         self.0
             .borrow()
-            .interface
             .try_access()
             .map_or(RevocableResult::Revoked, |i| {
-                // SAFETY: All known interface types are device node interfaces.
-                let devnode = unsafe { i.__bindgen_anon_1.devnode };
-
-                DeviceNode::new(devnode.major, devnode.minor)
+                DeviceNode::new(i.device_node.major, i.device_node.minor)
                     .map(Some)
                     .into()
             })
@@ -746,35 +721,32 @@ impl From<u32> for MediaControllerPadFlags {
 #[derive(Debug)]
 struct MediaControllerPadInner {
     controller: Rc<RefCell<MediaControllerInner>>,
-    pad: Rc<Revocable<media_v2_pad>>,
+    entity_id: u32,
+    id: u32,
+    index: u32,
+    flags: u32,
 }
 
 /// A Representation of a Media Controller Pad
 #[derive(Clone, Debug)]
-pub struct MediaControllerPad(Rc<RefCell<MediaControllerPadInner>>);
+pub struct MediaControllerPad(Rc<RefCell<Revocable<MediaControllerPadInner>>>);
 
 impl MediaControllerPad {
-    fn from_raw(controller: &MediaController, value: Rc<Revocable<media_v2_pad>>) -> Self {
-        Self(Rc::new(RefCell::new(MediaControllerPadInner {
-            controller: controller.0.clone(),
-            pad: value,
-        })))
-    }
-
     /// Returns the entity this pad is attached to, if the pad is still valid.
     ///
     /// # Errors
     ///
     /// If the Media Controller device file access fails.
     pub fn entity(&self) -> RevocableResult<MediaControllerEntity, io::Error> {
-        let entity_id = try_value!(self.entity_id());
+        let inner_ref = self.0.borrow();
+        let inner = try_option_to_result!(inner_ref.try_access());
+        let controller = inner.controller.borrow();
 
-        let inner = self.0.borrow();
-        let controller: MediaController = inner.controller.clone().into();
-
-        for entity in try_result_to_revocable!(controller.entities()) {
-            if entity_id == try_value!(entity.id()) {
-                return RevocableResult::Ok(entity);
+        for entity in &controller.entities {
+            let entity_ref = entity.borrow();
+            let entity_inner = try_option_to_result!(entity_ref.try_access());
+            if inner.entity_id == entity_inner.id {
+                return RevocableResult::Ok(MediaControllerEntity(entity.clone()));
             }
         }
 
@@ -785,7 +757,6 @@ impl MediaControllerPad {
     pub fn entity_id(&self) -> RevocableValue<u32> {
         self.0
             .borrow()
-            .pad
             .try_access()
             .map_or(RevocableValue::Revoked, |p| {
                 RevocableValue::Value(p.entity_id)
@@ -795,7 +766,6 @@ impl MediaControllerPad {
     fn flags(&self) -> RevocableValue<MediaControllerPadFlags> {
         self.0
             .borrow()
-            .pad
             .try_access()
             .map_or(RevocableValue::Revoked, |p| {
                 RevocableValue::Value(p.flags.into())
@@ -811,7 +781,6 @@ impl MediaControllerPad {
     pub fn id(&self) -> RevocableValue<u32> {
         self.0
             .borrow()
-            .pad
             .try_access()
             .map_or(RevocableValue::Revoked, |p| RevocableValue::Value(p.id))
     }
@@ -820,7 +789,6 @@ impl MediaControllerPad {
     pub fn index(&self) -> RevocableValue<u32> {
         self.0
             .borrow()
-            .pad
             .try_access()
             .map_or(RevocableValue::Revoked, |p| RevocableValue::Value(p.index))
     }
@@ -848,24 +816,27 @@ impl MediaControllerPad {
     ///
     /// If the Media Controller device file access fails.
     pub fn links(&self) -> RevocableResult<Vec<MediaControllerLink>, io::Error> {
-        let inner = self.0.borrow();
-        let controller: MediaController = inner.controller.clone().into();
-
-        let pad_id = try_value!(self.id());
         let pad_kind = try_value!(self.kind());
-        RevocableResult::Ok(
-            try_result_to_revocable!(controller.links())
-                .into_iter()
-                .filter(|l| {
-                    let link_pad_id = match pad_kind {
-                        MediaControllerPadKind::Sink => l.sink_id(),
-                        MediaControllerPadKind::Source => l.source_id(),
-                    };
 
-                    RevocableValue::Value(pad_id) == link_pad_id
-                })
-                .collect(),
-        )
+        let inner_ref = self.0.borrow();
+        let inner = try_option_to_result!(inner_ref.try_access());
+        let controller = inner.controller.borrow();
+
+        let mut out_links = Vec::new();
+        for link in &controller.links {
+            let link_ref = link.borrow();
+            let link_inner = try_option_to_result!(link_ref.try_access());
+            let link_pad_id = match pad_kind {
+                MediaControllerPadKind::Sink => link_inner.sink_id,
+                MediaControllerPadKind::Source => link_inner.source_id,
+            };
+
+            if link_pad_id == inner.id {
+                out_links.push(MediaControllerLink(link.clone()));
+            }
+        }
+
+        RevocableResult::Ok(out_links)
     }
 
     /// Returns whether this pad must be connected or not, if the pad is still valid.
@@ -880,33 +851,42 @@ impl MediaControllerPad {
     ///
     /// If the Media Controller device file access fails.
     pub fn remote_pad(&self) -> RevocableResult<Option<Self>, io::Error> {
-        let inner = self.0.borrow();
-        let controller: MediaController = inner.controller.clone().into();
-
-        let pad_id = try_value!(self.id());
         let pad_kind = try_value!(self.kind());
-        let Some(link) = try_result_to_revocable!(controller.links())
-            .into_iter()
-            .find(|l| {
-                let link_pad_id = match pad_kind {
-                    MediaControllerPadKind::Sink => l.sink_id(),
-                    MediaControllerPadKind::Source => l.source_id(),
-                };
 
-                RevocableValue::Value(pad_id) == link_pad_id
-            })
-        else {
-            return RevocableResult::Ok(None);
+        let inner_ref = self.0.borrow();
+        let inner = try_option_to_result!(inner_ref.try_access());
+        let controller = inner.controller.borrow();
+
+        let mut link: Option<_> = None;
+        for l in &controller.links {
+            let link_ref = l.borrow();
+            let link_inner = try_option_to_result!(link_ref.try_access());
+
+            let link_pad_id = match pad_kind {
+                MediaControllerPadKind::Sink => link_inner.sink_id,
+                MediaControllerPadKind::Source => link_inner.source_id,
+            };
+
+            if inner.id == link_pad_id {
+                link = Some(l);
+                break;
+            }
+        }
+
+        let link = try_option_to_result!(link);
+        let link_ref = link.borrow();
+        let link_inner = try_option_to_result!(link_ref.try_access());
+        let remote_pad_id = match pad_kind {
+            MediaControllerPadKind::Sink => link_inner.source_id,
+            MediaControllerPadKind::Source => link_inner.sink_id,
         };
 
-        let remote_pad_id = try_value!(match pad_kind {
-            MediaControllerPadKind::Sink => link.source_id(),
-            MediaControllerPadKind::Source => link.sink_id(),
-        });
+        for pad in &controller.pads {
+            let pad_ref = pad.borrow();
+            let pad_inner = try_option_to_result!(pad_ref.try_access());
 
-        for pad in try_result_to_revocable!(controller.pads()) {
-            if try_value!(pad.id()) == remote_pad_id {
-                return RevocableResult::Ok(Some(pad));
+            if pad_inner.id == remote_pad_id {
+                return RevocableResult::Ok(Some(MediaControllerPad(pad.clone())));
             }
         }
 
@@ -948,20 +928,18 @@ impl fmt::Display for MediaControllerLinkKind {
 
 #[derive(Debug)]
 struct MediaControllerLinkInner {
-    link: Rc<Revocable<media_v2_link>>,
+    _controller: Rc<RefCell<MediaControllerInner>>,
+    id: u32,
+    source_id: u32,
+    sink_id: u32,
+    flags: u32,
 }
 
 /// A Representation of a Media Controller Link
 #[derive(Clone, Debug)]
-pub struct MediaControllerLink(Rc<RefCell<MediaControllerLinkInner>>);
+pub struct MediaControllerLink(Rc<RefCell<Revocable<MediaControllerLinkInner>>>);
 
 impl MediaControllerLink {
-    fn from_raw(_controller: &MediaController, value: Rc<Revocable<media_v2_link>>) -> Self {
-        Self(Rc::new(RefCell::new(MediaControllerLinkInner {
-            link: value,
-        })))
-    }
-
     /// Returns an iterator over the flag names set for this links, if the link is still valid.
     pub fn flag_names(&self) -> RevocableValue<impl Iterator<Item = &str>> {
         self.flags_without_kind().map(|f| {
@@ -975,7 +953,6 @@ impl MediaControllerLink {
     pub fn id(&self) -> RevocableValue<u32> {
         self.0
             .borrow()
-            .link
             .try_access()
             .map_or(RevocableValue::Revoked, |l| RevocableValue::Value(l.id))
     }
@@ -983,7 +960,6 @@ impl MediaControllerLink {
     fn flags(&self) -> RevocableValue<u32> {
         self.0
             .borrow()
-            .link
             .try_access()
             .map_or(RevocableValue::Revoked, |l| RevocableValue::Value(l.flags))
     }
@@ -1035,7 +1011,6 @@ impl MediaControllerLink {
     pub fn sink_id(&self) -> RevocableValue<u32> {
         self.0
             .borrow()
-            .link
             .try_access()
             .map_or(RevocableValue::Revoked, |l| {
                 RevocableValue::Value(l.sink_id)
@@ -1046,7 +1021,6 @@ impl MediaControllerLink {
     pub fn source_id(&self) -> RevocableValue<u32> {
         self.0
             .borrow()
-            .link
             .try_access()
             .map_or(RevocableValue::Revoked, |l| {
                 RevocableValue::Value(l.source_id)
@@ -1136,10 +1110,10 @@ fn media_ioctl_g_topology(
 struct MediaControllerInner {
     fd: OwnedFd,
     last_topology_version: Option<u64>,
-    entities: Vec<Rc<Revocable<media_v2_entity>>>,
-    interfaces: Vec<Rc<Revocable<media_v2_interface>>>,
-    links: Vec<Rc<Revocable<media_v2_link>>>,
-    pads: Vec<Rc<Revocable<media_v2_pad>>>,
+    entities: Vec<Rc<RefCell<Revocable<MediaControllerEntityInner>>>>,
+    interfaces: Vec<Rc<RefCell<Revocable<MediaControllerInterfaceInner>>>>,
+    links: Vec<Rc<RefCell<Revocable<MediaControllerLinkInner>>>>,
+    pads: Vec<Rc<RefCell<Revocable<MediaControllerPadInner>>>>,
 }
 
 fn update_topology(
@@ -1175,24 +1149,60 @@ fn update_topology(
     inner.entities.clear();
     inner
         .entities
-        .extend(raw_entities.into_iter().map(|e| Rc::new(Revocable::new(e))));
+        .extend(raw_entities.into_iter().map(|e: media_v2_entity| {
+            Rc::new(RefCell::new(Revocable::new(MediaControllerEntityInner {
+                controller: mc.clone(),
+                id: e.id,
+                name: e.name,
+                function: e.function,
+                flags: e.flags,
+            })))
+        }));
 
     inner.interfaces.clear();
-    inner.interfaces.extend(
-        raw_interfaces
-            .into_iter()
-            .map(|e| Rc::new(Revocable::new(e))),
-    );
+    inner.interfaces.extend(raw_interfaces.into_iter().map(|e| {
+        Rc::new(RefCell::new(Revocable::new(
+            MediaControllerInterfaceInner {
+                _controller: mc.clone(),
+                id: e.id,
+                kind: e.intf_type,
+                device_node: {
+                    // SAFETY: All known interface types are device node interfaces.
+                    unsafe { e.__bindgen_anon_1.devnode }
+                },
+            },
+        )))
+    }));
 
-    inner.links.clear();
-    inner
-        .links
-        .extend(raw_links.into_iter().map(|e| Rc::new(Revocable::new(e))));
+    let pads = raw_pads
+        .into_iter()
+        .map(|p| {
+            Rc::new(RefCell::new(Revocable::new(MediaControllerPadInner {
+                controller: mc.clone(),
+                entity_id: p.entity_id,
+                id: p.id,
+                index: p.index,
+                flags: p.flags,
+            })))
+        })
+        .collect();
 
-    inner.pads.clear();
-    inner
-        .pads
-        .extend(raw_pads.into_iter().map(|e| Rc::new(Revocable::new(e))));
+    inner.pads = pads;
+
+    let links = raw_links
+        .into_iter()
+        .map(|l| {
+            Rc::new(RefCell::new(Revocable::new(MediaControllerLinkInner {
+                _controller: mc.clone(),
+                id: l.id,
+                source_id: l.source_id,
+                sink_id: l.sink_id,
+                flags: l.flags,
+            })))
+        })
+        .collect();
+
+    inner.links = links;
 
     Ok(())
 }
@@ -1283,7 +1293,7 @@ impl MediaController {
         Ok(inner
             .entities
             .iter()
-            .map(|e| MediaControllerEntity::from_raw(self, e.clone()))
+            .map(|e| MediaControllerEntity(e.clone()))
             .collect())
     }
 
@@ -1299,7 +1309,7 @@ impl MediaController {
         Ok(inner
             .interfaces
             .iter()
-            .map(|e| MediaControllerInterface::from_raw(self, e.clone()))
+            .map(|e| MediaControllerInterface(e.clone()))
             .collect())
     }
 
@@ -1315,7 +1325,7 @@ impl MediaController {
         Ok(inner
             .pads
             .iter()
-            .map(|e| MediaControllerPad::from_raw(self, e.clone()))
+            .map(|e| MediaControllerPad(e.clone()))
             .collect())
     }
 
@@ -1331,7 +1341,7 @@ impl MediaController {
         Ok(inner
             .links
             .iter()
-            .map(|e| MediaControllerLink::from_raw(self, e.clone()))
+            .map(|e| MediaControllerLink(e.clone()))
             .collect())
     }
 }
