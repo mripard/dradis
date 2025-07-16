@@ -28,18 +28,10 @@ fn dump_topology(media: &MediaController) -> RevocableResult<(), io::Error> {
         media.topology_version().unwrap()
     );
 
-    let entities = media.entities().unwrap();
-    let links = media.links().unwrap();
-    let pads = media.pads().unwrap();
-
-    for entity in &entities {
+    for entity in media.entities().unwrap() {
         let entity_interfaces = try_result!(entity.interfaces());
 
-        let entity_pads: Vec<_> = pads
-            .iter()
-            .filter(|p| p.entity_id() == entity.id())
-            .collect();
-
+        let entity_pads = entity.pads().unwrap();
         let mut args = Vec::new();
         if !entity_pads.is_empty() {
             args.push(if entity_pads.len() > 1 {
@@ -49,19 +41,17 @@ fn dump_topology(media: &MediaController) -> RevocableResult<(), io::Error> {
             });
         }
 
-        let outbound_links: Vec<_> = links
+        let num_links = entity_pads
             .iter()
-            .filter(|l| {
-                entity_pads.iter().any(|e| e.id() == l.source_id())
-                    || entity_pads.iter().any(|e| e.id() == l.sink_id())
-            })
-            .collect();
-        if !outbound_links.is_empty() {
-            args.push(if outbound_links.len() > 1 {
-                format!("{} links", outbound_links.len())
-            } else {
-                format!("{} link", outbound_links.len())
-            });
+            .map(|p| p.links().unwrap().iter().count())
+            .sum::<usize>();
+
+        if num_links > 0 {
+            args.push(format!(
+                "{} link{}",
+                num_links,
+                if num_links > 0 { "s" } else { "" }
+            ));
         }
 
         println!(
@@ -97,45 +87,42 @@ fn dump_topology(media: &MediaController) -> RevocableResult<(), io::Error> {
         for pad in entity_pads {
             let pad_kind = try_value!(pad.kind());
 
-            let link = match pad_kind {
-                MediaControllerPadKind::Sink => {
-                    links.iter().find(|l| l.sink_id() == pad.id()).unwrap()
-                }
-                MediaControllerPadKind::Source => {
-                    links.iter().find(|l| l.source_id() == pad.id()).unwrap()
-                }
-            };
-
-            let remote_pad = try_result!(pad.remote_pad()).unwrap();
-            let remote_entity = try_value!(remote_pad.entity());
-
             let flags = try_value!(pad.flag_names())
                 .collect::<Vec<&str>>()
                 .join(", ");
+
             print!("	pad{}:", try_value!(pad.index()));
             if !flags.is_empty() {
                 print!(" Flags: {flags}");
             }
             println!();
 
-            let flags = try_value!(link.flag_names())
-                .collect::<Vec<&str>>()
-                .join(", ");
-            println!(
-                "		{} \"{}\":{}, Type {}{}",
-                match pad_kind {
-                    MediaControllerPadKind::Sink => "<-",
-                    MediaControllerPadKind::Source => "->",
-                },
-                try_value!(remote_entity.name()),
-                try_value!(remote_pad.index()),
-                try_value!(link.kind()),
-                if flags.is_empty() {
-                    String::new()
-                } else {
-                    format!(", Flags: {flags}")
-                }
-            );
+            for pad_link in pad.links().unwrap() {
+                let remote_pad = match pad_kind {
+                    MediaControllerPadKind::Sink => pad_link.source_pad().unwrap(),
+                    MediaControllerPadKind::Source => pad_link.sink_pad().unwrap(),
+                };
+                let remote_entity = remote_pad.entity().unwrap();
+
+                let flags = try_value!(pad_link.flag_names())
+                    .collect::<Vec<&str>>()
+                    .join(", ");
+                println!(
+                    "		{} \"{}\":{}, Type {}{}",
+                    match pad_kind {
+                        MediaControllerPadKind::Sink => "<-",
+                        MediaControllerPadKind::Source => "->",
+                    },
+                    try_value!(remote_entity.name()),
+                    try_value!(remote_pad.index()),
+                    try_value!(pad_link.kind()),
+                    if flags.is_empty() {
+                        String::new()
+                    } else {
+                        format!(", Flags: {flags}")
+                    }
+                );
+            }
         }
 
         println!();
