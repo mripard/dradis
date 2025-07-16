@@ -61,7 +61,7 @@ jobs:
         with:
           components: rustfmt
 
-      - uses: mbrobbel/rustfmt-check@0.19.0
+      - uses: mbrobbel/rustfmt-check@master
         if: github.event_name == 'pull_request'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -78,7 +78,12 @@ jobs:
     steps:
       - name: Install Dependencies
         run: |
-          sudo apt-get install libclang-dev
+          sudo apt-get install libclang-dev linux-modules-extra-$(uname -r)
+
+      - name: Load Required Kernel Modules
+        run: |
+          sudo modprobe vimc
+          sudo chmod 666 /dev/media*
 
       - uses: actions/checkout@v2
       - uses: dtolnay/rust-toolchain@stable
