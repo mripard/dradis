@@ -83,6 +83,7 @@ jobs:
       - name: Load Required Kernel Modules
         run: |
           sudo modprobe vimc
+          sudo chmod 666 /dev/media*
 
       - uses: actions/checkout@v2
       - uses: dtolnay/rust-toolchain@stable
