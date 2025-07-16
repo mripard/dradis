@@ -182,8 +182,11 @@ impl fmt::Display for media_entity_function {
             Self::MEDIA_ENT_F_UNKNOWN => "Unknown Entity",
             Self::MEDIA_ENT_F_IO_V4L => "Data Streaming Entity",
             Self::MEDIA_ENT_F_CAM_SENSOR => "Camera Video Sensor Entity",
-            Self::MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER => "Video Pixel Formatter Entity",
+            Self::MEDIA_ENT_F_LENS => "Lens Entity",
             Self::MEDIA_ENT_F_PROC_VIDEO_DECODER => "Video Decoder",
+            Self::MEDIA_ENT_F_PROC_VIDEO_PIXEL_ENC_CONV => "Video Pixel Encoding Converter Entity",
+            Self::MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER => "Video Pixel Formatter Entity",
+            Self::MEDIA_ENT_F_PROC_VIDEO_SCALER => "Scaler Entity",
             Self::MEDIA_ENT_F_VID_IF_BRIDGE => "Video Interface Bridge",
             media_entity_function::MEDIA_ENT_F_V4L2_SUBDEV_UNKNOWN
             | media_entity_function::MEDIA_ENT_F_DTV_DEMOD
@@ -194,7 +197,6 @@ impl fmt::Display for media_entity_function {
             | media_entity_function::MEDIA_ENT_F_IO_VBI
             | media_entity_function::MEDIA_ENT_F_IO_SWRADIO
             | media_entity_function::MEDIA_ENT_F_FLASH
-            | media_entity_function::MEDIA_ENT_F_LENS
             | media_entity_function::MEDIA_ENT_F_TUNER
             | media_entity_function::MEDIA_ENT_F_IF_VID_DECODER
             | media_entity_function::MEDIA_ENT_F_IF_AUD_DECODER
@@ -202,16 +204,16 @@ impl fmt::Display for media_entity_function {
             | media_entity_function::MEDIA_ENT_F_AUDIO_PLAYBACK
             | media_entity_function::MEDIA_ENT_F_AUDIO_MIXER
             | media_entity_function::MEDIA_ENT_F_PROC_VIDEO_COMPOSER
-            | media_entity_function::MEDIA_ENT_F_PROC_VIDEO_PIXEL_ENC_CONV
             | media_entity_function::MEDIA_ENT_F_PROC_VIDEO_LUT
-            | media_entity_function::MEDIA_ENT_F_PROC_VIDEO_SCALER
             | media_entity_function::MEDIA_ENT_F_PROC_VIDEO_STATISTICS
             | media_entity_function::MEDIA_ENT_F_PROC_VIDEO_ENCODER
             | media_entity_function::MEDIA_ENT_F_PROC_VIDEO_ISP
             | media_entity_function::MEDIA_ENT_F_VID_MUX
             | media_entity_function::MEDIA_ENT_F_ATV_DECODER
             | media_entity_function::MEDIA_ENT_F_DV_DECODER
-            | media_entity_function::MEDIA_ENT_F_DV_ENCODER => unimplemented!(),
+            | media_entity_function::MEDIA_ENT_F_DV_ENCODER => {
+                return f.write_fmt(format_args!("Unknown {self:#?}"));
+            }
         })
     }
 }
