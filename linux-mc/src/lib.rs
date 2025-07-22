@@ -1743,11 +1743,7 @@ impl MediaController {
         self.check_topology_version()?;
 
         let inner = self.0.borrow();
-        Ok(inner
-            .interfaces
-            .iter()
-            .map(|e| e.into())
-            .collect())
+        Ok(inner.interfaces.iter().map(|e| e.into()).collect())
     }
 
     /// Return a list of pads
@@ -1759,11 +1755,7 @@ impl MediaController {
         self.check_topology_version()?;
 
         let inner = self.0.borrow();
-        Ok(inner
-            .pads
-            .iter()
-            .map(|e| e.into())
-            .collect())
+        Ok(inner.pads.iter().map(|e| e.into()).collect())
     }
 
     /// Return a list of links
@@ -1775,11 +1767,7 @@ impl MediaController {
         self.check_topology_version()?;
 
         let inner = self.0.borrow();
-        Ok(inner
-            .links
-            .iter()
-            .map(|e| e.into())
-            .collect())
+        Ok(inner.links.iter().map(|e| e.into()).collect())
     }
 
     /// Looks for a data link between two pads, if valid.
