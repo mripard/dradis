@@ -607,6 +607,16 @@ impl MediaControllerEntity {
     }
 }
 
+impl fmt::Display for MediaControllerEntity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(inner) = self.0.borrow().try_access() {
+            f.write_str(&inner.name)
+        } else {
+            f.write_str("(revoked)")
+        }
+    }
+}
+
 impl From<Rc<RefCell<Revocable<MediaControllerEntityInner>>>> for MediaControllerEntity {
     fn from(value: Rc<RefCell<Revocable<MediaControllerEntityInner>>>) -> Self {
         Self(value)
@@ -664,6 +674,23 @@ impl MediaControllerInterface {
             .map_or(RevocableValue::Revoked, |i| {
                 RevocableValue::Value(i.device_node.clone())
             })
+    }
+}
+
+impl fmt::Display for MediaControllerInterface {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(inner) = self.0.borrow().try_access() {
+            f.write_str(
+                inner
+                    .device_node
+                    .as_ref()
+                    .map(|n| n.path.display().to_string())
+                    .unwrap_or(String::from("No Device Node"))
+                    .as_str(),
+            )
+        } else {
+            f.write_str("(revoked)")
+        }
     }
 }
 
@@ -905,6 +932,18 @@ impl From<&Rc<RefCell<Revocable<MediaControllerPadInner>>>> for MediaControllerP
     }
 }
 
+impl fmt::Display for MediaControllerPad {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(inner) = self.0.borrow().try_access() {
+            let entity = MediaControllerEntity::from(&inner.entity);
+
+            f.write_fmt(format_args!("{}:{}", entity.name(), inner.index,))
+        } else {
+            f.write_str("(revoked)")
+        }
+    }
+}
+
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq)]
     struct MediaControllerLinkFlags: u32 {
@@ -980,6 +1019,23 @@ impl MediaControllerLinkEnd {
                 .borrow()
                 .try_access()
                 .map_or(RevocableValue::Revoked, |p| RevocableValue::Value(p.id)),
+        }
+    }
+}
+
+impl fmt::Display for MediaControllerLinkEnd {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MediaControllerLinkEnd::Entity(ent) => {
+                f.write_fmt(format_args!("Entity {}", MediaControllerEntity::from(ent)))
+            }
+            MediaControllerLinkEnd::Interface(itf) => f.write_fmt(format_args!(
+                "Interface {}",
+                MediaControllerInterface::from(itf)
+            )),
+            MediaControllerLinkEnd::Pad(pad) => {
+                f.write_fmt(format_args!("Pad {}", MediaControllerPad::from(pad)))
+            }
         }
     }
 }
@@ -1193,6 +1249,16 @@ impl MediaControllerLink {
                     }
                 })
             })
+    }
+}
+
+impl fmt::Display for MediaControllerLink {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(inner) = self.0.borrow().try_access() {
+            f.write_fmt(format_args!("{} -> {}", inner.source, inner.sink))
+        } else {
+            f.write_str("(revoked)")
+        }
     }
 }
 
