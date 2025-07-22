@@ -602,3 +602,29 @@ fn setup_link(#[from(get_vimc_device_path)] vimc: PathBuf) {
     );
     assert!(link_from_debayer.is_enabled().unwrap());
 }
+
+#[rstest]
+#[test_log::test]
+fn find_link_from_pads(#[from(get_vimc_device_path)] vimc: PathBuf) {
+    let mc = MediaController::new(&vimc).unwrap();
+
+    let entities = mc.entities().unwrap();
+    let debayer_b = entities
+        .iter()
+        .find(|e| e.name().unwrap() == "Debayer B")
+        .unwrap();
+
+    let debayer_source_pad = debayer_b.pad(1).unwrap().unwrap();
+    assert!(debayer_source_pad.is_source().unwrap());
+
+    let scaler = entities
+        .iter()
+        .find(|e| e.name().unwrap() == "Scaler")
+        .unwrap();
+
+    let scaler_sink_pad = scaler.pad(0).unwrap().unwrap();
+    assert!(scaler_sink_pad.is_sink().unwrap());
+
+    let link = mc.find_data_link_by_pads(&debayer_source_pad, &scaler_sink_pad).unwrap();
+    assert!(link.is_some());
+}
