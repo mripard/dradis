@@ -71,12 +71,24 @@ fn info(#[from(get_vimc_device_path)] vimc: PathBuf) {
     let mc = MediaController::new(&vimc).unwrap();
     let info = mc.info().unwrap();
 
+    info!("Found Media Controller Version {:#?}", info);
+
     assert_eq!(info.driver(), "vimc");
     assert_eq!(info.model(), VIMC_MODEL_NAME);
     assert_eq!(info.serial(), "");
     assert_eq!(info.bus_info(), "platform:vimc");
     assert_eq!(info.hardware_revision(), 0);
-    assert_eq!(info.driver_version(), &KernelVersion::current());
+
+    let current_version = KernelVersion::current();
+    info!("Current Kernel Version {}", current_version);
+
+    // On Github CI, we might run with a kernel different than the one the modules we load was
+    // compiled for. We can't expect total equality, so let's do our best to check the version
+    // is somewhat sane.
+    assert_eq!(info.driver_version().major(), current_version.major());
+    assert_eq!(info.driver_version().minor(), current_version.minor());
+    assert_eq!(info.media_controller_version().major(), current_version.major());
+    assert_eq!(info.media_controller_version().minor(), current_version.minor());
 }
 
 struct ExpectedEntityInterfaceTopology {
