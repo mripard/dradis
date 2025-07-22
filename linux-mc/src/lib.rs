@@ -486,7 +486,7 @@ impl MediaControllerEntity {
             let itf_inner = try_option_to_result!(itf_ref.try_access());
 
             if itf_ids.contains(&itf_inner.id) {
-                out_itfs.push(MediaControllerInterface(itf.clone()));
+                out_itfs.push(itf.into());
             }
         }
 
@@ -607,6 +607,17 @@ impl MediaControllerEntity {
     }
 }
 
+impl From<Rc<RefCell<Revocable<MediaControllerEntityInner>>>> for MediaControllerEntity {
+    fn from(value: Rc<RefCell<Revocable<MediaControllerEntityInner>>>) -> Self {
+        Self(value)
+    }
+}
+impl From<&Rc<RefCell<Revocable<MediaControllerEntityInner>>>> for MediaControllerEntity {
+    fn from(value: &Rc<RefCell<Revocable<MediaControllerEntityInner>>>) -> Self {
+        Self(value.clone())
+    }
+}
+
 #[derive(Debug)]
 struct MediaControllerInterfaceInner {
     _controller: Rc<RefCell<MediaControllerInner>>,
@@ -653,6 +664,18 @@ impl MediaControllerInterface {
             .map_or(RevocableValue::Revoked, |i| {
                 RevocableValue::Value(i.device_node.clone())
             })
+    }
+}
+
+impl From<Rc<RefCell<Revocable<MediaControllerInterfaceInner>>>> for MediaControllerInterface {
+    fn from(value: Rc<RefCell<Revocable<MediaControllerInterfaceInner>>>) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&Rc<RefCell<Revocable<MediaControllerInterfaceInner>>>> for MediaControllerInterface {
+    fn from(value: &Rc<RefCell<Revocable<MediaControllerInterfaceInner>>>) -> Self {
+        Self(value.clone())
     }
 }
 
@@ -724,7 +747,7 @@ impl MediaControllerPad {
             .borrow()
             .try_access()
             .map_or(RevocableValue::Revoked, |p| {
-                RevocableValue::Value(MediaControllerEntity(p.entity.clone()))
+                RevocableValue::Value(MediaControllerEntity::from(&p.entity))
             })
     }
 
@@ -808,7 +831,7 @@ impl MediaControllerPad {
             };
 
             if link_pad_id == inner.id {
-                out_links.push(MediaControllerLink(link.clone()));
+                out_links.push(link.into());
             }
         }
 
@@ -862,11 +885,23 @@ impl MediaControllerPad {
             let pad_inner = try_option_to_result!(pad_ref.try_access());
 
             if pad_inner.id == remote_pad_id {
-                return RevocableResult::Ok(Some(MediaControllerPad(pad.clone())));
+                return RevocableResult::Ok(Some(pad.into()));
             }
         }
 
         RevocableResult::Ok(None)
+    }
+}
+
+impl From<Rc<RefCell<Revocable<MediaControllerPadInner>>>> for MediaControllerPad {
+    fn from(value: Rc<RefCell<Revocable<MediaControllerPadInner>>>) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&Rc<RefCell<Revocable<MediaControllerPadInner>>>> for MediaControllerPad {
+    fn from(value: &Rc<RefCell<Revocable<MediaControllerPadInner>>>) -> Self {
+        Self(value.clone())
     }
 }
 
@@ -1123,7 +1158,7 @@ impl MediaControllerLink {
             .try_access()
             .map_or(RevocableValue::Revoked, |l| {
                 RevocableValue::Value(match &l.sink {
-                    MediaControllerLinkEnd::Pad(pad) => MediaControllerPad(pad.clone()),
+                    MediaControllerLinkEnd::Pad(pad) => pad.into(),
                     MediaControllerLinkEnd::Entity(_) | MediaControllerLinkEnd::Interface(_) => {
                         panic!("Link Sink is not a pad")
                     }
@@ -1152,12 +1187,24 @@ impl MediaControllerLink {
             .try_access()
             .map_or(RevocableValue::Revoked, |l| {
                 RevocableValue::Value(match &l.source {
-                    MediaControllerLinkEnd::Pad(pad) => MediaControllerPad(pad.clone()),
+                    MediaControllerLinkEnd::Pad(pad) => pad.into(),
                     MediaControllerLinkEnd::Entity(_) | MediaControllerLinkEnd::Interface(_) => {
                         panic!("Link Source is not a pad")
                     }
                 })
             })
+    }
+}
+
+impl From<Rc<RefCell<Revocable<MediaControllerLinkInner>>>> for MediaControllerLink {
+    fn from(value: Rc<RefCell<Revocable<MediaControllerLinkInner>>>) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&Rc<RefCell<Revocable<MediaControllerLinkInner>>>> for MediaControllerLink {
+    fn from(value: &Rc<RefCell<Revocable<MediaControllerLinkInner>>>) -> Self {
+        Self(value.clone())
     }
 }
 
@@ -1633,7 +1680,7 @@ impl MediaController {
         Ok(inner
             .interfaces
             .iter()
-            .map(|e| MediaControllerInterface(e.clone()))
+            .map(|e| e.into())
             .collect())
     }
 
@@ -1649,7 +1696,7 @@ impl MediaController {
         Ok(inner
             .pads
             .iter()
-            .map(|e| MediaControllerPad(e.clone()))
+            .map(|e| e.into())
             .collect())
     }
 
@@ -1665,7 +1712,7 @@ impl MediaController {
         Ok(inner
             .links
             .iter()
-            .map(|e| MediaControllerLink(e.clone()))
+            .map(|e| e.into())
             .collect())
     }
 
@@ -1687,7 +1734,7 @@ impl MediaController {
                 if try_value!(inner.source.id()) == source_id
                     && try_value!(inner.sink.id()) == sink_id
                 {
-                    return RevocableResult::Ok(Some(MediaControllerLink(link.0.clone())));
+                    return RevocableResult::Ok(Some(MediaControllerLink::from(&link.0)));
                 }
             } else {
                 return RevocableResult::Revoked;
@@ -1701,5 +1748,11 @@ impl MediaController {
 impl From<Rc<RefCell<MediaControllerInner>>> for MediaController {
     fn from(value: Rc<RefCell<MediaControllerInner>>) -> Self {
         Self(value)
+    }
+}
+
+impl From<&Rc<RefCell<MediaControllerInner>>> for MediaController {
+    fn from(value: &Rc<RefCell<MediaControllerInner>>) -> Self {
+        Self(value.clone())
     }
 }
