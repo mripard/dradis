@@ -15,6 +15,7 @@ use std::{
     os::fd::{AsFd as _, BorrowedFd, OwnedFd},
     path::{Path, PathBuf},
 };
+use tracing::{debug, trace};
 
 use bitflags::bitflags;
 use bytemuck::cast_slice;
@@ -1783,11 +1784,14 @@ impl MediaController {
         let source_id = try_value!(source.id());
         let sink_id = try_value!(sink.id());
 
+        debug!("Trying to find link between source pad {source} and sink pad {sink}");
+
         for link in try_result_to_revocable!(self.links()) {
             if let Some(inner) = link.0.borrow().try_access() {
                 if try_value!(inner.source.id()) == source_id
                     && try_value!(inner.sink.id()) == sink_id
                 {
+                    trace!("Found a match! Returning.");
                     return RevocableResult::Ok(Some(MediaControllerLink::from(&link.0)));
                 }
             } else {
@@ -1795,6 +1799,7 @@ impl MediaController {
             }
         }
 
+        trace!("Found no match. Returning.");
         RevocableResult::Ok(None)
     }
 }
