@@ -3,9 +3,9 @@
 #![deny(clippy::all)]
 #![deny(clippy::cargo)]
 #![deny(clippy::pedantic)]
-#![warn(clippy::multiple_crate_versions)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::cargo_common_metadata)]
+#![allow(clippy::multiple_crate_versions)]
 #![allow(clippy::needless_raw_string_hashes)]
 #![allow(clippy::unreadable_literal)]
 
@@ -198,7 +198,7 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
             .valid()?
             .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
 
-        let entity = sink_pad.entity().valid()?;
+        let entity = sink_pad.entity().valid();
 
         let source_pad = find_internal_routed_pad(&entity, &sink_pad)?;
 
@@ -332,6 +332,16 @@ fn test_prepare_queue(
                     }
                 }
             }
+        }
+
+        if let (Some(source), Some(sink)) = (source_pad, sink_pad) {
+            let link = suite
+                .mc
+                .find_data_link_by_pads(source, sink)
+                .valid()?
+                .expect("Missing link between pads.");
+
+            link.enable().valid()?;
         }
     }
 
@@ -656,6 +666,7 @@ struct PipelineItem(
 #[derive(Debug)]
 pub(crate) struct Dradis<'a> {
     cfg: Test,
+    mc: MediaController,
     pipeline: Vec<PipelineItem>,
     heap: &'a Heap,
 }
@@ -740,7 +751,7 @@ fn main() -> anyhow::Result<()> {
         .into_iter()
         .map(|MediaPipelineItem(source, dev, sink)| {
             let node = if let Some(itf) = dev.interfaces().valid()?.first() {
-                if let Some(node) = itf.device_node().valid()? {
+                if let Some(node) = itf.device_node().valid() {
                     Some(Device::new(node.path(), true)?)
                 } else {
                     None
@@ -762,6 +773,7 @@ fn main() -> anyhow::Result<()> {
 
     let dradis = Dradis {
         cfg: test_config,
+        mc,
         pipeline,
         heap: &heap,
     };
