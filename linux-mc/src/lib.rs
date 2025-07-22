@@ -15,13 +15,13 @@ use std::{
     os::fd::{AsFd as _, BorrowedFd, OwnedFd},
     path::{Path, PathBuf},
 };
-use tracing::{debug, trace};
 
 use bitflags::bitflags;
 use bytemuck::cast_slice;
 use facet::Facet;
 use facet_enum_repr::FacetEnumRepr;
 use linux_raw::KernelVersion;
+use tracing::{debug, trace};
 
 /// Raw, unsafe, abstraction
 pub mod raw;
