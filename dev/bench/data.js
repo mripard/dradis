@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1752581459284,
+  "lastUpdate": 1754050202570,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1319,6 +1319,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 479550,
             "range": "± 1656",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5819bd0590c492c6d953abcf0a703c9d6bd11481",
+          "message": "Merge pull request #251 from mripard/dependabot/cargo/rustix-1.0.8\n\nbuild(deps): bump rustix from 1.0.7 to 1.0.8",
+          "timestamp": "2025-08-01T14:06:05+02:00",
+          "tree_id": "b8f57b77947d485664262b5d44edf47ac357ddca",
+          "url": "https://github.com/mripard/dradis/commit/5819bd0590c492c6d953abcf0a703c9d6bd11481"
+        },
+        "date": 1754050202168,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 486160,
+            "range": "± 2547",
             "unit": "ns/iter"
           }
         ]
