@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1754050202570,
+  "lastUpdate": 1754050230782,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1349,6 +1349,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 486160,
             "range": "± 2547",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4a015717ce6b6539e8a191bf494d46716fd82e23",
+          "message": "Merge pull request #248 from mripard/dependabot/cargo/clap-4.5.42\n\nbuild(deps): bump clap from 4.5.40 to 4.5.42",
+          "timestamp": "2025-08-01T14:07:06+02:00",
+          "tree_id": "d524c4ea5bb1eb123912ab446483cae463c9684b",
+          "url": "https://github.com/mripard/dradis/commit/4a015717ce6b6539e8a191bf494d46716fd82e23"
+        },
+        "date": 1754050230329,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 503293,
+            "range": "± 2380",
             "unit": "ns/iter"
           }
         ]
