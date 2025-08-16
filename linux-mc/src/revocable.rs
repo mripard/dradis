@@ -1,6 +1,6 @@
 use core::{
     fmt,
-    ops::Deref,
+    ops::{Deref, DerefMut},
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -55,6 +55,20 @@ impl<T> Revocable<T> {
         }
     }
 
+    /// Tries to access the object.
+    ///
+    /// Returns None if the object is no longer accessible. Returns a guard that gives access to the
+    /// object otherwise.
+    pub fn try_access_mut(&mut self) -> Option<RevocableGuardMut<'_, T>> {
+        if self.is_available.load(Ordering::Relaxed) {
+            Some(RevocableGuardMut {
+                content_ref: &mut self.content,
+            })
+        } else {
+            None
+        }
+    }
+
     /// Revokes access to the object
     pub fn revoke(&self) {
         self.is_available.store(false, Ordering::Relaxed);
@@ -73,6 +87,83 @@ impl<T> Deref for RevocableGuard<'_, T> {
     fn deref(&self) -> &Self::Target {
         self.content_ref
     }
+}
+
+/// A guard that allows mutable access to a revocable object.
+#[derive(Debug)]
+pub struct RevocableGuardMut<'a, T> {
+    content_ref: &'a mut T,
+}
+
+impl<T> Deref for RevocableGuardMut<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.content_ref
+    }
+}
+impl<T> DerefMut for RevocableGuardMut<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.content_ref
+    }
+}
+
+/// Unwraps an `Option<RevocableGuard<T>>` or returns `RevocableValue::Revoked` if None.
+///
+/// # Examples
+///
+/// ```
+/// use linux_mc::{Revocable, RevocableValue, try_option_to_value};
+///
+/// fn add_two(val: Revocable<u32>) -> RevocableValue<u32> {
+///     let inner = try_option_to_value!(val.try_access());
+///
+///     RevocableValue::Value(*inner + 2)
+/// }
+///
+/// assert_eq!(add_two(Revocable::new(2)), RevocableValue::Value(4));
+///
+/// let revoked = Revocable::new(2);
+/// revoked.revoke();
+/// assert_eq!(add_two(revoked), RevocableValue::Revoked);
+/// ```
+#[macro_export]
+macro_rules! try_option_to_value {
+    ($a:expr) => {
+        match $a {
+            Some(v) => v,
+            None => return RevocableValue::Revoked.into(),
+        }
+    };
+}
+
+/// Unwraps an `Option<RevocableGuard<T>>` or returns `RevocableResult::Revoked` if None.
+///
+/// # Examples
+///
+/// ```
+/// use linux_mc::{Revocable, RevocableResult, try_option_to_result};
+///
+/// fn add_two(val: Revocable<u32>) -> RevocableResult<u32, ()> {
+///     let inner = try_option_to_result!(val.try_access());
+///
+///     RevocableResult::Ok(*inner + 2)
+/// }
+///
+/// assert_eq!(add_two(Revocable::new(2)), RevocableResult::Ok(4));
+///
+/// let revoked = Revocable::new(2);
+/// revoked.revoke();
+/// assert_eq!(add_two(revoked), RevocableResult::Revoked);
+/// ```
+#[macro_export]
+macro_rules! try_option_to_result {
+    ($a:expr) => {
+        match $a {
+            Some(v) => v,
+            None => return RevocableResult::Revoked.into(),
+        }
+    };
 }
 
 /// Represents a returned value from an object that is valid or has been revoked
@@ -176,6 +267,33 @@ impl<T> RevocableValue<T> {
     }
 }
 
+impl<T> RevocableValue<RevocableValue<T>> {
+    /// Converts from `RecoverableValue<RecoverableValue<T>>` to `RecoverableValue<T>`
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use linux_mc::RevocableValue;
+    ///
+    /// let val: RevocableValue<RevocableValue<u32>> = RevocableValue::Value(RevocableValue::Value(42));
+    /// assert_eq!(RevocableValue::Value(42), val.flatten());
+    ///
+    /// let val: RevocableValue<RevocableValue<u32>> = RevocableValue::Value(RevocableValue::Revoked);
+    /// assert_eq!(RevocableValue::Revoked, val.flatten());
+    ///
+    /// let val: RevocableValue<RevocableValue<u32>> = RevocableValue::Revoked;
+    /// assert_eq!(RevocableValue::Revoked, val.flatten());
+    /// ```
+    pub fn flatten(self) -> RevocableValue<T> {
+        match self {
+            RevocableValue::Value(inner) => inner,
+            RevocableValue::Revoked => RevocableValue::Revoked,
+        }
+    }
+}
+
 impl<T> fmt::Display for RevocableValue<T>
 where
     T: fmt::Display,
@@ -215,7 +333,7 @@ macro_rules! try_value {
 /// Represents the returned value of a revocable object that can be either a success value or an
 /// error value if the object was still valid, or Revoked if it wasn't.
 #[must_use]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum RevocableResult<T, E> {
     /// The Object we were accessing was valid, and the operation was successful.
     Ok(T),
@@ -339,6 +457,40 @@ impl<T, E> RevocableResult<T, E> {
                 panic!("Called `RevocableResult::valid()` on a `Revoked` value")
             }
             RevocableResult::Err(e) => Err(e),
+        }
+    }
+}
+
+impl<T, E> RevocableResult<RevocableResult<T, E>, E> {
+    /// Converts from `RecoverableResult<RecoverableResult<T, E>, E>` to `RecoverableResult<T, E>`
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use linux_mc::RevocableResult;
+    ///
+    /// let val: RevocableResult<RevocableResult<u32, u32>, u32> = RevocableResult::Ok(RevocableResult::Ok(42));
+    /// assert_eq!(RevocableResult::Ok(42), val.flatten());
+    ///
+    /// let val: RevocableResult<RevocableResult<u32, u32>, u32> = RevocableResult::Ok(RevocableResult::Revoked);
+    /// assert_eq!(RevocableResult::Revoked, val.flatten());
+    ///
+    /// let val: RevocableResult<RevocableResult<u32, u32>, u32> = RevocableResult::Ok(RevocableResult::Err(14));
+    /// assert_eq!(RevocableResult::Err(14), val.flatten());
+    ///
+    /// let val: RevocableResult<RevocableResult<u32, u32>, u32> = RevocableResult::Revoked;
+    /// assert_eq!(RevocableResult::Revoked, val.flatten());
+    ///
+    /// let val: RevocableResult<RevocableResult<u32, u32>, u32> = RevocableResult::Err(14);
+    /// assert_eq!(RevocableResult::Err(14), val.flatten());
+    /// ```
+    pub fn flatten(self) -> RevocableResult<T, E> {
+        match self {
+            RevocableResult::Ok(inner) => inner,
+            RevocableResult::Err(e) => RevocableResult::Err(e),
+            RevocableResult::Revoked => RevocableResult::Revoked,
         }
     }
 }
