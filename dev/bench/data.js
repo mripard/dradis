@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755599348253,
+  "lastUpdate": 1755604000751,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1649,6 +1649,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 488470,
             "range": "± 2182",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "distinct": true,
+          "id": "c605d2091dee77130a70bb4eed9425b1ea21559e",
+          "message": "Update facet\n\nSigned-off-by: Maxime Ripard <mripard@kernel.org>",
+          "timestamp": "2025-08-19T13:42:41+02:00",
+          "tree_id": "f986778c21a18cb01ec60f8dbcd56e93a3b229c3",
+          "url": "https://github.com/mripard/dradis/commit/c605d2091dee77130a70bb4eed9425b1ea21559e"
+        },
+        "date": 1755604000320,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 493335,
+            "range": "± 3044",
             "unit": "ns/iter"
           }
         ]
