@@ -1655,7 +1655,7 @@ checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 [[package]]
 name = "redid"
 version = "0.2.0"
-source = "git+https://github.com/mripard/redid.git#862de8718e007f8c6e84ba7505f490536ac365ef"
+source = "git+https://github.com/mripard/redid.git#16d3ed3948342120ab77f599c3afc6eb8d026719"
 dependencies = [
  "bon",
  "encoding",
