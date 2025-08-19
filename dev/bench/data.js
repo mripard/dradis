@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1754050240490,
+  "lastUpdate": 1755597920384,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1439,6 +1439,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 497489,
             "range": "± 4213",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e7b0efb0d95cc29a542e5c6a117160d44ed9aedf",
+          "message": "Merge pull request #252 from mripard/dependabot/cargo/serde_json-1.0.143\n\nbuild(deps): bump serde_json from 1.0.142 to 1.0.143",
+          "timestamp": "2025-08-19T12:01:37+02:00",
+          "tree_id": "3d0b98e1b5d193a86d4725ded29ccfa991eda07b",
+          "url": "https://github.com/mripard/dradis/commit/e7b0efb0d95cc29a542e5c6a117160d44ed9aedf"
+        },
+        "date": 1755597919624,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 490406,
+            "range": "± 6629",
             "unit": "ns/iter"
           }
         ]
