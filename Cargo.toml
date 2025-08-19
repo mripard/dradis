@@ -32,7 +32,7 @@ bindgen = { version = "0.72.0", default-features = false }
 bitflags = { version = "2.9.0", default-features = false }
 built = { version = "0.8.0", default-features = false, features = ["git2"] }
 bytemuck = { version = "1.23.2", default-features = false }
-clap = { version = "4.5.42", default-features = false, features = [
+clap = { version = "4.5.45", default-features = false, features = [
     "cargo",
     "derive",
     "help",
