@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755599320163,
+  "lastUpdate": 1755599334623,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1589,6 +1589,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 492664,
             "range": "± 2756",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "99bbcedf6b205b04588ada3d2178c90dede20d07",
+          "message": "Merge pull request #258 from mripard/dependabot/cargo/thiserror-2.0.15\n\nbuild(deps): bump thiserror from 2.0.12 to 2.0.15",
+          "timestamp": "2025-08-19T12:25:10+02:00",
+          "tree_id": "7e157979af8afe270cf9f7262f3bc65787511382",
+          "url": "https://github.com/mripard/dradis/commit/99bbcedf6b205b04588ada3d2178c90dede20d07"
+        },
+        "date": 1755599333869,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 496396,
+            "range": "± 3138",
             "unit": "ns/iter"
           }
         ]
