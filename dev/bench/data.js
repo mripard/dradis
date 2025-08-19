@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755597953741,
+  "lastUpdate": 1755597969938,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1499,6 +1499,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 489469,
             "range": "± 2272",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6a48f11a8a6613966d8927bd4298909e25625cff",
+          "message": "Merge pull request #255 from mripard/dependabot/cargo/bytemuck-1.23.2\n\nbuild(deps): bump bytemuck from 1.23.1 to 1.23.2",
+          "timestamp": "2025-08-19T12:02:24+02:00",
+          "tree_id": "b37b11f1d969623222faa4a9b956da9e93c4e362",
+          "url": "https://github.com/mripard/dradis/commit/6a48f11a8a6613966d8927bd4298909e25625cff"
+        },
+        "date": 1755597969003,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 491283,
+            "range": "± 2420",
             "unit": "ns/iter"
           }
         ]
