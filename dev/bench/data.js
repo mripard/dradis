@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755597969938,
+  "lastUpdate": 1755599317730,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1529,6 +1529,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 491283,
             "range": "± 2420",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ae50e56d47686283b15a9cc6bcc9b5ce318683ed",
+          "message": "Merge pull request #259 from mripard/dependabot/cargo/anyhow-1.0.99\n\nbuild(deps): bump anyhow from 1.0.98 to 1.0.99",
+          "timestamp": "2025-08-19T12:24:59+02:00",
+          "tree_id": "ff2dd10383788cdc7d77005e4302d522dce738c2",
+          "url": "https://github.com/mripard/dradis/commit/ae50e56d47686283b15a9cc6bcc9b5ce318683ed"
+        },
+        "date": 1755599317322,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 487595,
+            "range": "± 2656",
             "unit": "ns/iter"
           }
         ]
