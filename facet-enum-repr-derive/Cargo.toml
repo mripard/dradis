@@ -9,7 +9,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-facet-derive-parse.workspace = true
+facet-macros-parse.workspace = true
 unsynn.workspace = true
 
 [lib]

@@ -4,11 +4,11 @@
 use core::fmt::Write as _;
 use std::collections::HashMap;
 
-use facet_derive_parse::{AttributeInner, Parse as _};
+use facet_macros_parse::{AttributeInner, Parse as _};
 use proc_macro::TokenStream;
 use unsynn::{ToTokens as _, TokenTree};
 
-fn find_enum_repr(val: &facet_derive_parse::Enum) -> String {
+fn find_enum_repr(val: &facet_macros_parse::Enum) -> String {
     val.attributes
         .iter()
         .filter_map(|attr| {
@@ -101,7 +101,7 @@ pub fn facet_enum_repr_derive(input: TokenStream) -> TokenStream {
     let utstream = unsynn::TokenStream::from(input.clone());
     let mut i = utstream.to_token_iter();
 
-    let Ok(val) = facet_derive_parse::Enum::parse(&mut i) else {
+    let Ok(val) = facet_macros_parse::Enum::parse(&mut i) else {
         return r#"
 compile_error!("FacetEnumRepr only works on enums.")
             "#
