@@ -15,8 +15,9 @@ use redid::{
     EdidDescriptorDetailedTimingHorizontal, EdidDescriptorDetailedTimingVertical,
     EdidDetailedTimingDigitalSeparateSync, EdidDetailedTimingDigitalSync,
     EdidDetailedTimingDigitalSyncKind, EdidDetailedTimingStereo, EdidDetailedTimingSync,
-    EdidDisplayColorType, EdidDisplayTransferCharacteristics, EdidEstablishedTiming, EdidExtension,
-    EdidExtensionCTA861, EdidExtensionCTA861ColorimetryDataBlock, EdidExtensionCTA861HdmiDataBlock,
+    EdidDisplayColorType, EdidDisplayRangeLimitsRangeFreq, EdidDisplayTransferCharacteristics,
+    EdidEstablishedTiming, EdidExtension, EdidExtensionCTA861,
+    EdidExtensionCTA861ColorimetryDataBlock, EdidExtensionCTA861HdmiDataBlock,
     EdidExtensionCTA861Revision3, EdidExtensionCTA861Revision3DataBlock,
     EdidExtensionCTA861VideoCapabilityDataBlock, EdidExtensionCTA861VideoCapabilityQuantization,
     EdidExtensionCTA861VideoCapabilityScanBehavior, EdidFilterChromaticity, EdidManufactureDate,
@@ -313,11 +314,13 @@ pub(crate) fn bridge_set_edid(
         .add_descriptor(EdidR3Descriptor::DisplayRangeLimits(
             EdidR3DisplayRangeLimits::builder()
                 .timings_support(EdidR3DisplayRangeVideoTimingsSupport::DefaultGTF)
-                .min_hfreq(min_hfreq_khz.try_into()?)
-                .max_hfreq(max_hfreq_khz.try_into()?)
-                .min_vfreq(min_vfreq_hz.try_into()?)
-                .max_vfreq(max_vfreq_hz.try_into()?)
-                .max_pixelclock(80.try_into()?)
+                .hfreq_khz(EdidDisplayRangeLimitsRangeFreq::try_from(
+                    min_hfreq_khz..max_hfreq_khz,
+                )?)
+                .vfreq_hz(EdidDisplayRangeLimitsRangeFreq::try_from(
+                    min_vfreq_hz..max_vfreq_hz,
+                )?)
+                .max_pixelclock_mhz(80.try_into()?)
                 .build(),
         ))
         .add_extension(EdidExtension::CTA861(EdidExtensionCTA861::Revision3(
