@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755599317730,
+  "lastUpdate": 1755599320163,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1559,6 +1559,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 487595,
             "range": "± 2656",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a07d0ec21f0eec0d3c22d00b955f77b2e16c0af4",
+          "message": "Merge pull request #257 from mripard/dependabot/cargo/bitflags-2.9.2\n\nbuild(deps): bump bitflags from 2.9.1 to 2.9.2",
+          "timestamp": "2025-08-19T12:24:46+02:00",
+          "tree_id": "b34abca32b2d96a6313d3c304f759b14f6b37628",
+          "url": "https://github.com/mripard/dradis/commit/a07d0ec21f0eec0d3c22d00b955f77b2e16c0af4"
+        },
+        "date": 1755599319502,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 492664,
+            "range": "± 2756",
             "unit": "ns/iter"
           }
         ]
