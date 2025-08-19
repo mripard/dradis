@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755605544065,
+  "lastUpdate": 1755608034511,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1709,6 +1709,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 493143,
             "range": "± 3663",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6e9e423074e733c5a254f6ae868e633e03fc29ec",
+          "message": "Merge pull request #260 from mripard/github-ci-fmt-fix\n\nTry to fix rustfmt (again)",
+          "timestamp": "2025-08-19T14:50:07+02:00",
+          "tree_id": "186649f79f19f00d0cf9ca0986076fb7285df2d5",
+          "url": "https://github.com/mripard/dradis/commit/6e9e423074e733c5a254f6ae868e633e03fc29ec"
+        },
+        "date": 1755608033728,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 487627,
+            "range": "± 2273",
             "unit": "ns/iter"
           }
         ]
