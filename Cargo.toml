@@ -27,7 +27,7 @@ repository = "https://github.com/mripard/dradis.git"
 version = "0.5.2"
 
 [workspace.dependencies]
-anyhow = { version = "1.0.98", default-features = false }
+anyhow = { version = "1.0.99", default-features = false }
 bindgen = { version = "0.72.0", default-features = false }
 bitflags = { version = "2.9.2", default-features = false }
 built = { version = "0.8.0", default-features = false, features = ["git2"] }
