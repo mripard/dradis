@@ -74,7 +74,7 @@ version = "0.72.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f72209734318d0b619a5e0f5129918b848c416e122a3c4ce054e03cb87b726f"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
  "cexpr",
  "clang-sys",
  "itertools 0.13.0",
@@ -109,9 +109,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.9.2"
+version = "2.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a65b545ab31d687cff52899d4890855fec459eb6afe0da6417b8a18da87aa29"
+checksum = "34efbcccd345379ca2868b2b2c9d3782e9cc58ba87bc7d79d5b53d9c9ae6f25d"
 
 [[package]]
 name = "bon"
@@ -658,7 +658,7 @@ version = "0.27.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adee9a1635f12c89863c20c61f0346533a31e2b8dc1f09674993c351c5bad149"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
  "impls",
 ]
 
@@ -668,7 +668,7 @@ version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47235ba7a21bcc1c4df33a17f6a2340b75cb5e78d41e1705c8ea71a0d75b1fe1"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
  "impls",
 ]
 
@@ -809,7 +809,7 @@ version = "0.27.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28ff0d48de1d367c32dfe1b7b6cc40cff371424168c93c6e8d7143e4db3f3669"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
  "facet-core 0.27.12",
  "owo-colors",
 ]
@@ -820,7 +820,7 @@ version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cbcfb2e0b8cd4075a7e90063344a82591505579a2f3ee74393a8c024f996493b"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
  "facet-core 0.28.1",
  "owo-colors",
 ]
@@ -909,7 +909,7 @@ version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2deb07a133b1520dc1a5690e9bd08950108873d7ed5de38dcc74d3b5ebffa110"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
  "libc",
  "libgit2-sys",
  "log",
@@ -1219,7 +1219,7 @@ name = "linux-mc"
 version = "0.5.2"
 dependencies = [
  "bindgen",
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
  "bytemuck",
  "clap",
  "facet 0.28.1",
@@ -1596,7 +1596,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97baced388464909d42d89643fe4361939af9b7ce7a31ee32a168f832a70f2a0"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
  "crc32fast",
  "fdeflate",
  "flate2",
@@ -1703,7 +1703,7 @@ version = "0.5.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d04b7d0ee6b4a0207a0a7adb104d23ecb0b47d6beae7152d0fa34b692b29fd6"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
 ]
 
 [[package]]
@@ -1767,7 +1767,7 @@ version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11181fbabf243db407ef8df94a6ce0b2f9a733bd8be4ad02b4eda9602296cac8"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
  "errno",
  "libc",
  "linux-raw-sys",
@@ -2257,7 +2257,7 @@ dependencies = [
 name = "v4lise"
 version = "0.5.2"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
  "rustix",
  "v4l2-raw",
 ]
@@ -2524,7 +2524,7 @@ version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
 dependencies = [
- "bitflags 2.9.2",
+ "bitflags 2.9.3",
 ]
 
 [[package]]
