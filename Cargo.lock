@@ -2063,7 +2063,7 @@ dependencies = [
 [[package]]
 name = "tracelimit"
 version = "0.0.0"
-source = "git+https://github.com/microsoft/openvmm.git#b9a2abc02c50b8e45846c6246a3d8b26b654c11b"
+source = "git+https://github.com/microsoft/openvmm.git#94889caebe6d13596ba6957813671fd61cabb073"
 dependencies = [
  "parking_lot",
  "tracing",
