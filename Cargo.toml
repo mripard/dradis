@@ -44,11 +44,11 @@ criterion = { version = "0.6.0", default-features = false, features = [
 ] }
 dma-buf = { version = "0.5.0", default-features = false }
 dma-heap = { version = "0.4.1", default-features = false }
-facet = { version = "0.28.0", default-features = false }
+facet = { version = "0.28.1", default-features = false }
 facet-enum-repr = { path = "./facet-enum-repr" }
 facet-enum-repr-derive = { path = "./facet-enum-repr-derive" }
 facet-macros-parse = { version = "0.28.0", default-features = false }
-facet-reflect = { version = "0.28.0", default-features = false }
+facet-reflect = { version = "0.28.1", default-features = false }
 frame_check = { package = "dradis-frame-check", path = "./dradis-frame-check" }
 image = { version = "0.25.7", default-features = false, features = ["png"] }
 linux-mc = { path = "./linux-mc" }
