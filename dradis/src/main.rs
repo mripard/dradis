@@ -333,15 +333,30 @@ fn test_prepare_queue(
                 }
             }
         }
+    }
+
+    for items_slice in suite.pipeline.windows(2) {
+        let PipelineItem(_, sink_wrapper, sink_pad) = &items_slice[0];
+        let PipelineItem(source_pad, source_wrapper, _) = &items_slice[1];
 
         if let (Some(source), Some(sink)) = (source_pad, sink_pad) {
+            debug!(
+                "Enabling link between source {}:{} and sink {}:{}",
+                sink_wrapper.entity.name(),
+                sink.index(),
+                source_wrapper.entity.name(),
+                source.index()
+            );
+
             let link = suite
                 .mc
-                .find_data_link_by_pads(source, sink)
+                .find_data_link_by_pads(&source, &sink)
                 .valid()?
                 .expect("Missing link between pads.");
 
             link.enable().valid()?;
+        } else {
+            unreachable!();
         }
     }
 
