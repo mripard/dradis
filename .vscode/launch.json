@@ -1,0 +1,52 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Boomer",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/boomer",
+      "args": ["-vvv", "--device", "/dev/dri/card${input:dri-device-number}"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "RUST_BACKTRACE": "full"
+      },
+      "sourceLanguages": [
+        "rust"
+      ],
+      "preLaunchTask": "build-debug"
+    },
+    {
+      "name": "Dradis (test-single-mode)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/dradis",
+      "args": ["-vvv", "--device", "/dev/media${input:media-device-number}", "--dump-frames", "corrupted", "--dump-frames-limit", "3", "${workspaceFolder}/dradis/samples/test-single-mode-720p.yaml"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "RUST_BACKTRACE": "full"
+      },
+      "sourceLanguages": [
+        "rust"
+      ],
+      "preLaunchTask": "build-debug"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "dri-device-number",
+      "type": "promptString",
+      "default": "0",
+      "description": "Device number, by default 0 (/dev/dri/card0)."
+    },
+    {
+      "id": "media-device-number",
+      "type": "promptString",
+      "default": "0",
+      "description": "Device number, by default 0 (/dev/media0). Run `v4l2-ctl --list-devices` to find the correct number."
+    }
+  ]
+}
