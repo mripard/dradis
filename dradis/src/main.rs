@@ -336,15 +336,17 @@ fn test_prepare_queue(
     }
 
     for items_slice in suite.pipeline.windows(2) {
-        let PipelineItem(_, sink_wrapper, sink_pad) = &items_slice[0];
-        let PipelineItem(source_pad, source_wrapper, _) = &items_slice[1];
+        let sink_item = &items_slice[0];
+        let source_item = &items_slice[1];
 
-        if let (Some(source), Some(sink)) = (source_pad, sink_pad) {
+        debug!("Found Sink {}, Source {}", sink_item, source_item);
+
+        if let (Some(source), Some(sink)) = (&source_item.0, &sink_item.2) {
             debug!(
                 "Enabling link between source {}:{} and sink {}:{}",
-                sink_wrapper.entity.name(),
+                sink_item.1.entity.name(),
                 sink.index(),
-                source_wrapper.entity.name(),
+                source_item.1.entity.name(),
                 source.index()
             );
 
@@ -677,6 +679,30 @@ struct PipelineItem(
     V4l2EntityWrapper,
     Option<MediaControllerPad>,
 );
+
+impl fmt::Display for PipelineItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match (&self.0, &self.2) {
+            (Some(source), Some(sink)) => f.write_fmt(format_args!(
+                "Entity {} Source Pad {} Sink Pad {}",
+                self.1.entity.name(),
+                source,
+                sink
+            )),
+            (Some(source), None) => f.write_fmt(format_args!(
+                "Entity {} Source Pad {}",
+                self.1.entity.name(),
+                source,
+            )),
+            (None, Some(sink)) => f.write_fmt(format_args!(
+                "Entity {} Sink Pad {}",
+                self.1.entity.name(),
+                sink
+            )),
+            (None, None) => f.write_fmt(format_args!("Entity {}", self.1.entity.name(),)),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub(crate) struct Dradis<'a> {
