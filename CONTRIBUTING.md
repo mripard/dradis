@@ -87,6 +87,15 @@ Then, pass this device to Dradis and select a test configuration file:
 $ cargo run --bin dradis -- --device /dev/media0 ./dradis/samples/test-single-mode-720p.yaml
 ```
 
+## Development environment
+
+You can use any text editor or IDE. But, if you are using Visual Studio Code,
+check the [official documentation](https://code.visualstudio.com/docs/languages/rust)
+to set up the development environment.
+
+Due to the nature of the project, [remote development using SSH](https://code.visualstudio.com/docs/remote/ssh)
+is specially useful.
+
 ## Future Plans
 
 - [ ] We want to evaluate the Rockchip RK3588 System-on-Chip that features an HDMI receiver directly into the SoC. There's a driver for it in Linux since 6.15, and it's said to be capable of handling 2160p/60fps.
