@@ -87,6 +87,23 @@ Then, pass this device to Dradis and select a test configuration file:
 $ cargo run --bin dradis -- --device /dev/media0 ./dradis/samples/test-single-mode-720p.yaml
 ```
 
+## Development environment
+
+You can use any text editor or IDE. But, if you are using Visual Studio
+Code, the recommended extensions to install are:
+
+- [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer):
+  Rust language support with code completion, diagnostics, refactoring and more
+- [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb):
+  Native debugger for Rust (used in the debug configuration)
+- [EditorConfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig):
+  Configure vscode using the .editorconfig file
+- [Code Spell Checker](https://marketplace.visualstudio.com/items?itemName=streetsidesoftware.code-spell-checker):
+  Install this extension to avoid typos
+
+For more information about how to setup the development environment, check the
+[official documentation](https://code.visualstudio.com/docs/languages/rust).
+
 ## Future Plans
 
 - [ ] We want to evaluate the Rockchip RK3588 System-on-Chip that features an HDMI receiver directly into the SoC. There's a driver for it in Linux since 6.15, and it's said to be capable of handling 2160p/60fps.
