@@ -6,7 +6,7 @@ use dradis_frame_check::{
 
 const FRAME_WIDTH: u32 = 1280;
 const FRAME_HEIGHT: u32 = 720;
-const FRAME: &[u8] = include_bytes!("./data//test-qrcode-detection.rgb888.raw");
+const FRAME: &[u8] = include_bytes!("../tests/data/test-qrcode-detection.rgb888.raw");
 
 fn bench_frame_detect(c: &mut criterion::Criterion) {
     let mut group = c.benchmark_group("frame processing");
@@ -21,6 +21,7 @@ fn bench_frame_detect(c: &mut criterion::Criterion) {
                     width: FRAME_WIDTH,
                     height: FRAME_HEIGHT,
                     swap_channels: false,
+                    ignore_hash_check: false,
                     dump: DecodeCheckArgsDump::Never,
                 },
             )
