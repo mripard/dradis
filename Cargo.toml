@@ -53,7 +53,7 @@ frame_check = { package = "dradis-frame-check", path = "./dradis-frame-check" }
 image = { version = "0.25.7", default-features = false, features = ["png"] }
 linux-mc = { path = "./linux-mc" }
 linux-raw = { path = "./linux-raw" }
-nucleid = { git = "https://github.com/mripard/nucleid.git", rev = "bec753ea420d2f2f9303567372cdddbce81b04f3" }
+nucleid = { git = "https://github.com/mripard/nucleid.git", rev = "a4e42fd73d992c2b24aef5bee378141ac6dfa13b" }
 num-traits = { version = "0.2.19", default-features = false }
 pix = { version = "0.14.0", default-features = false }
 png = { version = "0.17.16", default-features = false }
