@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755608034511,
+  "lastUpdate": 1757505311617,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1739,6 +1739,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 487627,
             "range": "± 2273",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5780e2bab72e660e34c9dbe459418e089fa0a4aa",
+          "message": "Merge pull request #274 from JoseExposito/bump-nucleid\n\ncargo: Update nucleid",
+          "timestamp": "2025-09-10T13:51:21+02:00",
+          "tree_id": "27445227c07ace85dc201009d37a3046e9be534c",
+          "url": "https://github.com/mripard/dradis/commit/5780e2bab72e660e34c9dbe459418e089fa0a4aa"
+        },
+        "date": 1757505310895,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 487912,
+            "range": "± 2532",
             "unit": "ns/iter"
           }
         ]
