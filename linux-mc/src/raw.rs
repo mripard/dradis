@@ -4,6 +4,7 @@ use rustix::{
     io::Errno,
     ioctl::{Updater, ioctl, opcode},
 };
+use tracing::instrument;
 
 pub(crate) mod bindgen {
     #![allow(clippy::decimal_literal_representation)]
@@ -56,6 +57,7 @@ const MEDIA_IOC_DEVICE_INFO_OPCODE: u32 =
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the file descriptor.
+#[instrument(level = "trace")]
 pub fn media_ioctl_device_info(fd: BorrowedFd<'_>) -> io::Result<media_device_info> {
     let mut info = media_device_info::default();
 
@@ -82,6 +84,7 @@ const MEDIA_IOC_G_TOPOLOGY_OPCODE: u32 =
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the file descriptor.
+#[instrument(level = "trace")]
 pub fn media_ioctl_g_topology(
     fd: BorrowedFd<'_>,
     mut topo: media_v2_topology,

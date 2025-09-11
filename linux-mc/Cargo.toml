@@ -18,6 +18,7 @@ facet.workspace = true
 facet-enum-repr.workspace = true
 linux-raw.workspace = true
 rustix.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
 clap.workspace = true
