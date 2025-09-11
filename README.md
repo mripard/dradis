@@ -37,24 +37,6 @@ Then, `dradis` and `boomer` need to be started on the runner and DUT, respective
 
 The integration into the CI platform is left as an exercise for the reader. An example of such an integration can be found [here](https://github.com/mripard/pegasus-debian), which build a system image based on Debian/Raspberry Pi OS to register and act as a Github runner.
 
-## Components
-
-There's several components involved:
-
-- [Boomer](boomer/README.md), a Linux KMS application that outputs a test pattern and a QR-Code
-- [Dradis](dradis/README.md), a Linux Video4Linux2 application that captures the frames sent over HDMI, and will make sure they match what `boomer` expected.
-
-In addition to these two main components, a number of libraries are there to support `boomer` and `dradis`:
-
-- [dradis-frame-check](dradis-frame-check/README.md), a crate implementing the frame decoding, metadata parsing and integrity checks.
-- [dradis-threads-pool](dradis-threads-pool/README.md), a crate to spawn new threads to execute closures, with a pre-defined maximum limit on the number of threads to spawn.
-- [facet-enum-repr](facet-enum-repr/README.md), a crate to implement Rust `TryFrom`/`Into` traits for an enum discriminant type.
-- [facet-enum-repr-derive](facet-enum-repr-derive/README.md), Rust derive macro implementation for `facet-enum-repr]`
-- [linux-mc](linux-mc/README.md), a crate to support Linux [media-controller API](https://docs.kernel.org/userspace-api/media/mediactl/media-controller.html).
-- [linux-raw](linux-raw/README.md), a crate to deal with various low-level structures and mechanisms.
-- [v4l2-raw](v4l2-raw/README.md), a crate supporting the Linux [Video4Linux2 API](https://docs.kernel.org/userspace-api/media/v4l/v4l2.html)
-- [v4lise](v4lise/README.md), a historical crate to support `v4l2`. Mostly some sugar-coating around `v4l2-raw` now, and likely to be removed soon.
-
 ## Future Plans
 
 - [ ] We want to evaluate the Rockchip RK3588 System-on-Chip that features an HDMI receiver directly into the SoC. There's a driver for it in Linux since 6.15, and it's said to be capable of handling 2160p/60fps.
