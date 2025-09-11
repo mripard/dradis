@@ -53,6 +53,8 @@ use crate::helpers::{
 };
 
 pub mod built_info {
+    #![allow(clippy::doc_markdown)]
+
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
