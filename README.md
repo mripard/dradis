@@ -36,19 +36,3 @@ The DUT and test runner need to be connected by an HDMI, going from the DUT HDMI
 Then, `dradis` and `boomer` need to be started on the runner and DUT, respectively. `boomer` needs to be started after `dradis` has started.
 
 The integration into the CI platform is left as an exercise for the reader. An example of such an integration can be found [here](https://github.com/mripard/pegasus-debian), which build a system image based on Debian/Raspberry Pi OS to register and act as a Github runner.
-
-## Future Plans
-
-- [ ] We want to evaluate the Rockchip RK3588 System-on-Chip that features an HDMI receiver directly into the SoC. There's a driver for it in Linux since 6.15, and it's said to be capable of handling 2160p/60fps.
-
-- [ ] Implement tests for hotplugging. This includes various scenarios, like:
-  - [ ] Testing that if the same display is disconnected and reconnected, the signal will be emitted again with the same timings.
-  - [ ] Testing that, if a display is disconnected and another one is reconnected:
-	- [ ] If the KMS application handles hotplug signals, the timings emitted should match the new one.
-	- [ ] If the KMS application doesn't handle hotplug signals, the timings emitted should match the old one.
-  - [ ] This means that we also need to implement a system to pass data from `dradis` to `boomer` to tell it if it should ignore hotplugging or not. Putting some metadata in the vendor-specific parts of the EDIDs sounds like the most plausible candidate.
-
-- [ ] Test infoframes
-- [ ] Test Audio output
-- [ ] Test CEC
-- [ ] Expand the tests to something other than HDMI. DisplayPort, and MIPI-DSI seem like obvious candidates.
