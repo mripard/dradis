@@ -261,7 +261,12 @@ fn test_prepare_queue(
         unreachable!()
     };
 
-    for PipelineItem(source_pad, wrapper, sink_pad) in &suite.pipeline {
+    for PipelineItem {
+        source_pad,
+        entity: wrapper,
+        sink_pad,
+    } in &suite.pipeline
+    {
         trace!("Trying to set format on entity {}", wrapper.entity.name());
 
         if !wrapper.entity.is_v4l2_sub_device().valid()? {
@@ -353,28 +358,34 @@ fn test_run(
     queue: &Queue<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    let PipelineItem(_, root, _) =
-        suite
-            .pipeline
-            .first()
-            .ok_or(SetupError::from(io::Error::new(
-                Errno::NODEV.kind(),
-                "Missing Root Entity",
-            )))?;
+    let PipelineItem {
+        source_pad: _,
+        entity: root,
+        sink_pad: _,
+    } = suite
+        .pipeline
+        .first()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing Root Entity",
+        )))?;
 
     let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
         Errno::NODEV.kind(),
         "Missing V4L2 Root Device",
     )))?;
 
-    let PipelineItem(_, bridge, _) =
-        suite
-            .pipeline
-            .last()
-            .ok_or(SetupError::from(io::Error::new(
-                Errno::NODEV.kind(),
-                "Missing HDMI Bridge Entity",
-            )))?;
+    let PipelineItem {
+        source_pad: _,
+        entity: bridge,
+        sink_pad: _,
+    } = suite
+        .pipeline
+        .last()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing HDMI Bridge Entity",
+        )))?;
 
     let bridge_device = bridge
         .device
@@ -532,28 +543,34 @@ fn test_display_one_mode(
     suite: &Dradis<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    let PipelineItem(_, root, _) =
-        suite
-            .pipeline
-            .first()
-            .ok_or(SetupError::from(io::Error::new(
-                Errno::NODEV.kind(),
-                "Missing Root Entity",
-            )))?;
+    let PipelineItem {
+        source_pad: _,
+        entity: root,
+        sink_pad: _,
+    } = suite
+        .pipeline
+        .first()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing Root Entity",
+        )))?;
 
     let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
         Errno::NODEV.kind(),
         "Missing V4L2 Root Device",
     )))?;
 
-    let PipelineItem(_, bridge, _) =
-        suite
-            .pipeline
-            .last()
-            .ok_or(SetupError::from(io::Error::new(
-                Errno::NODEV.kind(),
-                "Missing HDMI Bridge Entity",
-            )))?;
+    let PipelineItem {
+        source_pad: _,
+        entity: bridge,
+        sink_pad: _,
+    } = suite
+        .pipeline
+        .last()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing HDMI Bridge Entity",
+        )))?;
 
     let bridge_device = bridge
         .device
@@ -649,11 +666,11 @@ struct V4l2EntityWrapper {
 }
 
 #[derive(Debug)]
-struct PipelineItem(
-    Option<MediaControllerPad>,
-    V4l2EntityWrapper,
-    Option<MediaControllerPad>,
-);
+struct PipelineItem {
+    source_pad: Option<MediaControllerPad>,
+    entity: V4l2EntityWrapper,
+    sink_pad: Option<MediaControllerPad>,
+}
 
 #[derive(Debug)]
 pub(crate) struct Dradis<'a> {
@@ -751,14 +768,14 @@ fn main() -> anyhow::Result<()> {
                 None
             };
 
-            Ok(PipelineItem(
-                source,
-                V4l2EntityWrapper {
+            Ok(PipelineItem {
+                source_pad: source,
+                entity: V4l2EntityWrapper {
                     entity: dev,
                     device: node,
                 },
-                sink,
-            ))
+                sink_pad: sink,
+            })
         })
         .collect::<Result<Vec<_>, io::Error>>()?;
 
