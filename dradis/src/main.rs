@@ -672,6 +672,30 @@ struct PipelineItem {
     sink_pad: Option<MediaControllerPad>,
 }
 
+impl fmt::Display for PipelineItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match (&self.sink_pad, &self.source_pad) {
+            (Some(source), Some(sink)) => f.write_fmt(format_args!(
+                "Entity {} Source Pad {} Sink Pad {}",
+                self.entity.entity.name(),
+                source,
+                sink
+            )),
+            (Some(sink), None) => f.write_fmt(format_args!(
+                "Entity {} Sink Pad {}",
+                self.entity.entity.name(),
+                sink,
+            )),
+            (None, Some(source)) => f.write_fmt(format_args!(
+                "Entity {} Source Pad {}",
+                self.entity.entity.name(),
+                source
+            )),
+            (None, None) => f.write_fmt(format_args!("Entity {}", self.entity.entity.name(),)),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Dradis<'a> {
     cfg: Test,
