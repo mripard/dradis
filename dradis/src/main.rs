@@ -155,11 +155,11 @@ fn find_internal_routed_pad(
 }
 
 #[derive(Debug)]
-struct MediaPipelineItem(
-    Option<MediaControllerPad>,
-    MediaControllerEntity,
-    Option<MediaControllerPad>,
-);
+struct MediaPipelineItem {
+    sink_pad: Option<MediaControllerPad>,
+    entity: MediaControllerEntity,
+    source_pad: Option<MediaControllerPad>,
+}
 
 fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, io::Error> {
     let mut outputs = Vec::new();
@@ -187,11 +187,11 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
         hdmi_bridge_pad.index()
     );
 
-    outputs.push(MediaPipelineItem(
-        None,
-        hdmi_bridge,
-        Some(hdmi_bridge_pad.clone()),
-    ));
+    outputs.push(MediaPipelineItem {
+        sink_pad: None,
+        entity: hdmi_bridge,
+        source_pad: Some(hdmi_bridge_pad.clone()),
+    });
 
     let mut prev_source_pad = hdmi_bridge_pad;
     loop {
@@ -204,11 +204,11 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
 
         let source_pad = find_internal_routed_pad(&entity, &sink_pad)?;
 
-        outputs.push(MediaPipelineItem(
-            Some(sink_pad.clone()),
-            entity.clone(),
-            source_pad.clone(),
-        ));
+        outputs.push(MediaPipelineItem {
+            sink_pad: Some(sink_pad.clone()),
+            entity: entity.clone(),
+            source_pad: source_pad.clone(),
+        });
 
         // Should we test whether it's a v4l2 device and / or a default controller?
         if let Some(source_pad) = source_pad {
@@ -757,26 +757,32 @@ fn main() -> anyhow::Result<()> {
     let mc = MediaController::new(&cli.device)?;
     let pipeline = find_dev_and_subdev(&mc)?
         .into_iter()
-        .map(|MediaPipelineItem(source, dev, sink)| {
-            let node = if let Some(itf) = dev.interfaces().valid()?.first() {
-                if let Some(node) = itf.device_node().valid() {
-                    Some(Device::new(node.path(), true)?)
+        .map(
+            |MediaPipelineItem {
+                 sink_pad: source,
+                 entity: dev,
+                 source_pad: sink,
+             }| {
+                let node = if let Some(itf) = dev.interfaces().valid()?.first() {
+                    if let Some(node) = itf.device_node().valid() {
+                        Some(Device::new(node.path(), true)?)
+                    } else {
+                        None
+                    }
                 } else {
                     None
-                }
-            } else {
-                None
-            };
+                };
 
-            Ok(PipelineItem {
-                source_pad: source,
-                entity: V4l2EntityWrapper {
-                    entity: dev,
-                    device: node,
-                },
-                sink_pad: sink,
-            })
-        })
+                Ok(PipelineItem {
+                    source_pad: source,
+                    entity: V4l2EntityWrapper {
+                        entity: dev,
+                        device: node,
+                    },
+                    sink_pad: sink,
+                })
+            },
+        )
         .collect::<Result<Vec<_>, io::Error>>()?;
 
     let dradis = Dradis {
