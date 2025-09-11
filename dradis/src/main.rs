@@ -759,9 +759,9 @@ fn main() -> anyhow::Result<()> {
         .into_iter()
         .map(
             |MediaPipelineItem {
-                 sink_pad: source,
+                 sink_pad,
                  entity: dev,
-                 source_pad: sink,
+                 source_pad,
              }| {
                 let node = if let Some(itf) = dev.interfaces().valid()?.first() {
                     if let Some(node) = itf.device_node().valid() {
@@ -774,12 +774,12 @@ fn main() -> anyhow::Result<()> {
                 };
 
                 Ok(PipelineItem {
-                    source_pad: source,
+                    source_pad,
                     entity: V4l2EntityWrapper {
                         entity: dev,
                         device: node,
                     },
-                    sink_pad: sink,
+                    sink_pad,
                 })
             },
         )
