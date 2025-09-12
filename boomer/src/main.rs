@@ -171,6 +171,118 @@ fn create_qr_code(bytes: &[u8]) -> Result<Raster<Bgra8>, qrcode::types::QrError>
     Ok(Raster::with_raster(&rgba_raster))
 }
 
+enum TestResult {
+    Error(anyhow::Error),
+}
+
+macro_rules! try_anyhow {
+    ($e:expr, $c:literal) => {
+        match $e.context($c) {
+            Ok(v) => v,
+            Err(e) => return TestResult::Error(e),
+        }
+    };
+}
+
+fn start_output(device: &Device, connector: &Rc<Connector>) -> TestResult {
+    info!("Running from Connector {}", connector);
+
+    let mode = try_anyhow!(
+        find_mode_for_connector(connector),
+        "Couldn't find a mode for the connector"
+    );
+
+    let width = mode.width();
+    let height = mode.height();
+
+    info!("Using mode {}", mode);
+
+    let output = try_anyhow!(
+        device.output_from_connector(connector),
+        "Couldn't find a valid output for that connector"
+    );
+
+    info!("Using output: {}", output);
+
+    let plane = try_anyhow!(
+        find_plane_for_output(&output),
+        "Couldn't find a plane with the proper format"
+    );
+
+    let pattern_bgr = try_anyhow!(
+        get_rgb_pattern(width.into(), height.into()),
+        "Couldn't load our pattern."
+    );
+    let cleared_pattern_bgr = pattern_bgr.clear();
+
+    let hash = cleared_pattern_bgr.compute_checksum();
+    info!("Hash {:#x}", hash);
+
+    let cleared_pattern_xrgb = cleared_pattern_bgr.convert::<Bgra8>();
+
+    let mut buffers = try_anyhow!(
+        get_framebuffers(
+            device,
+            NUM_BUFFERS,
+            width.into(),
+            height.into(),
+            Format::XRGB8888,
+            32,
+        ),
+        "Couldn't create our framebuffers"
+    );
+
+    info!("Setting up the pipeline");
+
+    let mut output = try_anyhow!(
+        initial_commit(
+            output,
+            connector,
+            mode,
+            &plane,
+            &buffers[0],
+            (width.into(), height.into()),
+            (width.into(), height.into()),
+        ),
+        "Couldn't perform initial commit"
+    );
+
+    info!("Starting to output");
+
+    let mut index: usize = 0;
+    loop {
+        let span = debug_span!("Frame Generation");
+        let _enter = span.enter();
+
+        let buffer = &mut buffers[index % NUM_BUFFERS];
+        let data = buffer.data();
+
+        debug!("Switching to frame {}", index);
+
+        let json = try_anyhow!(
+            create_metadata_json(width.into(), height.into(), hash, index),
+            "Metadata JSON serialization failed."
+        );
+
+        trace!("Metadata JSON {}", json);
+
+        let qrcode = try_anyhow!(create_qr_code(json.as_bytes()), "QR Code creation failed");
+
+        let merged_buffer = cleared_pattern_xrgb.with_qr_code(&qrcode);
+        data.copy_from_slice(merged_buffer.as_bytes());
+
+        output = try_anyhow!(
+            output
+                .start_update()
+                .add_plane(PlaneUpdate::new(&plane).set_framebuffer(buffer))
+                .commit(),
+            "Commit Failed"
+        );
+
+        index += 1;
+    }
+}
+
 fn main() -> Result<()> {
     let args = CliArgs::parse();
 
@@ -191,83 +303,7 @@ fn main() -> Result<()> {
 
     let connector =
         find_connector(&device, args.connector_name.as_deref()).context("No Active Connector")?;
-    info!("Running from Connector {}", connector);
 
-    let mode =
-        find_mode_for_connector(&connector).context("Couldn't find a mode for the connector")?;
-
-    let width = mode.width();
-    let height = mode.height();
-
-    info!("Using mode {}", mode);
-
-    let output = device
-        .output_from_connector(&connector)
-        .context("Couldn't find a valid output for that connector")?;
-
-    info!("Using output: {}", output);
-
-    let plane =
-        find_plane_for_output(&output).context("Couldn't find a plane with the proper format")?;
-
-    let pattern_bgr =
-        get_rgb_pattern(width.into(), height.into()).context("Couldn't load our pattern.")?;
-    let cleared_pattern_bgr = pattern_bgr.clear();
-
-    let hash = cleared_pattern_bgr.compute_checksum();
-    info!("Hash {:#x}", hash);
-
-    let cleared_pattern_xrgb = cleared_pattern_bgr.convert::<Bgra8>();
-
-    let mut buffers = get_framebuffers(
-        &device,
-        NUM_BUFFERS,
-        width.into(),
-        height.into(),
-        Format::XRGB8888,
-        32,
-    )
-    .context("Couldn't create our framebuffers")?;
-
-    info!("Setting up the pipeline");
-
-    let mut output = initial_commit(
-        output,
-        &connector,
-        mode,
-        &plane,
-        &buffers[0],
-        (width.into(), height.into()),
-        (width.into(), height.into()),
-    )?;
-
-    info!("Starting to output");
-
-    let mut index: usize = 0;
-    loop {
-        let span = debug_span!("Frame Generation");
-        let _enter = span.enter();
-
-        let buffer = &mut buffers[index % NUM_BUFFERS];
-        let data = buffer.data();
-
-        debug!("Switching to frame {}", index);
-
-        let json = create_metadata_json(width.into(), height.into(), hash, index)
-            .context("Metadata JSON serialization failed.")?;
-
-        trace!("Metadata JSON {}", json);
-
-        let qrcode = create_qr_code(json.as_bytes()).context("QR Code creation failed")?;
-
-        let merged_buffer = cleared_pattern_xrgb.with_qr_code(&qrcode);
-        data.copy_from_slice(merged_buffer.as_bytes());
-
-        output = output
-            .start_update()
-            .add_plane(PlaneUpdate::new(&plane).set_framebuffer(buffer))
-            .commit()?;
-
-        index += 1;
-    }
+    let TestResult::Error(e) = start_output(&device, &connector);
+    Err(e)
 }
