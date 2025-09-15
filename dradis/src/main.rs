@@ -3,9 +3,9 @@
 #![deny(clippy::all)]
 #![deny(clippy::cargo)]
 #![deny(clippy::pedantic)]
-#![warn(clippy::multiple_crate_versions)]
 #![warn(clippy::unwrap_used)]
 #![allow(clippy::cargo_common_metadata)]
+#![allow(clippy::multiple_crate_versions)]
 #![allow(clippy::needless_raw_string_hashes)]
 #![allow(clippy::unreadable_literal)]
 
@@ -53,6 +53,8 @@ use crate::helpers::{
 };
 
 pub mod built_info {
+    #![allow(clippy::doc_markdown)]
+
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
@@ -153,11 +155,11 @@ fn find_internal_routed_pad(
 }
 
 #[derive(Debug)]
-struct MediaPipelineItem(
-    Option<MediaControllerPad>,
-    MediaControllerEntity,
-    Option<MediaControllerPad>,
-);
+struct MediaPipelineItem {
+    sink_pad: Option<MediaControllerPad>,
+    entity: MediaControllerEntity,
+    source_pad: Option<MediaControllerPad>,
+}
 
 fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, io::Error> {
     let mut outputs = Vec::new();
@@ -185,11 +187,11 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
         hdmi_bridge_pad.index()
     );
 
-    outputs.push(MediaPipelineItem(
-        None,
-        hdmi_bridge,
-        Some(hdmi_bridge_pad.clone()),
-    ));
+    outputs.push(MediaPipelineItem {
+        sink_pad: None,
+        entity: hdmi_bridge,
+        source_pad: Some(hdmi_bridge_pad.clone()),
+    });
 
     let mut prev_source_pad = hdmi_bridge_pad;
     loop {
@@ -198,15 +200,15 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
             .valid()?
             .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
 
-        let entity = sink_pad.entity().valid()?;
+        let entity = sink_pad.entity().valid();
 
         let source_pad = find_internal_routed_pad(&entity, &sink_pad)?;
 
-        outputs.push(MediaPipelineItem(
-            Some(sink_pad.clone()),
-            entity.clone(),
-            source_pad.clone(),
-        ));
+        outputs.push(MediaPipelineItem {
+            sink_pad: Some(sink_pad.clone()),
+            entity: entity.clone(),
+            source_pad: source_pad.clone(),
+        });
 
         // Should we test whether it's a v4l2 device and / or a default controller?
         if let Some(source_pad) = source_pad {
@@ -232,6 +234,7 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
     Ok(outputs)
 }
 
+#[expect(clippy::too_many_lines, reason = "Yup, this function is long indeed.")]
 fn test_prepare_queue(
     suite: &Dradis<'_>,
     queue: &Queue<'_>,
@@ -259,7 +262,12 @@ fn test_prepare_queue(
         unreachable!()
     };
 
-    for PipelineItem(source_pad, wrapper, sink_pad) in &suite.pipeline {
+    for PipelineItem {
+        source_pad,
+        entity: wrapper,
+        sink_pad,
+    } in &suite.pipeline
+    {
         trace!("Trying to set format on entity {}", wrapper.entity.name());
 
         if !wrapper.entity.is_v4l2_sub_device().valid()? {
@@ -335,6 +343,33 @@ fn test_prepare_queue(
         }
     }
 
+    for items_slice in suite.pipeline.windows(2) {
+        let sink_item = &items_slice[0];
+        let source_item = &items_slice[1];
+
+        debug!("Found Sink {}, Source {}", sink_item, source_item);
+
+        if let (Some(source), Some(sink)) = (&source_item.source_pad, &sink_item.sink_pad) {
+            debug!(
+                "Enabling link between source {}:{} and sink {}:{}",
+                source_item.entity.entity.name(),
+                source.index(),
+                sink_item.entity.entity.name(),
+                sink.index()
+            );
+
+            let link = suite
+                .mc
+                .find_data_link_by_pads(source, sink)
+                .valid()?
+                .expect("Missing link between pads.");
+
+            link.enable().valid()?;
+        } else {
+            unreachable!();
+        }
+    }
+
     let ret_fmt = queue
         .set_format(v4l2_format::VideoCapture(pix_fmt))
         .expect("Couldn't change our queue format");
@@ -351,28 +386,34 @@ fn test_run(
     queue: &Queue<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    let PipelineItem(_, root, _) =
-        suite
-            .pipeline
-            .first()
-            .ok_or(SetupError::from(io::Error::new(
-                Errno::NODEV.kind(),
-                "Missing Root Entity",
-            )))?;
+    let PipelineItem {
+        source_pad: _,
+        entity: root,
+        sink_pad: _,
+    } = suite
+        .pipeline
+        .first()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing Root Entity",
+        )))?;
 
     let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
         Errno::NODEV.kind(),
         "Missing V4L2 Root Device",
     )))?;
 
-    let PipelineItem(_, bridge, _) =
-        suite
-            .pipeline
-            .last()
-            .ok_or(SetupError::from(io::Error::new(
-                Errno::NODEV.kind(),
-                "Missing HDMI Bridge Entity",
-            )))?;
+    let PipelineItem {
+        source_pad: _,
+        entity: bridge,
+        sink_pad: _,
+    } = suite
+        .pipeline
+        .last()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing HDMI Bridge Entity",
+        )))?;
 
     let bridge_device = bridge
         .device
@@ -530,28 +571,34 @@ fn test_display_one_mode(
     suite: &Dradis<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    let PipelineItem(_, root, _) =
-        suite
-            .pipeline
-            .first()
-            .ok_or(SetupError::from(io::Error::new(
-                Errno::NODEV.kind(),
-                "Missing Root Entity",
-            )))?;
+    let PipelineItem {
+        source_pad: _,
+        entity: root,
+        sink_pad: _,
+    } = suite
+        .pipeline
+        .first()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing Root Entity",
+        )))?;
 
     let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
         Errno::NODEV.kind(),
         "Missing V4L2 Root Device",
     )))?;
 
-    let PipelineItem(_, bridge, _) =
-        suite
-            .pipeline
-            .last()
-            .ok_or(SetupError::from(io::Error::new(
-                Errno::NODEV.kind(),
-                "Missing HDMI Bridge Entity",
-            )))?;
+    let PipelineItem {
+        source_pad: _,
+        entity: bridge,
+        sink_pad: _,
+    } = suite
+        .pipeline
+        .last()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing HDMI Bridge Entity",
+        )))?;
 
     let bridge_device = bridge
         .device
@@ -647,15 +694,40 @@ struct V4l2EntityWrapper {
 }
 
 #[derive(Debug)]
-struct PipelineItem(
-    Option<MediaControllerPad>,
-    V4l2EntityWrapper,
-    Option<MediaControllerPad>,
-);
+struct PipelineItem {
+    source_pad: Option<MediaControllerPad>,
+    entity: V4l2EntityWrapper,
+    sink_pad: Option<MediaControllerPad>,
+}
+
+impl fmt::Display for PipelineItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match (&self.sink_pad, &self.source_pad) {
+            (Some(source), Some(sink)) => f.write_fmt(format_args!(
+                "Entity {} Source Pad {} Sink Pad {}",
+                self.entity.entity.name(),
+                source,
+                sink
+            )),
+            (Some(sink), None) => f.write_fmt(format_args!(
+                "Entity {} Sink Pad {}",
+                self.entity.entity.name(),
+                sink,
+            )),
+            (None, Some(source)) => f.write_fmt(format_args!(
+                "Entity {} Source Pad {}",
+                self.entity.entity.name(),
+                source
+            )),
+            (None, None) => f.write_fmt(format_args!("Entity {}", self.entity.entity.name(),)),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub(crate) struct Dradis<'a> {
     cfg: Test,
+    mc: MediaController,
     pipeline: Vec<PipelineItem>,
     heap: &'a Heap,
 }
@@ -738,30 +810,37 @@ fn main() -> anyhow::Result<()> {
     let mc = MediaController::new(&cli.device)?;
     let pipeline = find_dev_and_subdev(&mc)?
         .into_iter()
-        .map(|MediaPipelineItem(source, dev, sink)| {
-            let node = if let Some(itf) = dev.interfaces().valid()?.first() {
-                if let Some(node) = itf.device_node().valid()? {
-                    Some(Device::new(node.path(), true)?)
+        .map(
+            |MediaPipelineItem {
+                 sink_pad,
+                 entity,
+                 source_pad,
+             }| {
+                let node = if let Some(itf) = entity.interfaces().valid()?.first() {
+                    if let Some(node) = itf.device_node().valid() {
+                        Some(Device::new(node.path(), true)?)
+                    } else {
+                        None
+                    }
                 } else {
                     None
-                }
-            } else {
-                None
-            };
+                };
 
-            Ok(PipelineItem(
-                source,
-                V4l2EntityWrapper {
-                    entity: dev,
-                    device: node,
-                },
-                sink,
-            ))
-        })
+                Ok(PipelineItem {
+                    source_pad,
+                    entity: V4l2EntityWrapper {
+                        entity,
+                        device: node,
+                    },
+                    sink_pad,
+                })
+            },
+        )
         .collect::<Result<Vec<_>, io::Error>>()?;
 
     let dradis = Dradis {
         cfg: test_config,
+        mc,
         pipeline,
         heap: &heap,
     };

@@ -366,23 +366,29 @@ pub(crate) fn wait_and_set_dv_timings(
     width: u32,
     height: u32,
 ) -> Result<(), SetupError> {
-    let PipelineItem(_, root, _) =
-        suite
-            .pipeline
-            .first()
-            .ok_or(SetupError::from(io::Error::new(
-                Errno::NODEV.kind(),
-                "Missing Root Entity",
-            )))?;
+    let PipelineItem {
+        source_pad: _,
+        entity: root,
+        sink_pad: _,
+    } = suite
+        .pipeline
+        .first()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing Root Entity",
+        )))?;
 
-    let PipelineItem(_, bridge, _) =
-        suite
-            .pipeline
-            .last()
-            .ok_or(SetupError::from(io::Error::new(
-                Errno::NODEV.kind(),
-                "Missing HDMI Bridge Entity",
-            )))?;
+    let PipelineItem {
+        source_pad: _,
+        entity: bridge,
+        sink_pad: _,
+    } = suite
+        .pipeline
+        .last()
+        .ok_or(SetupError::from(io::Error::new(
+            Errno::NODEV.kind(),
+            "Missing HDMI Bridge Entity",
+        )))?;
 
     let start = Instant::now();
 

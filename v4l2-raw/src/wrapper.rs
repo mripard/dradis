@@ -1,4 +1,4 @@
-use core::{fmt, str::FromStr as _};
+use core::fmt;
 use std::{io, os::fd::BorrowedFd};
 
 use linux_raw::KernelVersion;
@@ -864,17 +864,8 @@ impl v4l2_subdev_format {
     /// If streams aren't supported by the kernel we're running on.
     #[must_use]
     pub fn set_stream(mut self, stream: u32) -> Self {
-        let uname = rustix::system::uname();
-        let version_str = uname
-            .release()
-            .to_str()
-            .expect("The kernel release name is always in ASCII.");
-
-        let version = KernelVersion::from_str(version_str)
-            .expect("The version comes straight from uname. It's valid.");
-
         assert!(
-            version >= KernelVersion::new(6, 3, 0),
+            KernelVersion::current() >= KernelVersion::new(6, 3, 0),
             "Streams are not supported on this platform"
         );
 
@@ -1160,7 +1151,7 @@ pub fn v4l2_ioctl_streamoff(fd: BorrowedFd<'_>, buf_kind: v4l2_buf_type) -> io::
 )]
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_s_edid(fd: BorrowedFd<'_>, edid: &mut [u8]) -> io::Result<()> {
-    if (edid.len() % 128) != 0 {
+    if !edid.len().is_multiple_of(128) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "EDIDs size must be aligned to 128 bytes",
@@ -1198,7 +1189,7 @@ pub fn v4l2_ioctl_s_edid(fd: BorrowedFd<'_>, edid: &mut [u8]) -> io::Result<()> 
 )]
 #[instrument(level = "trace")]
 pub fn v4l2_ioctl_subdev_s_edid(fd: BorrowedFd<'_>, edid: &mut [u8]) -> io::Result<()> {
-    if (edid.len() % 128) != 0 {
+    if !edid.len().is_multiple_of(128) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "EDIDs size must be aligned to 128 bytes",

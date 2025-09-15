@@ -4,6 +4,7 @@ use rustix::{
     io::Errno,
     ioctl::{Updater, ioctl, opcode},
 };
+use tracing::instrument;
 
 pub(crate) mod bindgen {
     #![allow(clippy::decimal_literal_representation)]
@@ -45,6 +46,7 @@ pub(crate) mod bindgen {
 
 const MEDIA_IOC_MAGIC: u8 = b'|';
 const MEDIA_IOC_DEVICE_INFO: u8 = 0x00;
+const MEDIA_IOC_SETUP_LINK: u8 = 0x03;
 const MEDIA_IOC_G_TOPOLOGY: u8 = 0x04;
 
 pub use bindgen::media_device_info;
@@ -56,6 +58,7 @@ const MEDIA_IOC_DEVICE_INFO_OPCODE: u32 =
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the file descriptor.
+#[instrument(level = "trace")]
 pub fn media_ioctl_device_info(fd: BorrowedFd<'_>) -> io::Result<media_device_info> {
     let mut info = media_device_info::default();
 
@@ -71,6 +74,32 @@ pub fn media_ioctl_device_info(fd: BorrowedFd<'_>) -> io::Result<media_device_in
         .map_err(<Errno as Into<io::Error>>::into)
 }
 
+pub use bindgen::{media_link_desc, media_pad_desc};
+const MEDIA_IOC_SETUP_LINK_OPCODE: u32 =
+    opcode::read_write::<media_link_desc>(MEDIA_IOC_MAGIC, MEDIA_IOC_SETUP_LINK);
+
+/// Modify the properties of a link
+///
+/// # Errors
+///
+/// If there's an I/O Error while accessing the file descriptor.
+#[instrument(level = "trace")]
+pub fn media_ioctl_setup_link(
+    fd: BorrowedFd<'_>,
+    mut desc: media_link_desc,
+) -> io::Result<media_link_desc> {
+    // SAFETY: We checked both the opcode and the type.
+    let ioctl_obj =
+        unsafe { Updater::<MEDIA_IOC_SETUP_LINK_OPCODE, media_link_desc>::new(&mut desc) };
+
+    // SAFETY: This function is unsafe because the driver isn't guaranteed to implement the ioctl
+    // properly. We don't have much of a choice and still have to trust the
+    // kernel there.
+    unsafe { ioctl(fd, ioctl_obj) }
+        .map(|()| desc)
+        .map_err(<Errno as Into<io::Error>>::into)
+}
+
 pub use bindgen::{
     media_v2_entity, media_v2_interface, media_v2_link, media_v2_pad, media_v2_topology,
 };
@@ -82,6 +111,7 @@ const MEDIA_IOC_G_TOPOLOGY_OPCODE: u32 =
 /// # Errors
 ///
 /// If there's an I/O Error while accessing the file descriptor.
+#[instrument(level = "trace")]
 pub fn media_ioctl_g_topology(
     fd: BorrowedFd<'_>,
     mut topo: media_v2_topology,
