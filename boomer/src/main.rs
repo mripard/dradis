@@ -43,14 +43,29 @@ struct CliArgs {
     verbose: u8,
 }
 
-fn find_connector(device: &Device, connector_name: Option<&str>) -> Option<Rc<Connector>> {
-    if let Some(name) = connector_name {
-        device.connectors().find(|con| con.to_string() == name)
+fn find_connector(device: &Device, connector_name: Option<&str>) -> Result<Rc<Connector>> {
+    let connectors = if let Some(name) = connector_name {
+        device
+            .connectors()
+            .filter(|con| con.to_string() == name)
+            .collect::<Vec<_>>()
     } else {
-        device.connectors().find(|con| {
-            con.connector_type() == ConnectorType::HDMIA
-                && con.status().unwrap_or(ConnectorStatus::Unknown) == ConnectorStatus::Connected
-        })
+        device
+            .connectors()
+            .filter(|con| {
+                con.connector_type() == ConnectorType::HDMIA
+                    && con.status().unwrap_or(ConnectorStatus::Unknown)
+                        == ConnectorStatus::Connected
+            })
+            .collect::<Vec<_>>()
+    };
+
+    match connectors.len() {
+        0 => Err(anyhow::anyhow!("No active connectors",)),
+        1 => Ok(connectors.first().expect("Expected one connector").clone()),
+        _ => Err(anyhow::anyhow!(
+            "Multiple active connectors, select one using the --connector-name argument",
+        )),
     }
 }
 
@@ -189,8 +204,7 @@ fn main() -> Result<()> {
         &args.device.display(),
     ))?;
 
-    let connector =
-        find_connector(&device, args.connector_name.as_deref()).context("No Active Connector")?;
+    let connector = find_connector(&device, args.connector_name.as_deref())?;
     info!("Running from Connector {}", connector);
 
     let mode =
