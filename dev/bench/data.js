@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757505311617,
+  "lastUpdate": 1757922861609,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1769,6 +1769,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 487912,
             "range": "± 2532",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b634775fbfa62cfd93c2d7c9080ce0af11f4064a",
+          "message": "Merge pull request #238 from mripard/vimc-ci\n\nMediaController Improvements",
+          "timestamp": "2025-09-15T09:49:03+02:00",
+          "tree_id": "a5643fbd0d05803130a4a1690a04bff142528ad1",
+          "url": "https://github.com/mripard/dradis/commit/b634775fbfa62cfd93c2d7c9080ce0af11f4064a"
+        },
+        "date": 1757922860988,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 492962,
+            "range": "± 2993",
             "unit": "ns/iter"
           }
         ]
