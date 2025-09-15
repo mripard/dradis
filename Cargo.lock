@@ -140,6 +140,7 @@ dependencies = [
  "clap",
  "dradis-frame-check",
  "image",
+ "linux-uevent",
  "nucleid",
  "pix",
  "qrcode",
