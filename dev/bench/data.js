@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757922861609,
+  "lastUpdate": 1758301013829,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1799,6 +1799,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 492962,
             "range": "± 2993",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d996b6f194e998a32b2cfe82e845daaaed722321",
+          "message": "Merge pull request #275 from mripard/boomer-hotplug\n\nHandle hotplug events in boomer",
+          "timestamp": "2025-09-19T18:52:47+02:00",
+          "tree_id": "ce2224fc59b8fe0657ebc6319b65b131a17e81db",
+          "url": "https://github.com/mripard/dradis/commit/d996b6f194e998a32b2cfe82e845daaaed722321"
+        },
+        "date": 1758301013438,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 482130,
+            "range": "± 1239",
             "unit": "ns/iter"
           }
         ]
