@@ -647,6 +647,20 @@ mod tests_v4l2_pix_fmt {
 }
 
 impl v4l2_pix_fmt {
+    /// Returns the number of bytes per pixel for the given pixel format.
+    #[must_use]
+    pub fn bytes_per_pixel(&self) -> u8 {
+        #[expect(
+            clippy::todo,
+            clippy::wildcard_enum_match_arm,
+            reason = "We can't support all formats just yet."
+        )]
+        match self {
+            Self::V4L2_PIX_FMT_BGR24 | Self::V4L2_PIX_FMT_RGB24 => 3,
+            _ => todo!(),
+        }
+    }
+
     /// Converts a [`v4l2_pix_fmt`] for its equivalent [`media_bus_fmt`] on a MIPI-CSI2 bus, if any.
     #[must_use]
     pub fn to_mipi_csi2_mbus_pixelcode(&self) -> Option<media_bus_fmt> {
