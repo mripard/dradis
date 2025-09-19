@@ -480,7 +480,19 @@ pub enum v4l2_format {
     VideoOverlay(raw::v4l2_window) = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_OVERLAY as u32,
 
     #[doc(hidden)]
-    _Raw([u8; 200]),
+    Raw([u8; 200]),
+}
+
+impl v4l2_format {
+    /// Returns a reference to the [`v4l2_pix_format`] structure, if it is associated to the
+    /// variant.
+    #[must_use]
+    pub fn as_v4l2_pix_format(&self) -> Option<&v4l2_pix_format> {
+        match self {
+            Self::VideoCapture(p) | Self::VideoOutput(p) => Some(p),
+            Self::VideoOverlay(_) | Self::Raw(_) => None,
+        }
+    }
 }
 
 impl TryFrom<raw::v4l2_format> for v4l2_format {
