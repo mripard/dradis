@@ -122,10 +122,52 @@ pub struct v4l2_pix_format {
 }
 
 impl v4l2_pix_format {
+    /// Returns the current image bytes per line (aka, stride)
+    #[must_use]
+    pub fn bytes_per_line(&self) -> u32 {
+        self.bytesperline
+    }
+
+    /// Returns the current image colorspace
+    #[must_use]
+    pub fn colorspace(&self) -> v4l2_colorspace {
+        self.colorspace
+    }
+
+    /// Returns the current image encoding
+    #[must_use]
+    #[expect(
+        clippy::missing_panics_doc,
+        reason = "We can't construct the structure with an invalid encoding. It can't panic."
+    )]
+    pub fn encoding(&self) -> v4l2_encoding {
+        self.encoding
+            .try_into()
+            .expect("encoding cannot be invalid.")
+    }
+
+    /// Returns the current image field
+    #[must_use]
+    pub fn field(&self) -> v4l2_field {
+        self.field
+    }
+
+    /// Returns the current image height
+    #[must_use]
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
     /// Returns the current image pixel format.
     #[must_use]
     pub fn pixel_format(&self) -> v4l2_pix_fmt {
         self.pixelformat
+    }
+
+    /// Returns the current image quantization.
+    #[must_use]
+    pub fn quantization(&self) -> v4l2_quantization {
+        self.quantization
     }
 
     /// Sets the image colorspace.
@@ -203,6 +245,12 @@ impl v4l2_pix_format {
         self
     }
 
+    /// Returns the current image size, in bytes.
+    #[must_use]
+    pub fn size(&self) -> u32 {
+        self.sizeimage
+    }
+
     /// Creates a [`v4l2_mbus_framefmt`] out of the current [`v4l2_pix_format`]
     ///
     /// # Errors
@@ -233,6 +281,18 @@ impl v4l2_pix_format {
             flags: 0, // FIXME: Carry over the flags
             _reserved: [0; 10],
         })
+    }
+
+    /// Returns the current image width.
+    #[must_use]
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    /// Returns the current image transfer function.
+    #[must_use]
+    pub fn xfer_func(&self) -> v4l2_xfer_func {
+        self.xfer_func
     }
 }
 
@@ -420,7 +480,19 @@ pub enum v4l2_format {
     VideoOverlay(raw::v4l2_window) = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_OVERLAY as u32,
 
     #[doc(hidden)]
-    _Raw([u8; 200]),
+    Raw([u8; 200]),
+}
+
+impl v4l2_format {
+    /// Returns a reference to the [`v4l2_pix_format`] structure, if it is associated to the
+    /// variant.
+    #[must_use]
+    pub fn as_v4l2_pix_format(&self) -> Option<&v4l2_pix_format> {
+        match self {
+            Self::VideoCapture(p) | Self::VideoOutput(p) => Some(p),
+            Self::VideoOverlay(_) | Self::Raw(_) => None,
+        }
+    }
 }
 
 impl TryFrom<raw::v4l2_format> for v4l2_format {

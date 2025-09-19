@@ -374,6 +374,16 @@ fn test_prepare_queue(
         .set_format(v4l2_format::VideoCapture(pix_fmt))
         .expect("Couldn't change our queue format");
 
+    let ret_pix_fmt = ret_fmt
+        .as_v4l2_pix_format()
+        .expect("Queue Format isn't what we set.");
+
+    assert_eq!(
+        ret_pix_fmt.bytes_per_line(),
+        ret_pix_fmt.width() * u32::from(ret_pix_fmt.pixel_format().bytes_per_pixel()),
+        "We don't support any line padding"
+    );
+
     debug!("Format set {:#?}", ret_fmt);
 
     Ok(())
