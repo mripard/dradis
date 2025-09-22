@@ -46,7 +46,7 @@ use v4l2_raw::{
         v4l2_subdev_format,
     },
 };
-use v4lise::{Device, MemoryType, Queue, QueueType, v4l2_buffer};
+use v4lise::{Device, Queue, QueueType, v4l2_buffer};
 
 use crate::helpers::{
     bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
@@ -436,7 +436,7 @@ fn test_run(
     test_prepare_queue(suite, queue, test)?;
 
     queue
-        .request_buffers(MemoryType::DMABUF, NUM_BUFFERS as usize)
+        .request_buffers(v4l2_memory::V4L2_MEMORY_DMABUF, NUM_BUFFERS as usize)
         .expect("Couldn't request our buffers");
 
     let mut buffers = Vec::with_capacity(NUM_BUFFERS as usize);

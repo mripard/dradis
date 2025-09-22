@@ -15,21 +15,6 @@ use crate::{
 };
 
 #[derive(Clone, Copy, Debug)]
-pub enum MemoryType {
-    MMAP,
-    DMABUF,
-}
-
-impl From<MemoryType> for v4l2_memory {
-    fn from(val: MemoryType) -> Self {
-        match val {
-            MemoryType::DMABUF => v4l2_memory::V4L2_MEMORY_DMABUF,
-            MemoryType::MMAP => v4l2_memory::V4L2_MEMORY_MMAP,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
 pub enum QueueType {
     Capture,
     Output,
@@ -93,9 +78,8 @@ impl<'a> Queue<'a> {
         }
     }
 
-    pub fn request_buffers(&self, mem_type: MemoryType, num: usize) -> io::Result<()> {
+    pub fn request_buffers(&self, mem_type: v4l2_memory, num: usize) -> io::Result<()> {
         let buf_type: v4l2_buf_type = self.queue_type.into();
-        let mem_type: v4l2_memory = mem_type.into();
         let rbuf = v4l2_requestbuffers {
             count: num as u32,
             type_: buf_type.into(),

@@ -30,7 +30,7 @@ pub use v4l2_raw::{
 
 pub use crate::{
     device::Device,
-    queue::{MemoryType, Queue, QueueType},
+    queue::{Queue, QueueType},
 };
 
 pub fn v4l2_set_edid(fd: &impl AsFd, edid: &mut [u8]) -> io::Result<()> {
