@@ -46,7 +46,7 @@ use v4l2_raw::{
         v4l2_subdev_format,
     },
 };
-use v4lise::{Device, Queue, QueueType, v4l2_buffer};
+use v4lise::{Device, Queue, v4l2_buffer};
 
 use crate::helpers::{
     bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
@@ -619,7 +619,7 @@ fn test_display_one_mode(
         )))?;
 
     let queue = root_device
-        .get_queue(QueueType::Capture)
+        .get_queue(v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE)
         .map_err(SetupError::from)?;
 
     v4l2_ioctl_subscribe_event(

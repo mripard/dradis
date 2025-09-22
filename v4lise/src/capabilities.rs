@@ -1,3 +1,5 @@
+use v4l2_raw::v4l2_buf_type;
+
 use crate::v4l2_capability;
 
 bitflags! {
@@ -31,6 +33,28 @@ bitflags! {
     const META_OUTPUT = 0x08000000;
     const TOUCH = 0x10000000;
     const DEVICE_CAPS = 0x80000000;
+    }
+}
+
+impl From<v4l2_buf_type> for CapabilitiesFlags {
+    fn from(value: v4l2_buf_type) -> Self {
+        match value {
+            v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE => Self::VIDEO_CAPTURE,
+            v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_OUTPUT => Self::VIDEO_OUTPUT,
+            v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_OVERLAY => Self::VIDEO_OVERLAY,
+            v4l2_buf_type::V4L2_BUF_TYPE_VBI_CAPTURE => Self::VBI_CAPTURE,
+            v4l2_buf_type::V4L2_BUF_TYPE_VBI_OUTPUT => Self::VBI_OUTPUT,
+            v4l2_buf_type::V4L2_BUF_TYPE_SLICED_VBI_CAPTURE => Self::SLICED_VBI_CAPTURE,
+            v4l2_buf_type::V4L2_BUF_TYPE_SLICED_VBI_OUTPUT => Self::SLICED_VBI_OUTPUT,
+            v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY => Self::VIDEO_OUTPUT_OVERLAY,
+            v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE => Self::VIDEO_CAPTURE_MPLANE,
+            v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE => Self::VIDEO_OUTPUT_MPLANE,
+            v4l2_buf_type::V4L2_BUF_TYPE_SDR_CAPTURE => Self::SDR_CAPTURE,
+            v4l2_buf_type::V4L2_BUF_TYPE_SDR_OUTPUT => Self::SDR_OUTPUT,
+            v4l2_buf_type::V4L2_BUF_TYPE_META_CAPTURE => Self::META_CAPTURE,
+            v4l2_buf_type::V4L2_BUF_TYPE_META_OUTPUT => Self::META_OUTPUT,
+            v4l2_buf_type::V4L2_BUF_TYPE_PRIVATE => unimplemented!(),
+        }
     }
 }
 

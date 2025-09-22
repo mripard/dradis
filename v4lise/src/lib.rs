@@ -28,10 +28,7 @@ pub use v4l2_raw::{
     },
 };
 
-pub use crate::{
-    device::Device,
-    queue::{Queue, QueueType},
-};
+pub use crate::{device::Device, queue::Queue};
 
 pub fn v4l2_set_edid(fd: &impl AsFd, edid: &mut [u8]) -> io::Result<()> {
     let arg = v4l2_edid {

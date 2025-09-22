@@ -8,8 +8,9 @@ use std::{
 };
 
 use rustix::fs::{Mode, OFlags, open};
+use v4l2_raw::v4l2_buf_type;
 
-use crate::queue::{Queue, QueueType};
+use crate::queue::Queue;
 
 #[derive(Debug)]
 pub struct Device {
@@ -32,8 +33,8 @@ impl Device {
         })
     }
 
-    pub fn get_queue(&self, queue_type: QueueType) -> io::Result<Queue<'_>> {
-        Queue::new(self, queue_type)
+    pub fn get_queue(&self, buf_type: v4l2_buf_type) -> io::Result<Queue<'_>> {
+        Queue::new(self, buf_type)
     }
 }
 
