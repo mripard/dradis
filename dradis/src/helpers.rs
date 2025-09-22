@@ -28,14 +28,17 @@ use redid::{
 use rustix::io::Errno;
 use tracing::{debug, info};
 use v4l2_raw::{
-    raw::{v4l2_buf_type, v4l2_ioctl_dqbuf, v4l2_ioctl_qbuf, v4l2_ioctl_reqbufs, v4l2_memory},
+    raw::{
+        v4l2_buf_type, v4l2_buffer, v4l2_ioctl_dqbuf, v4l2_ioctl_qbuf, v4l2_ioctl_reqbufs,
+        v4l2_memory, v4l2_requestbuffers,
+    },
     wrapper::{
         v4l2_dv_timings, v4l2_ioctl_query_dv_timings, v4l2_ioctl_s_dv_timings, v4l2_ioctl_s_edid,
         v4l2_ioctl_streamoff, v4l2_ioctl_streamon, v4l2_ioctl_subdev_query_dv_timings,
         v4l2_ioctl_subdev_s_dv_timings, v4l2_ioctl_subdev_s_edid,
     },
 };
-use v4lise::{Device, v4l2_buffer, v4l2_requestbuffers};
+use v4lise::Device;
 
 use crate::{
     BUFFER_TYPE, Cli, Dradis, MEMORY_TYPE, PipelineItem, SetupError, TestEdid, V4l2EntityWrapper,

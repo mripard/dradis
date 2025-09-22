@@ -1,6 +1,4 @@
-use v4l2_raw::v4l2_buf_type;
-
-use crate::v4l2_capability;
+use v4l2_raw::{raw::v4l2_capability, v4l2_buf_type};
 
 bitflags! {
     pub struct CapabilitiesFlags: u32 {

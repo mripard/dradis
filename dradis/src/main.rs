@@ -39,14 +39,14 @@ use tracing::{Level, debug, debug_span, error, info, trace, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
 use v4l2_raw::{
     format::v4l2_pix_fmt,
-    raw::{v4l2_buf_type, v4l2_field, v4l2_ioctl_querybuf, v4l2_memory},
+    raw::{v4l2_buf_type, v4l2_buffer, v4l2_field, v4l2_ioctl_querybuf, v4l2_memory},
     wrapper::{
         v4l2_event_subscription, v4l2_event_subscription_type, v4l2_event_type, v4l2_format,
         v4l2_ioctl_dqevent, v4l2_ioctl_subdev_s_fmt, v4l2_ioctl_subscribe_event,
         v4l2_subdev_format,
     },
 };
-use v4lise::{Device, Queue, v4l2_buffer};
+use v4lise::{Device, Queue};
 
 use crate::helpers::{
     bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,

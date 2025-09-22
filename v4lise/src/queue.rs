@@ -3,15 +3,14 @@ use std::{io, os::fd::AsFd as _};
 use v4l2_raw::{
     format::v4l2_pix_fmt,
     raw::{
-        v4l2_ioctl_enum_fmt, v4l2_ioctl_enum_framesizes, v4l2_ioctl_querycap, v4l2_ioctl_reqbufs,
+        v4l2_fmtdesc, v4l2_frmsizeenum, v4l2_ioctl_enum_fmt, v4l2_ioctl_enum_framesizes,
+        v4l2_ioctl_querycap, v4l2_ioctl_reqbufs, v4l2_requestbuffers,
     },
+    v4l2_buf_type, v4l2_memory,
     wrapper::{v4l2_format, v4l2_ioctl_g_fmt},
 };
 
-use crate::{
-    capabilities::Capability, device::Device, v4l2_buf_type, v4l2_fmtdesc, v4l2_frmsizeenum,
-    v4l2_memory, v4l2_requestbuffers,
-};
+use crate::{capabilities::Capability, device::Device};
 
 #[derive(Debug)]
 pub struct Queue<'a> {
