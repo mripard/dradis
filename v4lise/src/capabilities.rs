@@ -1,37 +1,40 @@
 use bitflags::bitflags;
-use v4l2_raw::{raw::v4l2_capability, v4l2_buf_type};
+use v4l2_raw::{
+    raw::{self, v4l2_capability},
+    v4l2_buf_type,
+};
 
 bitflags! {
     pub struct CapabilitiesFlags: u32 {
-    const VIDEO_CAPTURE = 0x00000001;
-    const VIDEO_OUTPUT = 0x00000002;
-    const VIDEO_OVERLAY = 0x00000004;
-    const VBI_CAPTURE = 0x00000010;
-    const VBI_OUTPUT = 0x00000020;
-    const SLICED_VBI_CAPTURE = 0x00000040;
-    const SLICED_VBI_OUTPUT = 0x00000080;
-    const RDS_CAPTURE = 0x00000100;
-    const VIDEO_OUTPUT_OVERLAY = 0x00000200;
-    const HW_FREQ_SEEK = 0x00000400;
-    const RDS_OUTPUT = 0x00000800;
-    const VIDEO_CAPTURE_MPLANE = 0x00001000;
-    const VIDEO_OUTPUT_MPLANE = 0x00002000;
-    const VIDEO_M2M_MPLANE = 0x00004000;
-    const VIDEO_M2M = 0x00008000;
-    const TUNER = 0x00010000;
-    const AUDIO = 0x00020000;
-    const RADIO = 0x00040000;
-    const MODULATOR = 0x00080000;
-    const SDR_CAPTURE = 0x00100000;
-    const EXT_PIX_FORMAT = 0x00200000;
-    const SDR_OUTPUT = 0x00400000;
-    const META_CAPTURE = 0x00800000;
-    const READWRITE = 0x01000000;
-    const ASYNCIO = 0x02000000;
-    const STREAMING = 0x04000000;
-    const META_OUTPUT = 0x08000000;
-    const TOUCH = 0x10000000;
-    const DEVICE_CAPS = 0x80000000;
+    const VIDEO_CAPTURE = raw::V4L2_CAP_VIDEO_CAPTURE;
+    const VIDEO_OUTPUT = raw::V4L2_CAP_VIDEO_OUTPUT;
+    const VIDEO_OVERLAY = raw::V4L2_CAP_VIDEO_OVERLAY;
+    const VBI_CAPTURE = raw::V4L2_CAP_VBI_CAPTURE;
+    const VBI_OUTPUT = raw::V4L2_CAP_VBI_OUTPUT;
+    const SLICED_VBI_CAPTURE = raw::V4L2_CAP_SLICED_VBI_CAPTURE;
+    const SLICED_VBI_OUTPUT = raw::V4L2_CAP_SLICED_VBI_OUTPUT;
+    const RDS_CAPTURE = raw::V4L2_CAP_RDS_CAPTURE;
+    const VIDEO_OUTPUT_OVERLAY = raw::V4L2_CAP_VIDEO_OUTPUT_OVERLAY;
+    const HW_FREQ_SEEK = raw::V4L2_CAP_HW_FREQ_SEEK;
+    const RDS_OUTPUT = raw::V4L2_CAP_RDS_OUTPUT;
+    const VIDEO_CAPTURE_MPLANE = raw::V4L2_CAP_VIDEO_CAPTURE_MPLANE;
+    const VIDEO_OUTPUT_MPLANE = raw::V4L2_CAP_VIDEO_OUTPUT_MPLANE;
+    const VIDEO_M2M_MPLANE = raw::V4L2_CAP_VIDEO_M2M_MPLANE;
+    const VIDEO_M2M = raw::V4L2_CAP_VIDEO_M2M;
+    const TUNER = raw::V4L2_CAP_TUNER;
+    const AUDIO = raw::V4L2_CAP_AUDIO;
+    const RADIO = raw::V4L2_CAP_RADIO;
+    const MODULATOR = raw::V4L2_CAP_MODULATOR;
+    const SDR_CAPTURE = raw::V4L2_CAP_SDR_CAPTURE;
+    const EXT_PIX_FORMAT = raw::V4L2_CAP_EXT_PIX_FORMAT;
+    const SDR_OUTPUT = raw::V4L2_CAP_SDR_OUTPUT;
+    const META_CAPTURE = raw::V4L2_CAP_META_CAPTURE;
+    const READWRITE = raw::V4L2_CAP_READWRITE;
+    const ASYNCIO = raw::V4L2_CAP_ASYNCIO;
+    const STREAMING = raw::V4L2_CAP_STREAMING;
+    const META_OUTPUT = raw::V4L2_CAP_META_OUTPUT;
+    const TOUCH = raw::V4L2_CAP_TOUCH;
+    const DEVICE_CAPS = raw::V4L2_CAP_DEVICE_CAPS;
     }
 }
 
