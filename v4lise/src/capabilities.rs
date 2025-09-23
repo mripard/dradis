@@ -61,7 +61,7 @@ impl From<v4l2_buf_type> for CapabilitiesFlags {
 }
 
 #[expect(dead_code)]
-pub struct Capability {
+pub(crate) struct Capability {
     pub driver: String,
     pub card: String,
     pub bus_info: String,
