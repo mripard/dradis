@@ -3,11 +3,11 @@ use std::{io, os::fd::AsFd as _};
 use v4l2_raw::{
     format::v4l2_pix_fmt,
     raw::{
-        v4l2_fmtdesc, v4l2_frmsizeenum, v4l2_ioctl_enum_fmt, v4l2_ioctl_enum_framesizes,
-        v4l2_ioctl_querycap, v4l2_ioctl_reqbufs, v4l2_requestbuffers,
+        v4l2_fmtdesc, v4l2_ioctl_enum_fmt, v4l2_ioctl_querycap, v4l2_ioctl_reqbufs,
+        v4l2_requestbuffers,
     },
     v4l2_buf_type, v4l2_memory,
-    wrapper::{v4l2_format, v4l2_ioctl_g_fmt},
+    wrapper::{v4l2_format, v4l2_frmsizeenum, v4l2_ioctl_enum_framesizes, v4l2_ioctl_g_fmt},
 };
 
 use crate::{capabilities::Capability, device::Device};
@@ -108,26 +108,18 @@ pub struct QueueSizeIter<'a> {
 }
 
 impl Iterator for QueueSizeIter<'_> {
-    type Item = (usize, usize);
+    type Item = v4l2_frmsizeenum;
 
-    fn next(&mut self) -> Option<(usize, usize)> {
-        let raw_struct = v4l2_frmsizeenum {
-            pixel_format: self.fmt.into(),
-            index: self.curr,
-            ..Default::default()
-        };
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Ok(size) = v4l2_ioctl_enum_framesizes(
+            self.queue.dev.as_fd(),
+            v4l2_frmsizeenum::new(self.fmt, self.curr),
+        ) {
+            self.curr += 1;
 
-        let size = match v4l2_ioctl_enum_framesizes(self.queue.dev.as_fd(), raw_struct) {
-            Ok(ret) => {
-                let height = unsafe { ret.__bindgen_anon_1.discrete.height } as usize;
-                let width = unsafe { ret.__bindgen_anon_1.discrete.width } as usize;
-
-                (width, height)
-            }
-            Err(_) => return None,
-        };
-
-        self.curr += 1;
-        Some(size)
+            Some(size)
+        } else {
+            None
+        }
     }
 }
