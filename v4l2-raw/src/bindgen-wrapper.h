@@ -36,6 +36,9 @@ enum v4l2_colorspace;
 enum v4l2_field;
 
 /** <div rustbindgen attribute="#[derive(facet::Facet, facet_enum_repr::FacetEnumRepr)]" */
+enum v4l2_frmsizetypes;
+
+/** <div rustbindgen attribute="#[derive(facet::Facet, facet_enum_repr::FacetEnumRepr)]" */
 enum v4l2_mbus_pixelcode;
 
 /** <div rustbindgen attribute="#[derive(facet::Facet, facet_enum_repr::FacetEnumRepr)]" */
