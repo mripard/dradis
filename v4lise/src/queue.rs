@@ -73,7 +73,7 @@ impl<'a> Queue<'a> {
 #[derive(Debug)]
 pub struct QueuePixelFormatIter<'a> {
     queue: &'a Queue<'a>,
-    curr: usize,
+    curr: u32,
 }
 
 impl Iterator for QueuePixelFormatIter<'_> {
@@ -84,7 +84,7 @@ impl Iterator for QueuePixelFormatIter<'_> {
 
         let raw_desc = v4l2_fmtdesc {
             type_: buf_type.into(),
-            index: self.curr as u32,
+            index: self.curr,
             ..Default::default()
         };
 
@@ -102,7 +102,7 @@ impl Iterator for QueuePixelFormatIter<'_> {
 pub struct QueueSizeIter<'a> {
     queue: &'a Queue<'a>,
     fmt: v4l2_pix_fmt,
-    curr: usize,
+    curr: u32,
 }
 
 impl Iterator for QueueSizeIter<'_> {
@@ -111,7 +111,7 @@ impl Iterator for QueueSizeIter<'_> {
     fn next(&mut self) -> Option<(usize, usize)> {
         let raw_struct = v4l2_frmsizeenum {
             pixel_format: self.fmt.into(),
-            index: self.curr as u32,
+            index: self.curr,
             ..Default::default()
         };
 
