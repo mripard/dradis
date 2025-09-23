@@ -1,5 +1,5 @@
-#![warn(rust_2018_idioms)]
-#![warn(missing_debug_implementations)]
+#![allow(missing_docs)]
+#![allow(clippy::missing_errors_doc)]
 
 mod capabilities;
 mod device;
