@@ -33,6 +33,7 @@ impl<'a> Queue<'a> {
         Ok(Queue { dev, buf_type })
     }
 
+    #[must_use]
     pub fn get_pixel_formats(&self) -> QueuePixelFormatIter<'_> {
         QueuePixelFormatIter {
             queue: self,
@@ -44,6 +45,7 @@ impl<'a> Queue<'a> {
         v4l2_ioctl_g_fmt(self.dev.as_fd(), self.buf_type)
     }
 
+    #[must_use]
     pub fn get_sizes(&self, fmt: v4l2_pix_fmt) -> QueueSizeIter<'_> {
         QueueSizeIter {
             queue: self,
