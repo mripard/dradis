@@ -52,9 +52,9 @@ impl<'a> Queue<'a> {
         }
     }
 
-    pub fn request_buffers(&self, mem_type: v4l2_memory, num: usize) -> io::Result<()> {
+    pub fn request_buffers(&self, mem_type: v4l2_memory, count: u32) -> io::Result<()> {
         let rbuf = v4l2_requestbuffers {
-            count: num as u32,
+            count,
             type_: self.buf_type.into(),
             memory: mem_type.into(),
             ..Default::default()

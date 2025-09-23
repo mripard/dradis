@@ -436,7 +436,7 @@ fn test_run(
     test_prepare_queue(suite, queue, test)?;
 
     queue
-        .request_buffers(v4l2_memory::V4L2_MEMORY_DMABUF, NUM_BUFFERS as usize)
+        .request_buffers(v4l2_memory::V4L2_MEMORY_DMABUF, NUM_BUFFERS)
         .expect("Couldn't request our buffers");
 
     let mut buffers = Vec::with_capacity(NUM_BUFFERS as usize);
