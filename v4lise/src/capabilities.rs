@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use v4l2_raw::{raw::v4l2_capability, v4l2_buf_type};
 
 bitflags! {
