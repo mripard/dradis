@@ -1,12 +1,13 @@
 use core::{
     cmp::{max, min},
     ops::{Add, Div, Mul, Rem, Sub},
+    time::Duration,
 };
 use std::{
     fs, io,
     os::{fd::AsFd as _, unix::io::RawFd},
     thread::sleep,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use num_traits::{One, ToPrimitive as _, Zero};

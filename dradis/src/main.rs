@@ -11,16 +11,15 @@
 
 mod helpers;
 
-use core::fmt;
+use core::{cell::RefCell, fmt, time::Duration};
 use std::{
-    cell::RefCell,
     fs::File,
     io,
     os::{fd::AsFd as _, unix::io::AsRawFd as _},
     path::PathBuf,
     rc::Rc,
     thread::sleep,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use anyhow::Context as _;
