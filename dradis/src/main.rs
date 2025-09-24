@@ -9,8 +9,6 @@
 #![allow(clippy::needless_raw_string_hashes)]
 #![allow(clippy::unreadable_literal)]
 
-mod helpers;
-
 extern crate alloc;
 use alloc::rc::Rc;
 use core::{cell::RefCell, fmt, time::Duration};
@@ -48,15 +46,16 @@ use v4l2_raw::{
 };
 use v4lise::{Device, Queue};
 
-use crate::helpers::{
-    bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
-};
-
 pub mod built_info {
     #![allow(clippy::doc_markdown)]
 
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
+
+mod helpers;
+use crate::helpers::{
+    bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
+};
 
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
 const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
