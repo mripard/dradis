@@ -238,7 +238,7 @@ fn test_prepare_queue(
     suite: &Dradis<'_>,
     queue: &Queue<'_>,
     test: &TestItem,
-) -> std::result::Result<(), SetupError> {
+) -> Result<(), SetupError> {
     wait_and_set_dv_timings(suite, test.expected_width, test.expected_height)?;
 
     let _: v4l2_pix_fmt = queue
@@ -394,7 +394,7 @@ fn test_run(
     suite: &Dradis<'_>,
     queue: &Queue<'_>,
     test: &TestItem,
-) -> std::result::Result<(), TestError> {
+) -> Result<(), TestError> {
     let PipelineItem { entity: root, .. } =
         suite
             .pipeline
@@ -569,11 +569,7 @@ fn test_run(
     Ok(())
 }
 
-fn test_display_one_mode(
-    args: &Cli,
-    suite: &Dradis<'_>,
-    test: &TestItem,
-) -> std::result::Result<(), TestError> {
+fn test_display_one_mode(args: &Cli, suite: &Dradis<'_>, test: &TestItem) -> Result<(), TestError> {
     let PipelineItem { entity: root, .. } =
         suite
             .pipeline
