@@ -636,7 +636,7 @@ fn test_display_one_mode(args: &Cli, suite: &Dradis<'_>, test: &TestItem) -> Res
                 TestError::Retry => {
                     warn!("Test needs to be restarted.");
                 }
-                _ => {
+                TestError::NoFrameReceived | TestError::SetupFailed(_) => {
                     return Err(e);
                 }
             },
