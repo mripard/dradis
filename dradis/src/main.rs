@@ -173,7 +173,13 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
         .next()
         .transpose()?
         .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
-    assert!(endpoints.next().is_none());
+
+    if endpoints.next().is_some() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Found more than one HDMI bridge",
+        ));
+    }
 
     debug!("Found an HDMI bridge: {}", hdmi_bridge.name());
 
@@ -379,11 +385,15 @@ fn test_prepare_queue(
         .as_v4l2_pix_format()
         .expect("Queue Format isn't what we set.");
 
-    assert_eq!(
-        ret_pix_fmt.bytes_per_line(),
-        ret_pix_fmt.width() * u32::from(ret_pix_fmt.pixel_format().bytes_per_pixel()),
-        "We don't support any line padding"
-    );
+    if ret_pix_fmt.bytes_per_line()
+        != ret_pix_fmt.width() * u32::from(ret_pix_fmt.pixel_format().bytes_per_pixel())
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "We don't support any line padding",
+        )
+        .into());
+    }
 
     debug!("Format set {:#?}", ret_fmt);
 
