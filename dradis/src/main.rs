@@ -46,7 +46,7 @@ use v4l2_raw::{
 };
 use v4lise::{Device, Queue};
 
-pub mod built_info {
+mod built_info {
     #![allow(clippy::doc_markdown)]
 
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
