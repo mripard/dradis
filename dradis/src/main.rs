@@ -241,7 +241,7 @@ fn test_prepare_queue(
 ) -> std::result::Result<(), SetupError> {
     wait_and_set_dv_timings(suite, test.expected_width, test.expected_height)?;
 
-    let _ = queue
+    let _: v4l2_pix_fmt = queue
         .get_pixel_formats()
         .find(|fmt| *fmt == v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
         .expect("Couldn't find our format");

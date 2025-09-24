@@ -72,7 +72,7 @@ pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> io::Result<()> 
     };
     raw_struct.m.fd = fd;
 
-    let _ = v4l2_ioctl_qbuf(dev.as_fd(), raw_struct)?;
+    let _: v4l2_buffer = v4l2_ioctl_qbuf(dev.as_fd(), raw_struct)?;
 
     Ok(())
 }
