@@ -244,7 +244,7 @@ pub(crate) fn bridge_set_edid(
     let test_edid = EdidRelease3::builder()
         .manufacturer("CRN".try_into()?)
         .product_code(0x42)
-        .serial_number(Some(0x42424242.into()))
+        .serial_number(Some(0x42_42_42_42.into()))
         .date(EdidManufactureDate::try_from(2024)?)
         .display_parameters_features(
             EdidR3BasicDisplayParametersFeatures::builder()
