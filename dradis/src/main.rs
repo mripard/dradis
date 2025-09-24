@@ -11,13 +11,14 @@
 
 mod helpers;
 
+extern crate alloc;
+use alloc::rc::Rc;
 use core::{cell::RefCell, fmt, time::Duration};
 use std::{
     fs::File,
     io,
     os::{fd::AsFd as _, unix::io::AsRawFd as _},
     path::PathBuf,
-    rc::Rc,
     thread::sleep,
     time::Instant,
 };
