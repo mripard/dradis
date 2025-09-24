@@ -499,9 +499,9 @@ fn test_run(
             }
 
             let res = dequeue_buffer(root_device);
-            match res {
+            match &res {
                 Ok(_) => break res,
-                Err(ref e) => match Errno::from_io_error(e) {
+                Err(e) => match Errno::from_io_error(e) {
                     Some(Errno::AGAIN) => {
                         debug!("No buffer to dequeue.");
                     }

@@ -205,7 +205,7 @@ pub(crate) fn bridge_set_edid(
     dev: &V4l2EntityWrapper,
     edid: &TestEdid,
 ) -> Result<(), SetupError> {
-    let TestEdid::DetailedTiming(ref dtd) = edid;
+    let TestEdid::DetailedTiming(dtd) = edid;
 
     let mode_hfreq_khz: u32 =
         dtd.clock_khz / u32::from(dtd.hfp + dtd.hdisplay + dtd.hbp + dtd.hsync);
