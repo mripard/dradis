@@ -241,6 +241,10 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
     Ok(outputs)
 }
 
+#[expect(
+    clippy::missing_asserts_for_indexing,
+    reason = "windows() guarantees the slice size, but it looks like we can't disable the lint locally"
+)]
 #[expect(clippy::too_many_lines, reason = "Yup, this function is long indeed.")]
 fn test_prepare_queue(
     suite: &Dradis<'_>,
