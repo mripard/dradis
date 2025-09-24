@@ -9,7 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use num_traits::{One, ToPrimitive, Zero};
+use num_traits::{One, ToPrimitive as _, Zero};
 use redid::{
     EdidChromaticityPoint, EdidChromaticityPoints, EdidDescriptorDetailedTiming,
     EdidDescriptorDetailedTimingHorizontal, EdidDescriptorDetailedTimingVertical,
@@ -23,7 +23,7 @@ use redid::{
     EdidExtensionCTA861VideoCapabilityScanBehavior, EdidFilterChromaticity, EdidManufactureDate,
     EdidR3BasicDisplayParametersFeatures, EdidR3Descriptor, EdidR3DigitalVideoInputDefinition,
     EdidR3DisplayRangeLimits, EdidR3DisplayRangeVideoTimingsSupport, EdidR3FeatureSupport,
-    EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes,
+    EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes as _,
 };
 use rustix::io::Errno;
 use tracing::{debug, info};

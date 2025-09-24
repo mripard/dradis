@@ -16,14 +16,14 @@ use std::{
     cell::RefCell,
     fs::File,
     io,
-    os::{fd::AsFd, unix::io::AsRawFd},
+    os::{fd::AsFd as _, unix::io::AsRawFd as _},
     path::PathBuf,
     rc::Rc,
     thread::sleep,
     time::{Duration, Instant},
 };
 
-use anyhow::Context;
+use anyhow::Context as _;
 use clap::{Parser, ValueEnum};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
