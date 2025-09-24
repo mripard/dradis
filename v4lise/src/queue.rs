@@ -3,77 +3,37 @@ use std::{io, os::fd::AsFd as _};
 use v4l2_raw::{
     format::v4l2_pix_fmt,
     raw::{
-        v4l2_ioctl_enum_fmt, v4l2_ioctl_enum_framesizes, v4l2_ioctl_querycap, v4l2_ioctl_reqbufs,
+        v4l2_fmtdesc, v4l2_ioctl_enum_fmt, v4l2_ioctl_querycap, v4l2_ioctl_reqbufs,
+        v4l2_requestbuffers,
     },
-    wrapper::{v4l2_format, v4l2_ioctl_g_fmt},
+    v4l2_buf_type, v4l2_memory,
+    wrapper::{v4l2_format, v4l2_frmsizeenum, v4l2_ioctl_enum_framesizes, v4l2_ioctl_g_fmt},
 };
 
-use crate::{
-    capabilities::{CapabilitiesFlags, Capability},
-    device::Device,
-    v4l2_buf_type, v4l2_fmtdesc, v4l2_frmsizeenum, v4l2_memory, v4l2_requestbuffers,
-};
-
-#[derive(Clone, Copy, Debug)]
-pub enum MemoryType {
-    MMAP,
-    DMABUF,
-}
-
-impl From<MemoryType> for v4l2_memory {
-    fn from(val: MemoryType) -> Self {
-        match val {
-            MemoryType::DMABUF => v4l2_memory::V4L2_MEMORY_DMABUF,
-            MemoryType::MMAP => v4l2_memory::V4L2_MEMORY_MMAP,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum QueueType {
-    Capture,
-    Output,
-}
-
-impl From<QueueType> for CapabilitiesFlags {
-    fn from(val: QueueType) -> Self {
-        match val {
-            QueueType::Capture => CapabilitiesFlags::VIDEO_CAPTURE,
-            QueueType::Output => CapabilitiesFlags::VIDEO_OUTPUT,
-        }
-    }
-}
-
-impl From<QueueType> for v4l2_buf_type {
-    fn from(val: QueueType) -> Self {
-        match val {
-            QueueType::Capture => v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE,
-            QueueType::Output => v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_OUTPUT,
-        }
-    }
-}
+use crate::{capabilities::Capability, device::Device};
 
 #[derive(Debug)]
 pub struct Queue<'a> {
     dev: &'a Device,
-    queue_type: QueueType,
+    buf_type: v4l2_buf_type,
 }
 
 impl<'a> Queue<'a> {
-    pub fn new(dev: &'a Device, queue_type: QueueType) -> io::Result<Self> {
+    pub fn new(dev: &'a Device, buf_type: v4l2_buf_type) -> io::Result<Self> {
         let raw_caps = v4l2_ioctl_querycap(dev.as_fd())?;
         let caps = Capability::from(raw_caps);
 
-        if !caps.device_caps.contains(queue_type.into()) {
+        if !caps.device_caps.contains(buf_type.into()) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "Device doesn't support requested capability",
             ));
         }
 
-        Ok(Queue { dev, queue_type })
+        Ok(Queue { dev, buf_type })
     }
 
+    #[must_use]
     pub fn get_pixel_formats(&self) -> QueuePixelFormatIter<'_> {
         QueuePixelFormatIter {
             queue: self,
@@ -82,9 +42,10 @@ impl<'a> Queue<'a> {
     }
 
     pub fn get_current_format(&self) -> io::Result<v4l2_format> {
-        v4l2_ioctl_g_fmt(self.dev.as_fd(), self.queue_type.into())
+        v4l2_ioctl_g_fmt(self.dev.as_fd(), self.buf_type)
     }
 
+    #[must_use]
     pub fn get_sizes(&self, fmt: v4l2_pix_fmt) -> QueueSizeIter<'_> {
         QueueSizeIter {
             queue: self,
@@ -93,12 +54,10 @@ impl<'a> Queue<'a> {
         }
     }
 
-    pub fn request_buffers(&self, mem_type: MemoryType, num: usize) -> io::Result<()> {
-        let buf_type: v4l2_buf_type = self.queue_type.into();
-        let mem_type: v4l2_memory = mem_type.into();
+    pub fn request_buffers(&self, mem_type: v4l2_memory, count: u32) -> io::Result<()> {
         let rbuf = v4l2_requestbuffers {
-            count: num as u32,
-            type_: buf_type.into(),
+            count,
+            type_: self.buf_type.into(),
             memory: mem_type.into(),
             ..Default::default()
         };
@@ -116,18 +75,18 @@ impl<'a> Queue<'a> {
 #[derive(Debug)]
 pub struct QueuePixelFormatIter<'a> {
     queue: &'a Queue<'a>,
-    curr: usize,
+    curr: u32,
 }
 
 impl Iterator for QueuePixelFormatIter<'_> {
     type Item = v4l2_pix_fmt;
 
     fn next(&mut self) -> Option<v4l2_pix_fmt> {
-        let buf_type: v4l2_buf_type = self.queue.queue_type.into();
+        let buf_type: v4l2_buf_type = self.queue.buf_type;
 
         let raw_desc = v4l2_fmtdesc {
             type_: buf_type.into(),
-            index: self.curr as u32,
+            index: self.curr,
             ..Default::default()
         };
 
@@ -145,30 +104,22 @@ impl Iterator for QueuePixelFormatIter<'_> {
 pub struct QueueSizeIter<'a> {
     queue: &'a Queue<'a>,
     fmt: v4l2_pix_fmt,
-    curr: usize,
+    curr: u32,
 }
 
 impl Iterator for QueueSizeIter<'_> {
-    type Item = (usize, usize);
+    type Item = v4l2_frmsizeenum;
 
-    fn next(&mut self) -> Option<(usize, usize)> {
-        let raw_struct = v4l2_frmsizeenum {
-            pixel_format: self.fmt.into(),
-            index: self.curr as u32,
-            ..Default::default()
-        };
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Ok(size) = v4l2_ioctl_enum_framesizes(
+            self.queue.dev.as_fd(),
+            v4l2_frmsizeenum::new(self.fmt, self.curr),
+        ) {
+            self.curr += 1;
 
-        let size = match v4l2_ioctl_enum_framesizes(self.queue.dev.as_fd(), raw_struct) {
-            Ok(ret) => {
-                let height = unsafe { ret.__bindgen_anon_1.discrete.height } as usize;
-                let width = unsafe { ret.__bindgen_anon_1.discrete.width } as usize;
-
-                (width, height)
-            }
-            Err(_) => return None,
-        };
-
-        self.curr += 1;
-        Some(size)
+            Some(size)
+        } else {
+            None
+        }
     }
 }

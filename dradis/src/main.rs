@@ -39,14 +39,14 @@ use tracing::{Level, debug, debug_span, error, info, trace, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
 use v4l2_raw::{
     format::v4l2_pix_fmt,
-    raw::{v4l2_buf_type, v4l2_field, v4l2_ioctl_querybuf, v4l2_memory},
+    raw::{v4l2_buf_type, v4l2_buffer, v4l2_field, v4l2_ioctl_querybuf, v4l2_memory},
     wrapper::{
         v4l2_event_subscription, v4l2_event_subscription_type, v4l2_event_type, v4l2_format,
         v4l2_ioctl_dqevent, v4l2_ioctl_subdev_s_fmt, v4l2_ioctl_subscribe_event,
         v4l2_subdev_format,
     },
 };
-use v4lise::{Device, MemoryType, Queue, QueueType, v4l2_buffer};
+use v4lise::{Device, Queue};
 
 use crate::helpers::{
     bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
@@ -436,7 +436,7 @@ fn test_run(
     test_prepare_queue(suite, queue, test)?;
 
     queue
-        .request_buffers(MemoryType::DMABUF, NUM_BUFFERS as usize)
+        .request_buffers(v4l2_memory::V4L2_MEMORY_DMABUF, NUM_BUFFERS)
         .expect("Couldn't request our buffers");
 
     let mut buffers = Vec::with_capacity(NUM_BUFFERS as usize);
@@ -619,7 +619,7 @@ fn test_display_one_mode(
         )))?;
 
     let queue = root_device
-        .get_queue(QueueType::Capture)
+        .get_queue(v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE)
         .map_err(SetupError::from)?;
 
     v4l2_ioctl_subscribe_event(

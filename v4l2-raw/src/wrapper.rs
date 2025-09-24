@@ -13,7 +13,7 @@ use crate::{
         V4L2_EVENT_CTRL_CH_FLAGS, V4L2_EVENT_CTRL_CH_RANGE, V4L2_EVENT_CTRL_CH_VALUE,
         V4L2_EVENT_EOS, V4L2_EVENT_FRAME_SYNC, V4L2_EVENT_MD_FL_HAVE_FRAME_SEQ,
         V4L2_EVENT_MOTION_DET, V4L2_EVENT_SOURCE_CHANGE, V4L2_EVENT_SRC_CH_RESOLUTION,
-        V4L2_EVENT_VSYNC,
+        V4L2_EVENT_VSYNC, v4l2_frmsize_discrete, v4l2_frmsize_stepwise, v4l2_frmsizetypes,
     },
     v4l2_buf_type, v4l2_colorspace, v4l2_field, v4l2_hsv_encoding, v4l2_memory, v4l2_quantization,
     v4l2_xfer_func, v4l2_ycbcr_encoding,
@@ -677,6 +677,180 @@ pub fn v4l2_ioctl_s_fmt(fd: BorrowedFd<'_>, fmt: v4l2_format) -> io::Result<v4l2
 pub fn v4l2_ioctl_try_fmt(fd: BorrowedFd<'_>, fmt: v4l2_format) -> io::Result<v4l2_format> {
     raw::v4l2_ioctl_try_fmt(fd, fmt.into()).map(|f| {
         f.try_into()
+            .expect("The kernel returned an unexpected type")
+    })
+}
+
+#[repr(C, u32)]
+#[derive(Copy, Clone, Debug)]
+enum v4l2_frmsizeenum_inner {
+    Unknown = 0,
+    Discrete(v4l2_frmsize_discrete) = v4l2_frmsizetypes::V4L2_FRMSIZE_TYPE_DISCRETE as u32,
+    Continuous(v4l2_frmsize_stepwise) = v4l2_frmsizetypes::V4L2_FRMSIZE_TYPE_CONTINUOUS as u32,
+    StepWise(v4l2_frmsize_stepwise) = v4l2_frmsizetypes::V4L2_FRMSIZE_TYPE_STEPWISE as u32,
+}
+
+/// Frame Size Enumeration
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct v4l2_frmsizeenum {
+    index: u32,
+    pixel_format: v4l2_pix_fmt,
+    size: v4l2_frmsizeenum_inner,
+    _reserved: [u32; 2],
+}
+
+impl v4l2_frmsizeenum {
+    /// Creates a new [`v4l2_frmsizeenum`] instance
+    #[must_use]
+    pub fn new(pixel_format: v4l2_pix_fmt, index: u32) -> Self {
+        Self {
+            index,
+            pixel_format,
+            size: v4l2_frmsizeenum_inner::Unknown,
+            _reserved: [0; 2],
+        }
+    }
+
+    /// Returns a reference to the associated [`v4l2_frmsize_stepwise`] if the size is continuous,
+    /// None otherwise.
+    #[must_use]
+    pub fn as_continuous(&self) -> Option<&v4l2_frmsize_stepwise> {
+        if let v4l2_frmsizeenum_inner::Continuous(cont) = &self.size {
+            Some(cont)
+        } else {
+            None
+        }
+    }
+
+    /// Returns a reference to the associated [`v4l2_frmsize_discrete`] if the size is discrete,
+    /// None otherwise.
+    #[must_use]
+    pub fn as_discrete(&self) -> Option<&v4l2_frmsize_discrete> {
+        if let v4l2_frmsizeenum_inner::Discrete(discrete) = &self.size {
+            Some(discrete)
+        } else {
+            None
+        }
+    }
+
+    /// Returns a reference to the associated [`v4l2_frmsize_stepwise`] if the size is step-wise
+    /// defined, None otherwise.
+    #[must_use]
+    pub fn as_step_wise(&self) -> Option<&v4l2_frmsize_stepwise> {
+        if let v4l2_frmsizeenum_inner::StepWise(step) = &self.size {
+            Some(step)
+        } else {
+            None
+        }
+    }
+}
+
+impl TryFrom<raw::v4l2_frmsizeenum> for v4l2_frmsizeenum {
+    type Error = ConversionError;
+
+    fn try_from(value: raw::v4l2_frmsizeenum) -> Result<Self, Self::Error> {
+        let size = v4l2_frmsizetypes::try_from(value.type_).map_err(|_e| {
+            Self::Error::InvalidStructField {
+                name: String::from("type"),
+                value: format!("{}", value.type_),
+            }
+        })?;
+
+        Ok(Self {
+            index: value.index,
+            pixel_format: value.pixel_format.try_into()?,
+            size: match size {
+                v4l2_frmsizetypes::V4L2_FRMSIZE_TYPE_DISCRETE => {
+                    v4l2_frmsizeenum_inner::Discrete(
+                        // SAFETY: We just checked the union tag, we know we access the right part
+                        // of it.
+                        unsafe { value.__bindgen_anon_1.discrete },
+                    )
+                }
+                v4l2_frmsizetypes::V4L2_FRMSIZE_TYPE_CONTINUOUS => {
+                    v4l2_frmsizeenum_inner::Continuous(
+                        // SAFETY: We just checked the union tag, we know we access the right part
+                        // of it.
+                        unsafe { value.__bindgen_anon_1.stepwise },
+                    )
+                }
+                v4l2_frmsizetypes::V4L2_FRMSIZE_TYPE_STEPWISE => {
+                    v4l2_frmsizeenum_inner::StepWise(
+                        // SAFETY: We just checked the union tag, we know we access the right part
+                        // of it.
+                        unsafe { value.__bindgen_anon_1.stepwise },
+                    )
+                }
+            },
+            _reserved: [0; 2],
+        })
+    }
+}
+
+impl From<v4l2_frmsizeenum> for raw::v4l2_frmsizeenum {
+    fn from(value: v4l2_frmsizeenum) -> Self {
+        // SAFETY: We know from Rust layout rules and our tests that the layouts between the two
+        // structures are identical. We also know that all the fields in the Rust union are in a
+        // valid state. We can safely transmute.
+        unsafe { core::mem::transmute::<v4l2_frmsizeenum, Self>(value) }
+    }
+}
+
+#[cfg(test)]
+mod tests_v4l2_frmsizeenum {
+    use crate::{raw, wrapper};
+
+    #[test]
+    fn layout() {
+        assert_eq!(
+            size_of::<wrapper::v4l2_frmsizeenum>(),
+            size_of::<raw::v4l2_frmsizeenum>()
+        );
+
+        assert_eq!(
+            align_of::<wrapper::v4l2_frmsizeenum>(),
+            align_of::<raw::v4l2_frmsizeenum>()
+        );
+
+        assert_eq!(
+            std::mem::offset_of!(wrapper::v4l2_frmsizeenum, index),
+            std::mem::offset_of!(raw::v4l2_frmsizeenum, index)
+        );
+
+        assert_eq!(
+            std::mem::offset_of!(wrapper::v4l2_frmsizeenum, pixel_format),
+            std::mem::offset_of!(raw::v4l2_frmsizeenum, pixel_format)
+        );
+
+        assert_eq!(
+            std::mem::offset_of!(wrapper::v4l2_frmsizeenum, size),
+            std::mem::offset_of!(raw::v4l2_frmsizeenum, type_)
+        );
+
+        assert_eq!(
+            std::mem::offset_of!(wrapper::v4l2_frmsizeenum, _reserved),
+            std::mem::offset_of!(raw::v4l2_frmsizeenum, reserved)
+        );
+    }
+}
+
+/// Enumerate Frame Sizes.
+///
+/// # Errors
+///
+/// If there's an I/O Error while accessing the file descriptor.
+///
+/// # Panics
+///
+/// If the kernel returns an unexpected value
+#[instrument(level = "trace")]
+pub fn v4l2_ioctl_enum_framesizes(
+    fd: BorrowedFd<'_>,
+    size: v4l2_frmsizeenum,
+) -> io::Result<v4l2_frmsizeenum> {
+    raw::v4l2_ioctl_enum_framesizes(fd, size.into()).map(|v| {
+        v.try_into()
             .expect("The kernel returned an unexpected type")
     })
 }
