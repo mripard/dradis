@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758301013829,
+  "lastUpdate": 1758724202520,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1829,6 +1829,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 482130,
             "range": "± 1239",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ca65365f1577a51d4c8f66c2b96f28ad2f9653f6",
+          "message": "Merge pull request #276 from mripard/cleanup-v4lise\n\nEnable common lints on v4lise",
+          "timestamp": "2025-09-24T16:25:42+02:00",
+          "tree_id": "bc98912cd59701411dc0c54ac4b30d694917a628",
+          "url": "https://github.com/mripard/dradis/commit/ca65365f1577a51d4c8f66c2b96f28ad2f9653f6"
+        },
+        "date": 1758724201717,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 477664,
+            "range": "± 1945",
             "unit": "ns/iter"
           }
         ]
