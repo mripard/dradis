@@ -395,34 +395,28 @@ fn test_run(
     queue: &Queue<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    let PipelineItem {
-        source_pad: _,
-        entity: root,
-        sink_pad: _,
-    } = suite
-        .pipeline
-        .first()
-        .ok_or(SetupError::from(io::Error::new(
-            Errno::NODEV.kind(),
-            "Missing Root Entity",
-        )))?;
+    let PipelineItem { entity: root, .. } =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
 
     let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
         Errno::NODEV.kind(),
         "Missing V4L2 Root Device",
     )))?;
 
-    let PipelineItem {
-        source_pad: _,
-        entity: bridge,
-        sink_pad: _,
-    } = suite
-        .pipeline
-        .last()
-        .ok_or(SetupError::from(io::Error::new(
-            Errno::NODEV.kind(),
-            "Missing HDMI Bridge Entity",
-        )))?;
+    let PipelineItem { entity: bridge, .. } =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
 
     let bridge_device = bridge
         .device
@@ -580,34 +574,28 @@ fn test_display_one_mode(
     suite: &Dradis<'_>,
     test: &TestItem,
 ) -> std::result::Result<(), TestError> {
-    let PipelineItem {
-        source_pad: _,
-        entity: root,
-        sink_pad: _,
-    } = suite
-        .pipeline
-        .first()
-        .ok_or(SetupError::from(io::Error::new(
-            Errno::NODEV.kind(),
-            "Missing Root Entity",
-        )))?;
+    let PipelineItem { entity: root, .. } =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
 
     let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
         Errno::NODEV.kind(),
         "Missing V4L2 Root Device",
     )))?;
 
-    let PipelineItem {
-        source_pad: _,
-        entity: bridge,
-        sink_pad: _,
-    } = suite
-        .pipeline
-        .last()
-        .ok_or(SetupError::from(io::Error::new(
-            Errno::NODEV.kind(),
-            "Missing HDMI Bridge Entity",
-        )))?;
+    let PipelineItem { entity: bridge, .. } =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
 
     let bridge_device = bridge
         .device
