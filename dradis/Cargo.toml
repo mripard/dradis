@@ -39,6 +39,9 @@ tracelimit.workspace = true
 name = "dradis"
 bench = false
 
+[lints]
+workspace = true
+
 [package.metadata.deb]
 section = "utility"
 priority = "optional"
