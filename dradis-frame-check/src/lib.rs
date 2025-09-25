@@ -22,6 +22,11 @@ use pix::{
     rgb::Rgb8,
 };
 use png::{BitDepth, ColorType, Encoder};
+use rxing::{
+    BinaryBitmap, DecodeHints, Luma8LuminanceSource, MultiUseMultiFormatReader,
+    common::HybridBinarizer,
+    multi::{GenericMultipleBarcodeReader, MultipleBarcodeReader as _},
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use threads_pool::ThreadPool;
@@ -253,15 +258,27 @@ where
             let cropped = self.0.crop(QRCODE_WIDTH, QRCODE_HEIGHT);
             let luma = cropped.to_luma();
 
-            let results = rxing::helpers::detect_multiple_in_luma(
-                luma.as_u8_slice().to_vec(),
-                QRCODE_WIDTH,
-                QRCODE_HEIGHT,
-            )
-            .map_err(|_e| {
-                warn!("Couldn't detect a QR Code.");
-                FrameError::InvalidFrame
-            })?;
+            let multi_format_reader = MultiUseMultiFormatReader::default();
+
+            let mut scanner = GenericMultipleBarcodeReader::new(multi_format_reader);
+
+            let results = scanner
+                .decode_multiple_with_hints(
+                    &mut BinaryBitmap::new(HybridBinarizer::new(Luma8LuminanceSource::new(
+                        luma.as_u8_slice().to_vec(),
+                        QRCODE_WIDTH,
+                        QRCODE_HEIGHT,
+                    ))),
+                    &DecodeHints {
+                        TryHarder: Some(true),
+
+                        ..Default::default()
+                    },
+                )
+                .map_err(|_e| {
+                    warn!("Couldn't detect a QR Code.");
+                    FrameError::InvalidFrame
+                })?;
 
             if results.len() != 1 {
                 debug!("Didn't find a QR Code");
