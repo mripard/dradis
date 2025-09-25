@@ -135,7 +135,7 @@ pub(crate) mod bindgen {
             let buf_type = v4l2_buf_type::try_from(self.type_).ok();
             let memory = v4l2_memory::try_from(self.memory).ok();
 
-            let (location_name, location): (&str, &(dyn fmt::Debug)) = match (buf_type, memory) {
+            let (location_name, location): (&str, &dyn fmt::Debug) = match (buf_type, memory) {
                 (
                     Some(
                         v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE
