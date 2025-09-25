@@ -66,7 +66,7 @@ pix = { version = "0.14.0", default-features = false }
 png = { version = "0.18.0", default-features = false }
 qrcode = { version = "0.14.1", default-features = false, features = ["image"] }
 redid = { git = "https://github.com/mripard/redid.git" }
-rxing = { version = "0.7.1", default-features = false }
+rxing = { version = "0.8.2", default-features = false }
 rustix = { version = "1.0.8", default-features = false, features = [
     "fs",
     "param",

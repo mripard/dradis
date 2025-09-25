@@ -1897,9 +1897,9 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rxing"
-version = "0.7.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d94fd9d595e62b2c9ee033626bf28218da9cf3b3196f20d7e2c004a702bda71c"
+checksum = "065826c9e75902c67ce057a62d8ccd7adacf7bbc905352d9530ac6178975f584"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -1919,9 +1919,9 @@ dependencies = [
 
 [[package]]
 name = "rxing-one-d-proc-derive"
-version = "0.6.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cee044776de75d7df23e58bfbc8799d859c2980ee247bb9bf925e4fd7d8cc6d"
+checksum = "d7e5f136594d614d0d8e44f63508abd25c8fe0280655bb1d477b177bf718d0a4"
 dependencies = [
  "quote",
  "syn",
