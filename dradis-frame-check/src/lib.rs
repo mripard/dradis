@@ -7,9 +7,16 @@ extern crate alloc;
 
 use alloc::{rc::Rc, sync::Arc};
 use core::{cell::RefCell, fmt, hash::Hasher as _, ops::Deref};
+use rxing::{
+    BarcodeFormat, BinaryBitmap, DecodeHints, Luma8LuminanceSource, LuminanceSource,
+    MultiFormatReader, Reader as _, common::HybridBinarizer,
+};
 use std::{
+    borrow::Cow,
+    collections::HashSet,
     fs::{self, File},
     io::{self, BufWriter},
+    ops::Range,
     path::Path,
 };
 
@@ -18,7 +25,7 @@ use pix::{
     bgr::{Bgr8, Bgra8},
     chan::Ch8,
     el::Pixel,
-    gray::Gray8,
+    gray::{Gray, Gray8},
     rgb::Rgb8,
 };
 use png::{BitDepth, ColorType, Encoder};
@@ -89,6 +96,84 @@ impl fmt::Display for Metadata {
             self.index,
             self.hash,
         ))
+    }
+}
+
+struct CustomRgb24Source {
+    luma: Box<[u8]>,
+    width: usize,
+    height: usize,
+}
+
+impl CustomRgb24Source {
+    fn new_with_region<P>(pixels: &FrameInner<P>, region: Region) -> Self
+    where
+        P: FramePixel + Pixel<Chan = Ch8>,
+    {
+        let mut luma =
+            Vec::<u8>::with_capacity((region.height() * region.width()).try_into().unwrap());
+
+        for row in pixels.0.rows(region) {
+            luma.extend(
+                row.iter()
+                    .map(|p| u8::from(Gray::value(p.convert::<Gray8>()))),
+            );
+        }
+
+        // let pixels = pixels
+        //     .0
+        //     .rows(region)
+        //     .flatten()
+        //     .map(|p| Gray::value(p.convert::<Gray8>()).into())
+        //     .collect::<Vec<u8>>();
+
+        // for row_idx in region.top()..region.bottom() {
+        //     for col_idx in region.left()..region.right() {
+        //         let pixel = pixels.pixel(col_idx as u32, row_idx as u32);
+        //         let gray = pixel.convert::<Gray8>();
+
+        //         luma.push(Gray::value(gray).into())
+        //     }
+        // }
+
+        Self {
+            luma: luma.into_boxed_slice(),
+            height: region.height().try_into().unwrap(),
+            width: region.width().try_into().unwrap(),
+        }
+    }
+}
+
+impl LuminanceSource for CustomRgb24Source {
+    const SUPPORTS_CROP: bool = false;
+    const SUPPORTS_ROTATION: bool = false;
+
+    fn get_row(&self, y: usize) -> Option<Cow<'_, [u8]>> {
+        todo!()
+    }
+
+    fn get_column(&self, _x: usize) -> Vec<u8> {
+        unimplemented!()
+    }
+
+    fn get_matrix(&self) -> Vec<u8> {
+        self.luma.to_vec()
+    }
+
+    fn get_width(&self) -> usize {
+        self.width
+    }
+
+    fn get_height(&self) -> usize {
+        self.height
+    }
+
+    fn invert(&mut self) {
+        unimplemented!()
+    }
+
+    fn get_luma8_point(&self, x: usize, y: usize) -> u8 {
+        todo!()
     }
 }
 
@@ -250,22 +335,26 @@ where
     /// IF the QR Code can't be decoded
     pub fn qrcode_content(&self) -> Result<String, FrameError> {
         debug_span!("QR Code Detection").in_scope(|| {
-            let cropped = self.0.crop(QRCODE_WIDTH, QRCODE_HEIGHT);
-            let luma = cropped.to_luma();
+            let mut reader = MultiFormatReader::default();
 
-            let results = rxing::helpers::detect_multiple_in_luma(
-                luma.as_u8_slice().to_vec(),
-                QRCODE_WIDTH,
-                QRCODE_HEIGHT,
-            )
-            .map_err(|_e| FrameError::InvalidFrame)?;
+            let results = reader
+                .decode_with_hints(
+                    &mut BinaryBitmap::new(HybridBinarizer::new(
+                        CustomRgb24Source::new_with_region(
+                            &self.0,
+                            Region::new(0, 0, QRCODE_WIDTH, QRCODE_HEIGHT),
+                        ),
+                    )),
+                    &DecodeHints {
+                        PossibleFormats: Some(HashSet::from([BarcodeFormat::QR_CODE])),
+                        TryHarder: Some(true),
 
-            if results.len() != 1 {
-                debug!("Didn't find a QR Code");
-                return Err(FrameError::InvalidFrame);
-            }
+                        ..Default::default()
+                    },
+                )
+                .map_err(|_e| FrameError::InvalidFrame)?;
 
-            Ok(results[0].getText().to_owned())
+            Ok(results.getText().to_owned())
         })
     }
 
