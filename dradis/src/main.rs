@@ -9,6 +9,8 @@
 #![allow(clippy::needless_raw_string_hashes)]
 #![allow(clippy::unreadable_literal)]
 
+#![doc = include_str!("../README.md")]
+
 extern crate alloc;
 use alloc::rc::Rc;
 use core::{cell::RefCell, fmt, time::Duration};
