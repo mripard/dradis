@@ -8,6 +8,7 @@ extern crate alloc;
 use alloc::{rc::Rc, sync::Arc};
 use core::{cell::RefCell, fmt, hash::Hasher as _, ops::Deref};
 use std::{
+    collections::HashSet,
     fs::{self, File},
     io::{self, BufWriter},
     path::Path,
@@ -23,7 +24,7 @@ use pix::{
 };
 use png::{BitDepth, ColorType, Encoder};
 use rxing::{
-    BinaryBitmap, DecodeHints, Luma8LuminanceSource, MultiFormatReader, Reader as _,
+    BarcodeFormat, BinaryBitmap, DecodeHints, Luma8LuminanceSource, MultiFormatReader, Reader as _,
     common::HybridBinarizer,
 };
 use serde::{Deserialize, Serialize};
@@ -267,6 +268,7 @@ where
                         QRCODE_HEIGHT,
                     ))),
                     &DecodeHints {
+                        PossibleFormats: Some(HashSet::from([BarcodeFormat::QR_CODE])),
                         TryHarder: Some(true),
 
                         ..Default::default()
