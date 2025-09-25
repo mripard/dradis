@@ -1,15 +1,16 @@
 use core::{
     cmp::{max, min},
     ops::{Add, Div, Mul, Rem, Sub},
+    time::Duration,
 };
 use std::{
     fs, io,
     os::{fd::AsFd as _, unix::io::RawFd},
     thread::sleep,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
-use num_traits::{One, ToPrimitive, Zero};
+use num_traits::{One, ToPrimitive as _, Zero};
 use redid::{
     EdidChromaticityPoint, EdidChromaticityPoints, EdidDescriptorDetailedTiming,
     EdidDescriptorDetailedTimingHorizontal, EdidDescriptorDetailedTimingVertical,
@@ -23,7 +24,7 @@ use redid::{
     EdidExtensionCTA861VideoCapabilityScanBehavior, EdidFilterChromaticity, EdidManufactureDate,
     EdidR3BasicDisplayParametersFeatures, EdidR3Descriptor, EdidR3DigitalVideoInputDefinition,
     EdidR3DisplayRangeLimits, EdidR3DisplayRangeVideoTimingsSupport, EdidR3FeatureSupport,
-    EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes,
+    EdidR3ImageSize, EdidR3VideoInputDefinition, EdidRelease3, EdidScreenSize, IntoBytes as _,
 };
 use rustix::io::Errno;
 use tracing::{debug, info};
@@ -71,7 +72,7 @@ pub(crate) fn queue_buffer(dev: &Device, idx: u32, fd: RawFd) -> io::Result<()> 
     };
     raw_struct.m.fd = fd;
 
-    let _ = v4l2_ioctl_qbuf(dev.as_fd(), raw_struct)?;
+    let _: v4l2_buffer = v4l2_ioctl_qbuf(dev.as_fd(), raw_struct)?;
 
     Ok(())
 }
@@ -204,7 +205,7 @@ pub(crate) fn bridge_set_edid(
     dev: &V4l2EntityWrapper,
     edid: &TestEdid,
 ) -> Result<(), SetupError> {
-    let TestEdid::DetailedTiming(ref dtd) = edid;
+    let TestEdid::DetailedTiming(dtd) = edid;
 
     let mode_hfreq_khz: u32 =
         dtd.clock_khz / u32::from(dtd.hfp + dtd.hdisplay + dtd.hbp + dtd.hsync);
@@ -243,7 +244,7 @@ pub(crate) fn bridge_set_edid(
     let test_edid = EdidRelease3::builder()
         .manufacturer("CRN".try_into()?)
         .product_code(0x42)
-        .serial_number(Some(0x42424242.into()))
+        .serial_number(Some(0x42_42_42_42.into()))
         .date(EdidManufactureDate::try_from(2024)?)
         .display_parameters_features(
             EdidR3BasicDisplayParametersFeatures::builder()
@@ -369,29 +370,23 @@ pub(crate) fn wait_and_set_dv_timings(
     width: u32,
     height: u32,
 ) -> Result<(), SetupError> {
-    let PipelineItem {
-        source_pad: _,
-        entity: root,
-        sink_pad: _,
-    } = suite
-        .pipeline
-        .first()
-        .ok_or(SetupError::from(io::Error::new(
-            Errno::NODEV.kind(),
-            "Missing Root Entity",
-        )))?;
+    let PipelineItem { entity: root, .. } =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
 
-    let PipelineItem {
-        source_pad: _,
-        entity: bridge,
-        sink_pad: _,
-    } = suite
-        .pipeline
-        .last()
-        .ok_or(SetupError::from(io::Error::new(
-            Errno::NODEV.kind(),
-            "Missing HDMI Bridge Entity",
-        )))?;
+    let PipelineItem { entity: bridge, .. } =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
 
     let start = Instant::now();
 

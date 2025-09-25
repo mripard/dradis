@@ -1,29 +1,18 @@
-#![warn(missing_debug_implementations)]
-#![warn(rust_2018_idioms)]
-#![deny(clippy::all)]
-#![deny(clippy::cargo)]
-#![deny(clippy::pedantic)]
-#![warn(clippy::unwrap_used)]
-#![allow(clippy::cargo_common_metadata)]
-#![allow(clippy::multiple_crate_versions)]
-#![allow(clippy::needless_raw_string_hashes)]
-#![allow(clippy::unreadable_literal)]
+#![doc = include_str!("../README.md")]
 
-mod helpers;
-
-use core::fmt;
+extern crate alloc;
+use alloc::rc::Rc;
+use core::{cell::RefCell, fmt, time::Duration};
 use std::{
-    cell::RefCell,
     fs::File,
     io,
-    os::{fd::AsFd, unix::io::AsRawFd},
+    os::{fd::AsFd as _, unix::io::AsRawFd as _},
     path::PathBuf,
-    rc::Rc,
     thread::sleep,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
-use anyhow::Context;
+use anyhow::Context as _;
 use clap::{Parser, ValueEnum};
 use dma_buf::{DmaBuf, MappedDmaBuf};
 use dma_heap::{Heap, HeapKind};
@@ -48,15 +37,18 @@ use v4l2_raw::{
 };
 use v4lise::{Device, Queue};
 
-use crate::helpers::{
-    bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
-};
-
-pub mod built_info {
+mod built_info {
+    #![allow(unreachable_pub)]
     #![allow(clippy::doc_markdown)]
+    #![allow(clippy::needless_raw_strings)]
 
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
+
+mod helpers;
+use crate::helpers::{
+    bridge_set_edid, dequeue_buffer, queue_buffer, start_streaming, wait_and_set_dv_timings,
+};
 
 const BUFFER_TYPE: v4l2_buf_type = v4l2_buf_type::V4L2_BUF_TYPE_VIDEO_CAPTURE;
 const MEMORY_TYPE: v4l2_memory = v4l2_memory::V4L2_MEMORY_DMABUF;
@@ -172,7 +164,13 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
         .next()
         .transpose()?
         .ok_or(io::Error::from(io::ErrorKind::NotFound))?;
-    assert!(endpoints.next().is_none());
+
+    if endpoints.next().is_some() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Found more than one HDMI bridge",
+        ));
+    }
 
     debug!("Found an HDMI bridge: {}", hdmi_bridge.name());
 
@@ -234,15 +232,19 @@ fn find_dev_and_subdev(mc: &MediaController) -> Result<Vec<MediaPipelineItem>, i
     Ok(outputs)
 }
 
+#[expect(
+    clippy::missing_asserts_for_indexing,
+    reason = "windows() guarantees the slice size, but it looks like we can't disable the lint locally"
+)]
 #[expect(clippy::too_many_lines, reason = "Yup, this function is long indeed.")]
 fn test_prepare_queue(
     suite: &Dradis<'_>,
     queue: &Queue<'_>,
     test: &TestItem,
-) -> std::result::Result<(), SetupError> {
+) -> Result<(), SetupError> {
     wait_and_set_dv_timings(suite, test.expected_width, test.expected_height)?;
 
-    let _ = queue
+    let _: v4l2_pix_fmt = queue
         .get_pixel_formats()
         .find(|fmt| *fmt == v4l2_pix_fmt::V4L2_PIX_FMT_RGB24)
         .expect("Couldn't find our format");
@@ -378,11 +380,15 @@ fn test_prepare_queue(
         .as_v4l2_pix_format()
         .expect("Queue Format isn't what we set.");
 
-    assert_eq!(
-        ret_pix_fmt.bytes_per_line(),
-        ret_pix_fmt.width() * u32::from(ret_pix_fmt.pixel_format().bytes_per_pixel()),
-        "We don't support any line padding"
-    );
+    if ret_pix_fmt.bytes_per_line()
+        != ret_pix_fmt.width() * u32::from(ret_pix_fmt.pixel_format().bytes_per_pixel())
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "We don't support any line padding",
+        )
+        .into());
+    }
 
     debug!("Format set {:#?}", ret_fmt);
 
@@ -395,35 +401,29 @@ fn test_run(
     suite: &Dradis<'_>,
     queue: &Queue<'_>,
     test: &TestItem,
-) -> std::result::Result<(), TestError> {
-    let PipelineItem {
-        source_pad: _,
-        entity: root,
-        sink_pad: _,
-    } = suite
-        .pipeline
-        .first()
-        .ok_or(SetupError::from(io::Error::new(
-            Errno::NODEV.kind(),
-            "Missing Root Entity",
-        )))?;
+) -> Result<(), TestError> {
+    let PipelineItem { entity: root, .. } =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
 
     let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
         Errno::NODEV.kind(),
         "Missing V4L2 Root Device",
     )))?;
 
-    let PipelineItem {
-        source_pad: _,
-        entity: bridge,
-        sink_pad: _,
-    } = suite
-        .pipeline
-        .last()
-        .ok_or(SetupError::from(io::Error::new(
-            Errno::NODEV.kind(),
-            "Missing HDMI Bridge Entity",
-        )))?;
+    let PipelineItem { entity: bridge, .. } =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
 
     let bridge_device = bridge
         .device
@@ -506,9 +506,9 @@ fn test_run(
             }
 
             let res = dequeue_buffer(root_device);
-            match res {
+            match &res {
                 Ok(_) => break res,
-                Err(ref e) => match Errno::from_io_error(e) {
+                Err(e) => match Errno::from_io_error(e) {
                     Some(Errno::AGAIN) => {
                         debug!("No buffer to dequeue.");
                     }
@@ -576,39 +576,29 @@ fn test_run(
     Ok(())
 }
 
-fn test_display_one_mode(
-    args: &Cli,
-    suite: &Dradis<'_>,
-    test: &TestItem,
-) -> std::result::Result<(), TestError> {
-    let PipelineItem {
-        source_pad: _,
-        entity: root,
-        sink_pad: _,
-    } = suite
-        .pipeline
-        .first()
-        .ok_or(SetupError::from(io::Error::new(
-            Errno::NODEV.kind(),
-            "Missing Root Entity",
-        )))?;
+fn test_display_one_mode(args: &Cli, suite: &Dradis<'_>, test: &TestItem) -> Result<(), TestError> {
+    let PipelineItem { entity: root, .. } =
+        suite
+            .pipeline
+            .first()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing Root Entity",
+            )))?;
 
     let root_device = root.device.as_ref().ok_or(SetupError::from(io::Error::new(
         Errno::NODEV.kind(),
         "Missing V4L2 Root Device",
     )))?;
 
-    let PipelineItem {
-        source_pad: _,
-        entity: bridge,
-        sink_pad: _,
-    } = suite
-        .pipeline
-        .last()
-        .ok_or(SetupError::from(io::Error::new(
-            Errno::NODEV.kind(),
-            "Missing HDMI Bridge Entity",
-        )))?;
+    let PipelineItem { entity: bridge, .. } =
+        suite
+            .pipeline
+            .last()
+            .ok_or(SetupError::from(io::Error::new(
+                Errno::NODEV.kind(),
+                "Missing HDMI Bridge Entity",
+            )))?;
 
     let bridge_device = bridge
         .device
@@ -637,7 +627,7 @@ fn test_display_one_mode(
                 TestError::Retry => {
                     warn!("Test needs to be restarted.");
                 }
-                _ => {
+                TestError::NoFrameReceived | TestError::SetupFailed(_) => {
                     return Err(e);
                 }
             },
