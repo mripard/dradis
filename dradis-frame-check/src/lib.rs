@@ -110,20 +110,27 @@ impl CustomRgb24Source {
     where
         P: FramePixel + Pixel<Chan = Ch8>,
     {
-        let mut luma =
-            Vec::<u8>::with_capacity((region.height() * region.width()).try_into().unwrap());
+        // let mut luma =
+        //     Vec::<u8>::with_capacity((region.height() * region.width()).try_into().unwrap());
 
-        for row_idx in region.top()..region.bottom() {
-            for col_idx in region.left()..region.right() {
-                let pixel = pixels.pixel(col_idx as u32, row_idx as u32);
-                let gray = pixel.convert::<Gray8>();
+        let pixels = pixels
+            .0
+            .rows(region)
+            .flatten()
+            .map(|p| Gray::value(p.convert::<Gray8>()).into())
+            .collect::<Vec<u8>>();
 
-                luma.push(Gray::value(gray).into())
-            }
-        }
+        // for row_idx in region.top()..region.bottom() {
+        //     for col_idx in region.left()..region.right() {
+        //         let pixel = pixels.pixel(col_idx as u32, row_idx as u32);
+        //         let gray = pixel.convert::<Gray8>();
+
+        //         luma.push(Gray::value(gray).into())
+        //     }
+        // }
 
         Self {
-            luma: luma.into_boxed_slice(),
+            luma: pixels.into_boxed_slice(),
             height: region.height().try_into().unwrap(),
             width: region.width().try_into().unwrap(),
         }
