@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758793385159,
+  "lastUpdate": 1758793411280,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1889,6 +1889,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 487089,
             "range": "± 1992",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bef62dc2110a6374eed5abd74da8275733ae2a6e",
+          "message": "Merge pull request #278 from mripard/cleanup-dradis\n\nEnable common lints in dradis",
+          "timestamp": "2025-09-25T11:39:08+02:00",
+          "tree_id": "cf759008ffb7e163997986119d15f45709774f28",
+          "url": "https://github.com/mripard/dradis/commit/bef62dc2110a6374eed5abd74da8275733ae2a6e"
+        },
+        "date": 1758793410581,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 496298,
+            "range": "± 3240",
             "unit": "ns/iter"
           }
         ]
