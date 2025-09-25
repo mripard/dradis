@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758724202520,
+  "lastUpdate": 1758793385159,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1859,6 +1859,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 477664,
             "range": "± 1945",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "987a7257a9a1a5af50c09afb4ee1e07c591b593a",
+          "message": "Merge pull request #277 from mripard/rust-1.90-lints\n\nRust 1.90 lints",
+          "timestamp": "2025-09-25T11:38:44+02:00",
+          "tree_id": "2d301a697fcea985ea603f14d117c15a8523366a",
+          "url": "https://github.com/mripard/dradis/commit/987a7257a9a1a5af50c09afb4ee1e07c591b593a"
+        },
+        "date": 1758793384763,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 487089,
+            "range": "± 1992",
             "unit": "ns/iter"
           }
         ]
