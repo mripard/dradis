@@ -1,3 +1,6 @@
+#![allow(missing_docs)]
+#![allow(unused_crate_dependencies)]
+
 use criterion::{criterion_group, criterion_main};
 use dradis_frame_check::{
     DecodeCheckArgs, DecodeCheckArgsDump, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH,

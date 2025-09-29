@@ -13,6 +13,7 @@ facet-macros-parse.workspace = true
 unsynn.workspace = true
 
 [lib]
+bench = false
 proc-macro = true
 
 [lints]
