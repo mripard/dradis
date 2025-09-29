@@ -9,7 +9,7 @@ use alloc::{rc::Rc, sync::Arc};
 use core::{cell::RefCell, fmt, hash::Hasher as _, ops::Deref};
 use rxing::{
     BarcodeFormat, BinaryBitmap, DecodeHints, LuminanceSource, MultiFormatReader, Reader as _,
-    common::HybridBinarizer,
+    common::GlobalHistogramBinarizer,
 };
 use std::{
     borrow::Cow,
@@ -312,7 +312,7 @@ where
 
             let results = reader
                 .decode_with_hints(
-                    &mut BinaryBitmap::new(HybridBinarizer::new(
+                    &mut BinaryBitmap::new(GlobalHistogramBinarizer::new(
                         CustomRgb24Source::new_with_region(
                             &self.0,
                             Region::new(0, 0, QRCODE_WIDTH, QRCODE_HEIGHT),
