@@ -20,5 +20,8 @@ linux-raw.workspace = true
 rustix.workspace = true
 tracing.workspace = true
 
+[lib]
+bench = false
+
 [lints]
 workspace = true
