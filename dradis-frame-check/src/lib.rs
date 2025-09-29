@@ -6,7 +6,7 @@
 extern crate alloc;
 
 use alloc::{rc::Rc, sync::Arc};
-use core::{cell::RefCell, fmt, hash::Hasher as _, ops::Deref};
+use core::{cell::RefCell, fmt, ops::Deref};
 use rxing::{
     BarcodeFormat, BinaryBitmap, DecodeHints, LuminanceSource, MultiFormatReader, Reader as _,
     common::GlobalHistogramBinarizer,
@@ -411,9 +411,7 @@ impl ClearedFrame<Rgb8> {
     /// Computes the checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
     #[must_use]
     pub fn compute_checksum(&self) -> u64 {
-        let mut hasher = XxHash64::with_seed(0);
-        hasher.write(self.0.0.as_u8_slice());
-        hasher.finish()
+        XxHash64::oneshot(0, self.0.0.as_u8_slice())
     }
 }
 
