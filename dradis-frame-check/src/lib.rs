@@ -24,7 +24,7 @@ use pix::{
 use png::{BitDepth, ColorType, Encoder};
 use rxing::{
     BarcodeFormat, BinaryBitmap, DecodeHints, LuminanceSource, MultiFormatReader, Reader as _,
-    common::HybridBinarizer,
+    common::GlobalHistogramBinarizer,
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -315,7 +315,7 @@ where
 
             let results = reader
                 .decode_with_hints(
-                    &mut BinaryBitmap::new(HybridBinarizer::new(
+                    &mut BinaryBitmap::new(GlobalHistogramBinarizer::new(
                         CustomRgb24Source::new_with_region(
                             &self.0,
                             Region::new(0, 0, QRCODE_WIDTH, QRCODE_HEIGHT),
