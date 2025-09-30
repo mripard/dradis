@@ -10,5 +10,8 @@ version.workspace = true
 [dependencies]
 rustix.workspace = true
 
+[lib]
+bench = false
+
 [lints]
 workspace = true

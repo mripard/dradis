@@ -6,8 +6,14 @@
 extern crate alloc;
 
 use alloc::{rc::Rc, sync::Arc};
-use core::{cell::RefCell, fmt, hash::Hasher as _, ops::Deref};
+use core::{cell::RefCell, fmt, ops::Deref};
+use rxing::{
+    BarcodeFormat, BinaryBitmap, DecodeHints, LuminanceSource, MultiFormatReader, Reader as _,
+    common::GlobalHistogramBinarizer,
+};
 use std::{
+    borrow::Cow,
+    collections::HashSet,
     fs::{self, File},
     io::{self, BufWriter},
     path::Path,
@@ -18,7 +24,6 @@ use pix::{
     bgr::{Bgr8, Bgra8},
     chan::Ch8,
     el::Pixel,
-    gray::Gray8,
     rgb::Rgb8,
 };
 use png::{BitDepth, ColorType, Encoder};
@@ -92,6 +97,72 @@ impl fmt::Display for Metadata {
     }
 }
 
+struct CustomRgb24Source {
+    luma: Box<[u8]>,
+    width: usize,
+    height: usize,
+}
+
+impl CustomRgb24Source {
+    fn new_with_region<P>(pixels: &FrameInner<P>, region: Region) -> Self
+    where
+        P: FramePixel + Pixel<Chan = Ch8>,
+    {
+        let luma = pixels
+            .0
+            .rows(region)
+            .flatten()
+            .map(|p| p.two().into())
+            .collect::<Vec<u8>>();
+
+        Self {
+            luma: luma.into_boxed_slice(),
+            height: region.height().try_into().unwrap(),
+            width: region.width().try_into().unwrap(),
+        }
+    }
+}
+
+impl LuminanceSource for CustomRgb24Source {
+    const SUPPORTS_CROP: bool = false;
+    const SUPPORTS_ROTATION: bool = false;
+
+    fn get_row(&self, y: usize) -> Option<Cow<'_, [u8]>> {
+        if y >= self.get_height() {
+            return None;
+        }
+
+        let width = self.get_width();
+        let offset = (y) * self.width;
+
+        Some(Cow::Borrowed(&self.luma[offset..offset + width]))
+    }
+
+    fn get_column(&self, _x: usize) -> Vec<u8> {
+        unimplemented!()
+    }
+
+    fn get_matrix(&self) -> Vec<u8> {
+        self.luma.to_vec()
+    }
+
+    fn get_width(&self) -> usize {
+        self.width
+    }
+
+    fn get_height(&self) -> usize {
+        self.height
+    }
+
+    fn invert(&mut self) {
+        unimplemented!()
+    }
+
+    fn get_luma8_point(&self, _x: usize, _y: usize) -> u8 {
+        todo!()
+    }
+}
+
 #[doc(hidden)]
 pub trait FramePixel: Pixel<Chan = Ch8> {}
 
@@ -137,15 +208,6 @@ where
         FrameInner(cleared)
     }
 
-    fn crop(&self, width: u32, height: u32) -> Self {
-        let region = Region::new(0, 0, QRCODE_WIDTH, QRCODE_HEIGHT);
-
-        let mut smaller = Raster::with_clear(width, height);
-        smaller.copy_raster((), &self.0, region);
-
-        Self(smaller)
-    }
-
     /// Returns the pixel value located at the given coordinates
     ///
     /// # Panics
@@ -157,10 +219,6 @@ where
             i32::try_from(x).expect("Can't convert i32 to u32"),
             i32::try_from(y).expect("Can't convert i32 to u32"),
         )
-    }
-
-    fn to_luma(&self) -> Raster<Gray8> {
-        Raster::with_raster(&self.0)
     }
 
     /// Returns the height of the frame, in pixels
@@ -250,22 +308,26 @@ where
     /// IF the QR Code can't be decoded
     pub fn qrcode_content(&self) -> Result<String, FrameError> {
         debug_span!("QR Code Detection").in_scope(|| {
-            let cropped = self.0.crop(QRCODE_WIDTH, QRCODE_HEIGHT);
-            let luma = cropped.to_luma();
+            let mut reader = MultiFormatReader::default();
 
-            let results = rxing::helpers::detect_multiple_in_luma(
-                luma.as_u8_slice().to_vec(),
-                QRCODE_WIDTH,
-                QRCODE_HEIGHT,
-            )
-            .map_err(|_e| FrameError::InvalidFrame)?;
+            let results = reader
+                .decode_with_hints(
+                    &mut BinaryBitmap::new(GlobalHistogramBinarizer::new(
+                        CustomRgb24Source::new_with_region(
+                            &self.0,
+                            Region::new(0, 0, QRCODE_WIDTH, QRCODE_HEIGHT),
+                        ),
+                    )),
+                    &DecodeHints {
+                        PossibleFormats: Some(HashSet::from([BarcodeFormat::QR_CODE])),
+                        TryHarder: Some(true),
 
-            if results.len() != 1 {
-                debug!("Didn't find a QR Code");
-                return Err(FrameError::InvalidFrame);
-            }
+                        ..Default::default()
+                    },
+                )
+                .map_err(|_e| FrameError::InvalidFrame)?;
 
-            Ok(results[0].getText().to_owned())
+            Ok(results.getText().to_owned())
         })
     }
 
@@ -349,9 +411,7 @@ impl ClearedFrame<Rgb8> {
     /// Computes the checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
     #[must_use]
     pub fn compute_checksum(&self) -> u64 {
-        let mut hasher = XxHash64::with_seed(0);
-        hasher.write(self.0.0.as_u8_slice());
-        hasher.finish()
+        XxHash64::oneshot(0, self.0.0.as_u8_slice())
     }
 }
 

@@ -1,8 +1,19 @@
+#![allow(missing_docs)]
+
 use criterion::{criterion_group, criterion_main};
 use dradis_frame_check::{
     DecodeCheckArgs, DecodeCheckArgsDump, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH,
     decode_and_check_frame,
 };
+use pix as _;
+use png as _;
+use rxing as _;
+use serde as _;
+use serde_json as _;
+use thiserror as _;
+use threads_pool as _;
+use tracing as _;
+use twox_hash as _;
 
 const FRAME_WIDTH: u32 = 1280;
 const FRAME_HEIGHT: u32 = 720;
