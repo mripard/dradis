@@ -9,6 +9,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+image.workspace = true
 pix.workspace = true
 png.workspace = true
 rxing.workspace = true
