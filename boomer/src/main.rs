@@ -9,7 +9,7 @@ use std::{io, path::PathBuf, thread::sleep, time::Instant};
 use anyhow::{Context as _, Result, anyhow};
 use clap::Parser;
 use frame_check::{Frame, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
-use image::{Rgba, imageops::FilterType};
+use image::Rgba;
 use linux_uevent::{Action, UeventSocket};
 use nucleid::{
     BufferType, Connector, ConnectorStatus, ConnectorType, ConnectorUpdate, Device, Format,
@@ -165,18 +165,6 @@ fn create_metadata_json(
     serde_json::to_string(&metadata)
 }
 
-fn get_rgb_pattern(width: u32, height: u32) -> Result<Frame, image::ImageError> {
-    Ok(Raster::with_u8_buffer(
-        width,
-        height,
-        image::load_from_memory(PATTERN)?
-            .resize_exact(width, height, FilterType::Nearest)
-            .to_rgb8()
-            .to_vec(),
-    )
-    .into())
-}
-
 fn create_qr_code(bytes: &[u8]) -> Result<Raster<Bgra8>, qrcode::types::QrError> {
     let qrcode = QrCode::new(bytes)?
         .render::<Rgba<u8>>()
@@ -251,9 +239,10 @@ fn start_output(
     );
 
     let pattern_bgr = try_anyhow!(
-        get_rgb_pattern(width.into(), height.into()),
+        Frame::from_svg_with_size(PATTERN, width.into(), height.into()),
         "Couldn't load our pattern."
     );
+
     let cleared_pattern_bgr = pattern_bgr.clear();
 
     let hash = cleared_pattern_bgr.compute_checksum();

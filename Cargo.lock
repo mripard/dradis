@@ -564,6 +564,7 @@ version = "0.5.2"
 dependencies = [
  "criterion",
  "dradis-threads-pool",
+ "image",
  "pix",
  "png",
  "rxing",

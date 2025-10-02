@@ -14,6 +14,7 @@ use std::{
     path::Path,
 };
 
+use image::imageops::FilterType;
 use pix::{
     Raster, Region,
     bgr::{Bgr8, Bgra8},
@@ -464,11 +465,22 @@ impl Frame {
     pub fn clear(self) -> ClearedFrame<Rgb8> {
         ClearedFrame(self.0.clear(QRCODE_WIDTH, QRCODE_HEIGHT))
     }
-}
 
-impl From<Raster<Rgb8>> for Frame {
-    fn from(value: Raster<Rgb8>) -> Self {
-        Self(FrameInner(value))
+    /// Creates a [`Frame`] from an SVG, at the given frame size
+    ///
+    /// # Errors
+    ///
+    /// If the SVG parsing fails
+    pub fn from_svg_with_size(bytes: &[u8], width: u32, height: u32) -> io::Result<Self> {
+        Ok(Self(FrameInner(Raster::with_u8_buffer(
+            width,
+            height,
+            image::load_from_memory(bytes)
+                .map_err(|_e| io::Error::new(io::ErrorKind::InvalidData, "Invalid SVG"))?
+                .resize_exact(width, height, FilterType::Nearest)
+                .to_rgb8()
+                .to_vec(),
+        ))))
     }
 }
 
