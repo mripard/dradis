@@ -525,14 +525,14 @@ pub struct DecodeCheckArgs {
     /// Width of the frame, in pixels.
     pub height: u32,
 
-    /// Are the Red and Blue color channels inverted?
+    /// The frame is actually in the Bgr8 format, we need to swap red and blue channels.
     pub swap_channels: bool,
 
     /// Frame Dump options.
     pub dump: DecodeCheckArgsDump,
 }
 
-/// Decodes a raw frame buffer and checks whether the frame is valid or not.
+/// Decodes a raw RGB8 frame buffer and checks whether the frame is valid or not.
 ///
 /// To consider a frame valid, the frame needs to:
 /// - Have a QR Code that can be decoded and parsed into [`Metadata`]
@@ -550,7 +550,7 @@ pub struct DecodeCheckArgs {
 pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Metadata, FrameError> {
     let last_frame_index = args.previous_frame_idx;
 
-    let image = trace_span!("Framebuffer Importation").in_scope(|| {
+    let image: Arc<QRCodeFrame<Rgb8>> = trace_span!("Framebuffer Importation").in_scope(|| {
         Arc::new(if args.swap_channels {
             QRCodeFrame::<Rgb8>::from_raw_bytes_with_swapped_channels(args.width, args.height, data)
         } else {
