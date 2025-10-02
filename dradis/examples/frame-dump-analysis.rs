@@ -2,7 +2,7 @@ use std::{fmt::Display, fs, path::PathBuf};
 
 use clap::Parser;
 use frame_check::{FrameError, QRCodeFrame};
-use pix::{chan::Ch8, el::Pixel, rgb::Rgb8};
+use pix::{bgr::Bgr8, chan::Ch8, el::Pixel, rgb::Rgb8};
 use tracelimit::{error_ratelimited, warn_ratelimited};
 use tracing::{Level, debug, error, info, warn};
 
@@ -108,9 +108,9 @@ fn check_frame(
     swap_channels: bool,
 ) -> Result<u64, Box<dyn std::error::Error>> {
     let frame = if swap_channels {
-        QRCodeFrame::from_raw_bytes_with_swapped_channels(width, height, bytes)
+        QRCodeFrame::<Bgr8>::from_raw_bytes(width, height, bytes).to_pixel_format()
     } else {
-        QRCodeFrame::from_raw_bytes(width, height, bytes)
+        QRCodeFrame::<Rgb8>::from_raw_bytes(width, height, bytes)
     };
 
     let _content = match frame.qrcode_content() {
