@@ -258,7 +258,10 @@ where
                 QRCODE_WIDTH,
                 QRCODE_HEIGHT,
             )
-            .map_err(|_e| FrameError::InvalidFrame)?;
+            .map_err(|_e| {
+                warn!("Couldn't detect a QR Code.");
+                FrameError::InvalidFrame
+            })?;
 
             if results.len() != 1 {
                 debug!("Didn't find a QR Code");
@@ -482,16 +485,18 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
         return Err(FrameError::IntegrityFailure);
     }
 
+    debug!("Frame {}: Found Metadata {metadata}", metadata.index);
+
     if let Some(last_index) = last_frame_index {
         let index = metadata.index;
 
         if index < last_index {
-            warn!("Frame Index Mismatch");
+            warn!("Frame {}: Frame Index Mismatch", metadata.index);
             return Err(FrameError::IntegrityFailure);
         } else if index == last_index {
-            debug!("Source cannot keep up?");
+            debug!("Frame {}: Source cannot keep up?", metadata.index);
         } else if index > last_index + 1 {
-            warn!("Dropped Frame!");
+            warn!("Frame {}: Dropped Frame!", metadata.index);
         }
     }
 
@@ -500,8 +505,8 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
 
     if hash != metadata.hash {
         warn!(
-            "Hash mismatch: {:#x} vs expected {:#x}",
-            hash, metadata.hash
+            "Frame {}: Hash mismatch: {:#x} vs expected {:#x}",
+            metadata.index, hash, metadata.hash
         );
 
         if let DecodeCheckArgsDump::Corrupted(pool) = &args.dump {
