@@ -25,7 +25,7 @@ use png::{BitDepth, ColorType, Encoder};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use threads_pool::ThreadPool;
-use tracing::{debug, debug_span, error, trace_span, warn};
+use tracing::{debug, error, trace_span, warn};
 use twox_hash::XxHash64;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
@@ -249,7 +249,7 @@ where
     ///
     /// IF the QR Code can't be decoded
     pub fn qrcode_content(&self) -> Result<String, FrameError> {
-        debug_span!("QR Code Detection").in_scope(|| {
+        trace_span!("QR Code Detection").in_scope(|| {
             let cropped = self.0.crop(QRCODE_WIDTH, QRCODE_HEIGHT);
             let luma = cropped.to_luma();
 
@@ -258,7 +258,10 @@ where
                 QRCODE_WIDTH,
                 QRCODE_HEIGHT,
             )
-            .map_err(|_e| FrameError::InvalidFrame)?;
+            .map_err(|_e| {
+                warn!("Couldn't detect a QR Code.");
+                FrameError::InvalidFrame
+            })?;
 
             if results.len() != 1 {
                 debug!("Didn't find a QR Code");
@@ -277,8 +280,14 @@ where
     pub fn metadata(&self) -> Result<Metadata, FrameError> {
         let content = self.qrcode_content()?;
 
-        trace_span!("JSON Payload Parsing")
-            .in_scope(|| serde_json::from_str(&content).map_err(|_e| FrameError::IntegrityFailure))
+        debug!("JSON Payload: {content}");
+
+        trace_span!("JSON Payload Parsing").in_scope(|| {
+            serde_json::from_str(&content).map_err(|_e| {
+                warn!("Couldn't parse JSON content.");
+                FrameError::IntegrityFailure
+            })
+        })
     }
 
     /// Creates a [`ClearedFrame`] out of a [`QRCodeFrame`]
@@ -482,26 +491,28 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
         return Err(FrameError::IntegrityFailure);
     }
 
+    debug!("Frame {}: Found Metadata {metadata}", metadata.index);
+
     if let Some(last_index) = last_frame_index {
         let index = metadata.index;
 
         if index < last_index {
-            warn!("Frame Index Mismatch");
+            warn!("Frame {}: Frame Index Mismatch", metadata.index);
             return Err(FrameError::IntegrityFailure);
         } else if index == last_index {
-            debug!("Source cannot keep up?");
+            debug!("Frame {}: Source cannot keep up?", metadata.index);
         } else if index > last_index + 1 {
-            warn!("Dropped Frame!");
+            warn!("Frame {}: Dropped Frame!", metadata.index);
         }
     }
 
     let cleared = image.cleared_frame_with_metadata(&metadata);
-    let hash = debug_span!("Checksum Computation").in_scope(|| cleared.compute_checksum());
+    let hash = trace_span!("Checksum Computation").in_scope(|| cleared.compute_checksum());
 
     if hash != metadata.hash {
         warn!(
-            "Hash mismatch: {:#x} vs expected {:#x}",
-            hash, metadata.hash
+            "Frame {}: Hash mismatch: {:#x} vs expected {:#x}",
+            metadata.index, hash, metadata.hash
         );
 
         if let DecodeCheckArgsDump::Corrupted(pool) = &args.dump {
