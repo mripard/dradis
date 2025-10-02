@@ -170,6 +170,10 @@ impl LuminanceSource for CustomRgb24Source {
 #[doc(hidden)]
 pub trait FramePixel: Pixel<Chan = Ch8> {}
 
+// The pixels are stored left to right, and the B, G, R color components are stored in the same
+// order. This format is called BGR24 by v4l2, RGB888 by DRM.
+impl FramePixel for Bgr8 {}
+
 // The pixels are stored left to right, and the R, G, B color components are stored in the same
 // order. This format is called RGB24 by v4l2, BGR888 by DRM.
 impl FramePixel for Rgb8 {}
