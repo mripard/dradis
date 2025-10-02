@@ -259,7 +259,7 @@ fn start_output(
     let hash = cleared_pattern_bgr.compute_checksum();
     info!("Hash {:#x}", hash);
 
-    let cleared_pattern_xrgb = cleared_pattern_bgr.convert::<Bgra8>();
+    let cleared_pattern_xrgb = cleared_pattern_bgr.to_pixel_format::<Bgra8>();
 
     let mut buffers = try_anyhow!(
         get_framebuffers(

@@ -230,6 +230,13 @@ where
         self.0.height() as usize
     }
 
+    fn to_pixel_format<D>(&self) -> FrameInner<D>
+    where
+        D: FramePixel + Pixel<Chan = Ch8>,
+    {
+        FrameInner(Raster::with_raster(&self.0))
+    }
+
     /// Returns the width of the frame, in pixels
     #[must_use]
     pub fn width(&self) -> usize {
@@ -337,6 +344,15 @@ where
         })
     }
 
+    /// Converts a [`QRCodeFrame`] pixel type to another
+    #[must_use]
+    pub fn to_pixel_format<D>(&self) -> QRCodeFrame<D>
+    where
+        D: FramePixel + Pixel<Chan = Ch8>,
+    {
+        QRCodeFrame(self.0.to_pixel_format())
+    }
+
     /// Decodes and parses the [`Metadata`] found in a [`QRCodeFrame`]
     ///
     /// # Errors
@@ -400,13 +416,13 @@ impl<P> ClearedFrame<P>
 where
     P: FramePixel,
 {
-    /// Converts a [`ClearedFrame`] pixel type to another
+    /// Converts a [`ClearedFrame`] pixel type to another.
     #[must_use]
-    pub fn convert<D>(self) -> ClearedFrame<D>
+    pub fn to_pixel_format<D>(&self) -> ClearedFrame<D>
     where
-        D: FramePixel,
+        D: FramePixel + Pixel<Chan = Ch8>,
     {
-        ClearedFrame(FrameInner(Raster::with_raster(&self.0.0)))
+        ClearedFrame(self.0.to_pixel_format())
     }
 
     /// Adds a QR Code to a [`ClearedFrame`] to create a [`QRCodeFrame`]
