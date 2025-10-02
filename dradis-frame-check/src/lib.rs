@@ -37,7 +37,7 @@ pub const QRCODE_WIDTH: u32 = 128;
 pub const QRCODE_HEIGHT: u32 = 128;
 
 /// Our Error Type.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum FrameError {
     /// Metadata could be decoded properly, but the frame doesn't match what the metadata were
     /// describing.
