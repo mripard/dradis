@@ -10,6 +10,7 @@ use dradis_frame_check::{
 const FRAME_WIDTH: u32 = 1280;
 const FRAME_HEIGHT: u32 = 720;
 const VALID_XXHASH2_FRAME: &[u8] = include_bytes!("../tests/data/valid-frame-ver-2-0.rgb888.raw");
+const SWAPPED_XXHASH2_FRAME: &[u8] = include_bytes!("../tests/data/valid-frame-ver-2-0.bgr888.raw");
 
 fn bench_frame_detect(c: &mut criterion::Criterion) {
     let mut group = c.benchmark_group("decode_and_check_frame");
@@ -38,6 +39,34 @@ fn bench_frame_detect(c: &mut criterion::Criterion) {
                     height: FRAME_HEIGHT,
                     hash: 0xcddbc559fb8264e6,
                     index: 6
+                }
+            )
+        });
+    });
+    group.bench_function("xxhash2/swapped", |b| {
+        b.iter(|| {
+            let data = decode_and_check_frame(
+                SWAPPED_XXHASH2_FRAME,
+                DecodeCheckArgs {
+                    sequence: 42,
+                    previous_frame_idx: None,
+                    width: FRAME_WIDTH,
+                    height: FRAME_HEIGHT,
+                    swap_channels: true,
+                    dump: DecodeCheckArgsDump::Never,
+                },
+            )
+            .unwrap();
+            assert_eq!(
+                data,
+                Metadata {
+                    version: (2, 0),
+                    qrcode_width: QRCODE_WIDTH,
+                    qrcode_height: QRCODE_HEIGHT,
+                    width: FRAME_WIDTH,
+                    height: FRAME_HEIGHT,
+                    hash: 0xcddbc559fb8264e6,
+                    index: 39
                 }
             )
         });
