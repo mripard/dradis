@@ -17,7 +17,7 @@ use std::{
 use image::imageops::FilterType;
 use pix::{
     Raster, Region,
-    bgr::{Bgr, Bgr8, Bgra8},
+    bgr::{Bgr8, Bgra8},
     chan::Ch8,
     el::Pixel,
     rgb::Rgb8,
