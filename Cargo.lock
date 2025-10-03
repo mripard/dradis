@@ -570,6 +570,7 @@ dependencies = [
  "rxing",
  "serde",
  "serde_json",
+ "static_assertions",
  "test-log",
  "thiserror",
  "tracing",

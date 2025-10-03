@@ -28,6 +28,7 @@ use rxing::{
     common::GlobalHistogramBinarizer,
 };
 use serde::{Deserialize, Serialize};
+use static_assertions::const_assert_eq;
 use thiserror::Error;
 use threads_pool::ThreadPool;
 use tracing::{debug, error, trace_span, warn};
@@ -168,19 +169,81 @@ impl LuminanceSource for CustomRgb24Source {
 }
 
 #[doc(hidden)]
-pub trait FramePixel: Pixel<Chan = Ch8> {}
+pub trait FramePixel: Pixel<Chan = Ch8> {
+    fn from_raw_bytes(bytes: &[u8]) -> &[Self] {
+        let ptr = bytes.as_ptr();
+        let len = bytes.len();
+        assert_eq!(len % size_of::<Self>(), 0);
+
+        #[allow(unsafe_code)]
+        unsafe {
+            std::slice::from_raw_parts(ptr as *const Self, len / size_of::<Self>())
+        }
+    }
+}
 
 // The pixels are stored left to right, and the B, G, R color components are stored in the same
 // order. This format is called BGR24 by v4l2, RGB888 by DRM.
+const_assert_eq!(size_of::<Bgr8>(), 3);
+const_assert_eq!(align_of::<Bgr8>(), 1);
 impl FramePixel for Bgr8 {}
+
+#[cfg(test)]
+mod bgr8_framepixel_tests {
+    use pix::bgr::Bgr8;
+
+    use crate::FramePixel as _;
+
+    #[test]
+    fn transmute() {
+        assert_eq!(
+            Bgr8::from_raw_bytes(&[42, 21, 128, 84, 46, 72]),
+            &[Bgr8::new(42, 21, 128), Bgr8::new(84, 46, 72),]
+        )
+    }
+}
 
 // The pixels are stored left to right, and the R, G, B color components are stored in the same
 // order. This format is called RGB24 by v4l2, BGR888 by DRM.
+const_assert_eq!(size_of::<Rgb8>(), 3);
+const_assert_eq!(align_of::<Rgb8>(), 1);
 impl FramePixel for Rgb8 {}
+
+#[cfg(test)]
+mod rgb8_framepixel_tests {
+    use pix::rgb::Rgb8;
+
+    use crate::FramePixel as _;
+
+    #[test]
+    fn transmute() {
+        assert_eq!(
+            Rgb8::from_raw_bytes(&[42, 21, 128, 84, 46, 72]),
+            &[Rgb8::new(42, 21, 128), Rgb8::new(84, 46, 72),]
+        )
+    }
+}
 
 // The pixels are stored left to right, and the R, G, B, A components are stored in the same order.
 // This format is called ABGR32 by v4l2, and  ARGB8888 by KMS.
+const_assert_eq!(size_of::<Bgra8>(), 4);
+const_assert_eq!(align_of::<Bgra8>(), 1);
 impl FramePixel for Bgra8 {}
+
+#[cfg(test)]
+mod bgra8_framepixel_tests {
+    use pix::bgr::Bgra8;
+
+    use crate::FramePixel as _;
+
+    #[test]
+    fn transmute() {
+        assert_eq!(
+            Bgra8::from_raw_bytes(&[42, 21, 128, 63, 84, 46, 72, 124]),
+            &[Bgra8::new(42, 21, 128, 63), Bgra8::new(84, 46, 72, 124),]
+        )
+    }
+}
 
 /// A representation of a raw RGB Frame with 8 bits per components.
 #[doc(hidden)]
@@ -394,9 +457,14 @@ impl QRCodeFrame<Rgb8> {
     /// Channels
     #[must_use]
     pub fn from_raw_bytes_with_swapped_channels(width: u32, height: u32, bytes: &[u8]) -> Self {
-        let bgr = Raster::<Bgr8>::with_u8_buffer(width, height, bytes.to_vec());
-
-        Self(FrameInner(Raster::with_raster(&bgr)))
+        Self(FrameInner(Raster::<Rgb8>::with_pixels(
+            width,
+            height,
+            Bgr8::from_raw_bytes(bytes)
+                .iter()
+                .map(|b| Rgb8::new(b.three(), b.two(), b.one()))
+                .collect::<Vec<_>>(),
+        )))
     }
 }
 
