@@ -9,15 +9,15 @@ use dradis_frame_check::{
 
 const FRAME_WIDTH: u32 = 1280;
 const FRAME_HEIGHT: u32 = 720;
-const FRAME: &[u8] = include_bytes!("../tests/data/valid-frame-ver-2-0.rgb888.raw");
+const VALID_XXHASH2_FRAME: &[u8] = include_bytes!("../tests/data/valid-frame-ver-2-0.rgb888.raw");
 
 fn bench_frame_detect(c: &mut criterion::Criterion) {
     let mut group = c.benchmark_group("decode_and_check_frame");
     group.sampling_mode(criterion::SamplingMode::Flat);
-    group.bench_function("whole", |b| {
+    group.bench_function("xxhash2/valid", |b| {
         b.iter(|| {
             let data = decode_and_check_frame(
-                FRAME,
+                VALID_XXHASH2_FRAME,
                 DecodeCheckArgs {
                     sequence: 42,
                     previous_frame_idx: None,
