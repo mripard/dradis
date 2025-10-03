@@ -546,7 +546,7 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
 
     let image: Arc<QRCodeFrame<Rgb8>> = trace_span!("Framebuffer Importation").in_scope(|| {
         Arc::new(if args.swap_channels {
-            QRCodeFrame::<Bgr8>::from_raw_bytes(args.width, args.height, data).to_pixel_format()
+            QRCodeFrame::<Rgb8>::from_raw_bytes_with_swapped_channels(args.width, args.height, data)
         } else {
             QRCodeFrame::<Rgb8>::from_raw_bytes(args.width, args.height, data)
         })
