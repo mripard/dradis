@@ -3,6 +3,8 @@
 //! This crate is meant to run from a raw frame, decode the metadata, and check that the frame is
 //! valid.
 
+#![allow(unsafe_code)]
+
 extern crate alloc;
 
 use alloc::{borrow::Cow, rc::Rc, sync::Arc};
@@ -34,6 +36,9 @@ use threads_pool::ThreadPool;
 use tracing::{debug, error, trace_span, warn};
 use twox_hash::XxHash64;
 
+mod asm;
+use asm::optimized_memcpy;
+
 const HEADER_VERSION_MAJOR: u8 = 2;
 
 /// Width of the QR Code Area, in pixels.
@@ -41,6 +46,18 @@ pub const QRCODE_WIDTH: u32 = 128;
 
 /// Height of the QR Code Area, in pixels.
 pub const QRCODE_HEIGHT: u32 = 128;
+
+fn optimized_slice_to_vec<T>(slice: &[T]) -> Vec<T> {
+    let mut vec = Vec::with_capacity(slice.len());
+
+    optimized_memcpy(vec.as_mut_ptr(), slice.as_ptr(), slice.len());
+
+    unsafe {
+        vec.set_len(slice.len());
+    }
+
+    vec
+}
 
 /// Our Error Type.
 #[derive(Debug, Error, PartialEq)]
@@ -256,7 +273,11 @@ where
     P: FramePixel + Pixel<Chan = Ch8>,
 {
     fn from_raw_bytes(width: u32, height: u32, bytes: &[u8]) -> Self {
-        Self(Raster::<P>::with_u8_buffer(width, height, bytes.to_vec()))
+        Self(Raster::<P>::with_u8_buffer(
+            width,
+            height,
+            optimized_slice_to_vec(bytes),
+        ))
     }
 
     /// Returns the raw framebuffer content, as bytes.
@@ -268,7 +289,12 @@ where
     fn clear(&self, width: u32, height: u32) -> Self {
         let empty_pixel = Rgb8::new(0, 0, 0).convert();
 
-        let mut cleared = self.0.clone();
+        let mut cleared = Raster::<P>::with_pixels(
+            self.0.width(),
+            self.0.height(),
+            optimized_slice_to_vec(self.0.pixels()),
+        );
+
         let empty = Raster::<P>::with_color(width, height, empty_pixel);
         cleared.copy_raster(
             Region::new(0, 0, self.0.width(), self.0.height()),
