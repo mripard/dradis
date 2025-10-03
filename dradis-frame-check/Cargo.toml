@@ -25,6 +25,9 @@ twox-hash.workspace = true
 criterion.workspace = true
 test-log.workspace = true
 
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+aarch64-intrinsics.workspace = true
+
 [lib]
 bench = false
 

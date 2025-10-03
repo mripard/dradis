@@ -3,6 +3,8 @@
 //! This crate is meant to run from a raw frame, decode the metadata, and check that the frame is
 //! valid.
 
+#[cfg(target_arch = "aarch64")]
+extern crate aarch64_intrinsics;
 extern crate alloc;
 
 use alloc::{borrow::Cow, rc::Rc, sync::Arc};
