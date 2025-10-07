@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758793411280,
+  "lastUpdate": 1759850179746,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1919,6 +1919,36 @@ window.BENCHMARK_DATA = {
             "name": "frame processing/whole",
             "value": 496298,
             "range": "± 3240",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1f9fef61a69bf2a86e83e00921f45a4ed50809af",
+          "message": "Merge pull request #273 from JoseExposito/bug-multiple-connectors\n\nboomer: Exit if multiple connector are available",
+          "timestamp": "2025-10-07T17:10:38+02:00",
+          "tree_id": "af14b141c5473bcb2c425b49311bca6c54a5ae94",
+          "url": "https://github.com/mripard/dradis/commit/1f9fef61a69bf2a86e83e00921f45a4ed50809af"
+        },
+        "date": 1759850179013,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "frame processing/whole",
+            "value": 499385,
+            "range": "± 2712",
             "unit": "ns/iter"
           }
         ]
