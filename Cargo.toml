@@ -32,7 +32,6 @@ repository = "https://github.com/mripard/dradis.git"
 version = "0.5.2"
 
 [workspace.dependencies]
-aarch64-intrinsics = { version = "1.0.0", default-features = false }
 anyhow = { version = "1.0.99", default-features = false }
 bindgen = { version = "0.72.1", default-features = false }
 bitflags = { version = "2.9.3", default-features = false }
