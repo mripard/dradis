@@ -60,6 +60,8 @@
 	.section ".text", "ax", %progbits
 	.globl	__memcpy_aarch64
 	.globl	__memmove_aarch64
+__memcpy_aarch64:
+__memmove_aarch64:
 	add	srcend, src, count
 	add	dstend, dstin, count
 	cmp	count, 128
