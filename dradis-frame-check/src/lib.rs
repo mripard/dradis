@@ -16,6 +16,7 @@ use std::{
     path::Path,
 };
 
+use bon::Builder;
 use image::imageops::FilterType;
 use pix::{
     Raster, Region,
@@ -40,6 +41,7 @@ mod asm;
 use asm::optimized_memcpy;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
+const HEADER_VERSION_MINOR: u8 = 0;
 
 /// Width of the QR Code Area, in pixels.
 pub const QRCODE_WIDTH: u32 = 128;
@@ -74,16 +76,19 @@ pub enum FrameError {
 
 /// Frame Metadata
 #[allow(dead_code)]
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Builder, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Metadata {
     /// Metadata Version. The first number is the major version, the second number the minor.
     /// Minors are meant to be backward compatible, majors are breaking changes.
+    #[builder(skip = (HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR))]
     pub version: (u8, u8),
 
     /// Width of the QR Code area, in pixels.
+    #[builder(skip = QRCODE_WIDTH)]
     pub qrcode_width: u32,
 
     /// Height of the QR Code area, in pixels.
+    #[builder(skip = QRCODE_HEIGHT)]
     pub qrcode_height: u32,
 
     /// Frame Width, in pixels.

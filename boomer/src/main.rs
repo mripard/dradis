@@ -20,9 +20,6 @@ use qrcode::QrCode;
 use tracing::{Level, debug, debug_span, info, trace, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
 
-const HEADER_VERSION_MAJOR: u8 = 2;
-const HEADER_VERSION_MINOR: u8 = 0;
-
 const NUM_BUFFERS: usize = 3;
 
 const MODE_POLL_TIMEOUT: Duration = Duration::from_secs(10);
@@ -150,15 +147,12 @@ fn create_metadata_json(
     hash: u64,
     index: usize,
 ) -> Result<String, serde_json::Error> {
-    let metadata = Metadata {
-        version: (HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR),
-        qrcode_width: QRCODE_WIDTH,
-        qrcode_height: QRCODE_HEIGHT,
-        width,
-        height,
-        hash,
-        index,
-    };
+    let metadata = Metadata::builder()
+        .width(width)
+        .height(height)
+        .hash(hash)
+        .index(index)
+        .build();
 
     debug!("{}", metadata);
 
