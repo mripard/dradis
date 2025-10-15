@@ -8,7 +8,7 @@ use std::{io, path::PathBuf, thread::sleep, time::Instant};
 
 use anyhow::{Context as _, Result, anyhow};
 use clap::Parser;
-use frame_check::{Frame, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
+use frame_check::{Frame, HashVariant, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
 use image::Rgba;
 use linux_uevent::{Action, UeventSocket};
 use nucleid::{
@@ -144,7 +144,7 @@ fn initial_commit(
 fn create_metadata_json(
     width: u32,
     height: u32,
-    hash: u64,
+    hash: HashVariant,
     index: usize,
 ) -> Result<String, serde_json::Error> {
     let metadata = Metadata::builder()
@@ -239,8 +239,8 @@ fn start_output(
 
     let cleared_pattern_bgr = pattern_bgr.clear();
 
-    let hash = cleared_pattern_bgr.compute_checksum();
-    info!("Hash {:#x}", hash);
+    let hash = cleared_pattern_bgr.compute_xxhash2_checksum();
+    info!("Hash {hash}");
 
     let cleared_pattern_xrgb = cleared_pattern_bgr.to_pixel_format::<Bgra8>();
 

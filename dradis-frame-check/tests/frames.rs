@@ -4,8 +4,8 @@
 use std::fs;
 
 use dradis_frame_check::{
-    DecodeCheckArgs, DecodeCheckArgsDump, FrameError, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH,
-    decode_and_check_frame,
+    DecodeCheckArgs, DecodeCheckArgsDump, FrameError, HashVariant, Metadata, QRCODE_HEIGHT,
+    QRCODE_WIDTH, decode_and_check_frame,
 };
 
 const TEST_WIDTH: u32 = 1280;
@@ -54,7 +54,7 @@ fn test_bgr_swap_channels() {
             qrcode_height: QRCODE_HEIGHT,
             width: TEST_WIDTH,
             height: TEST_HEIGHT,
-            hash: 0xcddbc559fb8264e6,
+            hash: HashVariant::XxHash2(0xcddbc559fb8264e6),
             index: 39
         }
     )
@@ -83,7 +83,7 @@ fn test_rgb() {
             qrcode_height: QRCODE_HEIGHT,
             width: TEST_WIDTH,
             height: TEST_HEIGHT,
-            hash: 0xcddbc559fb8264e6,
+            hash: HashVariant::XxHash2(0xcddbc559fb8264e6),
             index: 6
         }
     )

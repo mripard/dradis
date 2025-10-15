@@ -30,7 +30,7 @@ use rxing::{
     BarcodeFormat, BinaryBitmap, DecodeHints, LuminanceSource, MultiFormatReader, Reader as _,
     common::GlobalHistogramBinarizer,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use static_assertions::const_assert_eq;
 use thiserror::Error;
 use threads_pool::ThreadPool;
@@ -41,7 +41,7 @@ mod asm;
 use asm::optimized_memcpy;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
-const HEADER_VERSION_MINOR: u8 = 0;
+const HEADER_VERSION_MINOR: u8 = 1;
 
 /// Width of the QR Code Area, in pixels.
 pub const QRCODE_WIDTH: u32 = 128;
@@ -74,6 +74,47 @@ pub enum FrameError {
     InvalidFrame,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase", tag = "hash_type", content = "hash_value")]
+pub enum HashVariant {
+    XxHash2(u64),
+}
+
+impl fmt::Display for HashVariant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::XxHash2(v) => f.write_fmt(format_args!("xxHash2 {v:#x}")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for HashVariant {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "lowercase", tag = "hash_type", content = "hash_value")]
+        enum EnumVariantHelper {
+            XxHash2(u64),
+        }
+
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum VariantHelper {
+            Variant1(EnumVariantHelper),
+            Variant0(u64),
+        }
+
+        Ok(match VariantHelper::deserialize(deserializer)? {
+            VariantHelper::Variant1(h) => match h {
+                EnumVariantHelper::XxHash2(v) => HashVariant::XxHash2(v),
+            },
+            VariantHelper::Variant0(v) => HashVariant::XxHash2(v),
+        })
+    }
+}
+
 /// Frame Metadata
 #[allow(dead_code)]
 #[derive(Builder, Debug, Deserialize, PartialEq, Serialize)]
@@ -98,16 +139,108 @@ pub struct Metadata {
     pub height: u32,
 
     /// Frame xxHash with the QR Code area zeroed.
-    pub hash: u64,
+    pub hash: HashVariant,
 
     /// Frame index. Ever increasing.
     pub index: usize,
 }
 
+#[cfg(test)]
+mod metadata_tests {
+    use crate::{HEADER_VERSION_MAJOR, HashVariant, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
+
+    #[test]
+    fn metadata_without_variant() {
+        let json = r#"
+        {
+            "version": [2, 0],
+            "qrcode_width": 128,
+            "qrcode_height": 128,
+            "width": 1280,
+            "height": 720,
+            "hash": 14833666787937248486,
+            "index": 2
+        }"#;
+
+        assert_eq!(
+            serde_json::from_str::<Metadata>(json).unwrap(),
+            Metadata {
+                version: (HEADER_VERSION_MAJOR, 0),
+                qrcode_width: QRCODE_WIDTH,
+                qrcode_height: QRCODE_HEIGHT,
+                width: 1280,
+                height: 720,
+                hash: HashVariant::XxHash2(0xcddbc559fb8264e6),
+                index: 2
+            }
+        );
+    }
+
+    #[test]
+    fn metadata_with_variant_xxhash2() {
+        let json = r#"
+        {
+            "version": [2, 1],
+            "qrcode_width": 128,
+            "qrcode_height": 128,
+            "width": 1280,
+            "height": 720,
+            "hash": {
+                "hash_type": "xxhash2",
+                "hash_value": 14833666787937248486
+            },
+            "index": 2
+        }"#;
+
+        assert_eq!(
+            serde_json::from_str::<Metadata>(json).unwrap(),
+            Metadata {
+                version: (HEADER_VERSION_MAJOR, 1),
+                qrcode_width: QRCODE_WIDTH,
+                qrcode_height: QRCODE_HEIGHT,
+                width: 1280,
+                height: 720,
+                hash: HashVariant::XxHash2(0xcddbc559fb8264e6),
+                index: 2
+            }
+        );
+    }
+
+    #[test]
+    fn metadata_with_variant_xxhash3() {
+        let json = r#"
+        {
+            "version": [2, 1],
+            "qrcode_width": 128,
+            "qrcode_height": 128,
+            "width": 1280,
+            "height": 720,
+            "hash": {
+                "hash_type": "xxhash3",
+                "hash_value": 14833666787937248486
+            },
+            "index": 2
+        }"#;
+
+        assert_eq!(
+            serde_json::from_str::<Metadata>(json).unwrap(),
+            Metadata {
+                version: (HEADER_VERSION_MAJOR, 1),
+                qrcode_width: QRCODE_WIDTH,
+                qrcode_height: QRCODE_HEIGHT,
+                width: 1280,
+                height: 720,
+                hash: HashVariant::XxHash3(0xcddbc559fb8264e6),
+                index: 2
+            }
+        );
+    }
+}
+
 impl fmt::Display for Metadata {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!(
-            "Metadata Version {}.{}, Frame Size {}x{}, QR Code Area {}x{}, index {}, hash {:#x}",
+            "Metadata Version {}.{}, Frame Size {}x{}, QR Code Area {}x{}, index {}, hash {}",
             self.version.0,
             self.version.1,
             self.width,
@@ -540,10 +673,10 @@ where
 }
 
 impl ClearedFrame<Rgb8> {
-    /// Computes the checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
+    /// Computes the XxHash2 checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
     #[must_use]
-    pub fn compute_checksum(&self) -> u64 {
-        XxHash64::oneshot(0, self.0.0.as_u8_slice())
+    pub fn compute_xxhash2_checksum(&self) -> HashVariant {
+        HashVariant::XxHash2(XxHash64::oneshot(0, self.0.0.as_u8_slice()))
     }
 }
 
@@ -697,12 +830,15 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
     }
 
     let cleared = image.cleared_frame_with_metadata(&metadata);
-    let hash = trace_span!("Checksum Computation").in_scope(|| cleared.compute_checksum());
+
+    let hash = trace_span!("Checksum Computation").in_scope(|| match metadata.hash {
+        HashVariant::XxHash2(_) => cleared.compute_xxhash2_checksum(),
+    });
 
     if hash != metadata.hash {
         warn!(
-            "Frame {}: Hash mismatch: {:#x} vs expected {:#x}",
-            metadata.index, hash, metadata.hash
+            "Frame {}: Hash mismatch: {hash} vs expected {}",
+            metadata.index, metadata.hash
         );
 
         if let DecodeCheckArgsDump::Corrupted(pool) = &args.dump {

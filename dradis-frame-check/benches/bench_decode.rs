@@ -3,7 +3,7 @@
 
 use criterion::{criterion_group, criterion_main};
 use dradis_frame_check::{
-    DecodeCheckArgs, DecodeCheckArgsDump, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH,
+    DecodeCheckArgs, DecodeCheckArgsDump, HashVariant, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH,
     decode_and_check_frame,
 };
 
@@ -37,7 +37,7 @@ fn bench_frame_detect(c: &mut criterion::Criterion) {
                     qrcode_height: QRCODE_HEIGHT,
                     width: FRAME_WIDTH,
                     height: FRAME_HEIGHT,
-                    hash: 0xcddbc559fb8264e6,
+                    hash: HashVariant::XxHash2(0xcddbc559fb8264e6),
                     index: 6
                 }
             )
@@ -65,7 +65,7 @@ fn bench_frame_detect(c: &mut criterion::Criterion) {
                     qrcode_height: QRCODE_HEIGHT,
                     width: FRAME_WIDTH,
                     height: FRAME_HEIGHT,
-                    hash: 0xcddbc559fb8264e6,
+                    hash: HashVariant::XxHash2(0xcddbc559fb8264e6),
                     index: 39
                 }
             )

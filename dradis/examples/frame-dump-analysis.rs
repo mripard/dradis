@@ -1,7 +1,7 @@
 use std::{fmt::Display, fs, path::PathBuf};
 
 use clap::Parser;
-use frame_check::{FrameError, QRCodeFrame};
+use frame_check::{FrameError, HashVariant, QRCodeFrame};
 use pix::{bgr::Bgr8, chan::Ch8, el::Pixel, rgb::Rgb8};
 use tracelimit::{error_ratelimited, warn_ratelimited};
 use tracing::{Level, debug, error, info, warn};
@@ -106,7 +106,7 @@ fn check_frame(
     width: u32,
     height: u32,
     swap_channels: bool,
-) -> Result<u64, Box<dyn std::error::Error>> {
+) -> Result<HashVariant, Box<dyn std::error::Error>> {
     let frame = if swap_channels {
         QRCodeFrame::<Bgr8>::from_raw_bytes(width, height, bytes).to_pixel_format()
     } else {
@@ -136,14 +136,11 @@ fn check_frame(
     };
 
     let cleared = frame.cleared_frame_with_metadata(&metadata);
-    let hash = cleared.compute_checksum();
+    let hash = cleared.compute_xxhash2_checksum();
     if hash == metadata.hash {
         debug!("Hash is valid.");
     } else {
-        error!(
-            "Hash mismatch: {:#x} vs expected {:#x}",
-            hash, metadata.hash
-        );
+        error!("Hash mismatch: {} vs expected {}", hash, metadata.hash);
         return Err(FrameError::IntegrityFailure.into());
     }
 
@@ -202,7 +199,7 @@ fn compare_two_frames(bytes_a: &[u8], bytes_b: &[u8], width: u32, height: u32) {
                 info!("Frames are identical");
             } else {
                 error!(
-                    "Frames are different. Hash mismatch: {:#x} vs expected {:#x}",
+                    "Frames are different. Hash mismatch: {} vs expected {}",
                     hash_a, hash_b
                 );
             }
