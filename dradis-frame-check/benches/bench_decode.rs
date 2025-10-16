@@ -12,7 +12,7 @@ const FRAME_HEIGHT: u32 = 720;
 const FRAME: &[u8] = include_bytes!("../tests/data/valid-frame-ver-2-0.rgb888.raw");
 
 fn bench_frame_detect(c: &mut criterion::Criterion) {
-    let mut group = c.benchmark_group("frame processing");
+    let mut group = c.benchmark_group("decode_and_check_frame");
     group.sampling_mode(criterion::SamplingMode::Flat);
     group.bench_function("whole", |b| {
         b.iter(|| {
