@@ -14,5 +14,8 @@ facet-enum-repr-derive.workspace = true
 facet-reflect.workspace = true
 thiserror.workspace = true
 
+[lib]
+bench = false
+
 [lints]
 workspace = true

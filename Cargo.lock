@@ -569,6 +569,7 @@ dependencies = [
  "rxing",
  "serde",
  "serde_json",
+ "test-log",
  "thiserror",
  "tracing",
  "twox-hash",

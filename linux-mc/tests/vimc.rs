@@ -61,12 +61,14 @@ fn get_vimc_device_path() -> PathBuf {
 
 #[rstest]
 #[test_log::test]
+#[cfg_attr(not(feature = "vimc"), ignore)]
 fn open(#[from(get_vimc_device_path)] vimc: PathBuf) {
     assert!(MediaController::new(&vimc).is_ok());
 }
 
 #[rstest]
 #[test_log::test]
+#[cfg_attr(not(feature = "vimc"), ignore)]
 fn info(#[from(get_vimc_device_path)] vimc: PathBuf) {
     let mc = MediaController::new(&vimc).unwrap();
     let info = mc.info().unwrap();
@@ -258,6 +260,7 @@ fn check_topology(mc: &MediaController, expected_topology: &ExpectedTopology<'_>
 
 #[rstest]
 #[test_log::test]
+#[cfg_attr(not(feature = "vimc"), ignore)]
 fn topology(#[from(get_vimc_device_path)] vimc: PathBuf) {
     let mc = MediaController::new(&vimc).unwrap();
 
@@ -553,6 +556,7 @@ fn topology(#[from(get_vimc_device_path)] vimc: PathBuf) {
 
 #[rstest]
 #[test_log::test]
+#[cfg_attr(not(feature = "vimc"), ignore)]
 fn setup_link(#[from(get_vimc_device_path)] vimc: PathBuf) {
     let mc = MediaController::new(&vimc).unwrap();
 
@@ -626,6 +630,7 @@ fn setup_link(#[from(get_vimc_device_path)] vimc: PathBuf) {
 
 #[rstest]
 #[test_log::test]
+#[cfg_attr(not(feature = "vimc"), ignore)]
 fn find_link_from_pads(#[from(get_vimc_device_path)] vimc: PathBuf) {
     let mc = MediaController::new(&vimc).unwrap();
 

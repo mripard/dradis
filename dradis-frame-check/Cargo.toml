@@ -21,6 +21,7 @@ twox-hash.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
+test-log.workspace = true
 
 [lib]
 bench = false
