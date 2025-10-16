@@ -26,5 +26,8 @@ rstest.workspace = true
 test-log.workspace = true
 tracing.workspace = true
 
+[features]
+vimc = []
+
 [lints]
 workspace = true
