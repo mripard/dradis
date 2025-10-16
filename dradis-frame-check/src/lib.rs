@@ -35,7 +35,7 @@ use static_assertions::const_assert_eq;
 use thiserror::Error;
 use threads_pool::ThreadPool;
 use tracing::{debug, error, trace_span, warn};
-use twox_hash::XxHash64;
+use twox_hash::{XxHash3_64, XxHash64};
 
 mod asm;
 use asm::optimized_memcpy;
@@ -78,12 +78,14 @@ pub enum FrameError {
 #[serde(rename_all = "lowercase", tag = "hash_type", content = "hash_value")]
 pub enum HashVariant {
     XxHash2(u64),
+    XxHash3(u64),
 }
 
 impl fmt::Display for HashVariant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::XxHash2(v) => f.write_fmt(format_args!("xxHash2 {v:#x}")),
+            Self::XxHash3(v) => f.write_fmt(format_args!("xxHash3 {v:#x}")),
         }
     }
 }
@@ -97,6 +99,7 @@ impl<'de> Deserialize<'de> for HashVariant {
         #[serde(rename_all = "lowercase", tag = "hash_type", content = "hash_value")]
         enum EnumVariantHelper {
             XxHash2(u64),
+            XxHash3(u64),
         }
 
         #[derive(Deserialize)]
@@ -109,6 +112,7 @@ impl<'de> Deserialize<'de> for HashVariant {
         Ok(match VariantHelper::deserialize(deserializer)? {
             VariantHelper::Variant1(h) => match h {
                 EnumVariantHelper::XxHash2(v) => HashVariant::XxHash2(v),
+                EnumVariantHelper::XxHash3(v) => HashVariant::XxHash3(v),
             },
             VariantHelper::Variant0(v) => HashVariant::XxHash2(v),
         })
@@ -678,6 +682,12 @@ impl ClearedFrame<Rgb8> {
     pub fn compute_xxhash2_checksum(&self) -> HashVariant {
         HashVariant::XxHash2(XxHash64::oneshot(0, self.0.0.as_u8_slice()))
     }
+
+    /// Computes the XxHash3 checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
+    #[must_use]
+    pub fn compute_xxhash3_checksum(&self) -> HashVariant {
+        HashVariant::XxHash3(XxHash3_64::oneshot_with_seed(0, self.0.0.as_u8_slice()))
+    }
 }
 
 impl<P> Deref for ClearedFrame<P>
@@ -833,6 +843,7 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
 
     let hash = trace_span!("Checksum Computation").in_scope(|| match metadata.hash {
         HashVariant::XxHash2(_) => cleared.compute_xxhash2_checksum(),
+        HashVariant::XxHash3(_) => cleared.compute_xxhash3_checksum(),
     });
 
     if hash != metadata.hash {
