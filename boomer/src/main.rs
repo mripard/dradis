@@ -239,7 +239,7 @@ fn start_output(
 
     let cleared_pattern_bgr = pattern_bgr.clear();
 
-    let hash = cleared_pattern_bgr.compute_xxhash2_checksum();
+    let hash = cleared_pattern_bgr.compute_xxhash3_checksum();
     info!("Hash {hash}");
 
     let cleared_pattern_xrgb = cleared_pattern_bgr.to_pixel_format::<Bgra8>();
