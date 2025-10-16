@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759850179746,
+  "lastUpdate": 1760621883163,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1949,6 +1949,42 @@ window.BENCHMARK_DATA = {
             "name": "decode_and_check_frame/xxhash2/valid",
             "value": 499385,
             "range": "± 2712",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c8b4dff78d59baf329529e529f18cd50620b8f89",
+          "message": "Merge pull request #285 from mripard/more-tests-benchmarks\n\nBenchmarks and tests improvements",
+          "timestamp": "2025-10-16T15:33:31+02:00",
+          "tree_id": "908d12636a8e2ff172ea9fd867e115b823da8876",
+          "url": "https://github.com/mripard/dradis/commit/c8b4dff78d59baf329529e529f18cd50620b8f89"
+        },
+        "date": 1760621882572,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "decode_and_check_frame/xxhash2/valid",
+            "value": 490671,
+            "range": "± 3272",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decode_and_check_frame/xxhash2/swapped",
+            "value": 1229628,
+            "range": "± 4776",
             "unit": "ns/iter"
           }
         ]
