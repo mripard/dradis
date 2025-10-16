@@ -8,8 +8,8 @@ use std::{io, path::PathBuf, thread::sleep, time::Instant};
 
 use anyhow::{Context as _, Result, anyhow};
 use clap::Parser;
-use frame_check::{Frame, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
-use image::{Rgba, imageops::FilterType};
+use frame_check::{Frame, HashVariant, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
+use image::Rgba;
 use linux_uevent::{Action, UeventSocket};
 use nucleid::{
     BufferType, Connector, ConnectorStatus, ConnectorType, ConnectorUpdate, Device, Format,
@@ -19,9 +19,6 @@ use pix::{Raster, bgr::Bgra8, rgb::Rgba8};
 use qrcode::QrCode;
 use tracing::{Level, debug, debug_span, info, trace, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
-
-const HEADER_VERSION_MAJOR: u8 = 2;
-const HEADER_VERSION_MINOR: u8 = 0;
 
 const NUM_BUFFERS: usize = 3;
 
@@ -147,34 +144,19 @@ fn initial_commit(
 fn create_metadata_json(
     width: u32,
     height: u32,
-    hash: u64,
+    hash: HashVariant,
     index: usize,
 ) -> Result<String, serde_json::Error> {
-    let metadata = Metadata {
-        version: (HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR),
-        qrcode_width: QRCODE_WIDTH,
-        qrcode_height: QRCODE_HEIGHT,
-        width,
-        height,
-        hash,
-        index,
-    };
+    let metadata = Metadata::builder()
+        .width(width)
+        .height(height)
+        .hash(hash)
+        .index(index)
+        .build();
 
     debug!("{}", metadata);
 
     serde_json::to_string(&metadata)
-}
-
-fn get_rgb_pattern(width: u32, height: u32) -> Result<Frame, image::ImageError> {
-    Ok(Raster::with_u8_buffer(
-        width,
-        height,
-        image::load_from_memory(PATTERN)?
-            .resize_exact(width, height, FilterType::Nearest)
-            .to_rgb8()
-            .to_vec(),
-    )
-    .into())
 }
 
 fn create_qr_code(bytes: &[u8]) -> Result<Raster<Bgra8>, qrcode::types::QrError> {
@@ -251,15 +233,16 @@ fn start_output(
     );
 
     let pattern_bgr = try_anyhow!(
-        get_rgb_pattern(width.into(), height.into()),
+        Frame::from_svg_with_size(PATTERN, width.into(), height.into()),
         "Couldn't load our pattern."
     );
+
     let cleared_pattern_bgr = pattern_bgr.clear();
 
-    let hash = cleared_pattern_bgr.compute_checksum();
-    info!("Hash {:#x}", hash);
+    let hash = cleared_pattern_bgr.compute_xxhash3_checksum();
+    info!("Hash {hash}");
 
-    let cleared_pattern_xrgb = cleared_pattern_bgr.convert::<Bgra8>();
+    let cleared_pattern_xrgb = cleared_pattern_bgr.to_pixel_format::<Bgra8>();
 
     let mut buffers = try_anyhow!(
         get_framebuffers(

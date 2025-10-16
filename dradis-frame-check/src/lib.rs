@@ -3,38 +3,63 @@
 //! This crate is meant to run from a raw frame, decode the metadata, and check that the frame is
 //! valid.
 
+#![allow(unsafe_code)]
+
 extern crate alloc;
 
-use alloc::{rc::Rc, sync::Arc};
-use core::{cell::RefCell, fmt, hash::Hasher as _, ops::Deref};
+use alloc::{borrow::Cow, rc::Rc, sync::Arc};
+use core::{cell::RefCell, fmt, ops::Deref};
 use std::{
+    collections::HashSet,
     fs::{self, File},
     io::{self, BufWriter},
     path::Path,
 };
 
+use bon::Builder;
+use image::imageops::FilterType;
 use pix::{
     Raster, Region,
     bgr::{Bgr8, Bgra8},
     chan::Ch8,
     el::Pixel,
-    gray::Gray8,
     rgb::Rgb8,
 };
 use png::{BitDepth, ColorType, Encoder};
-use serde::{Deserialize, Serialize};
+use rxing::{
+    BarcodeFormat, BinaryBitmap, DecodeHints, LuminanceSource, MultiFormatReader, Reader as _,
+    common::GlobalHistogramBinarizer,
+};
+use serde::{Deserialize, Deserializer, Serialize};
+use static_assertions::const_assert_eq;
 use thiserror::Error;
 use threads_pool::ThreadPool;
 use tracing::{debug, error, trace_span, warn};
-use twox_hash::XxHash64;
+use twox_hash::{XxHash3_64, XxHash64};
+
+mod asm;
+use asm::optimized_memcpy;
 
 const HEADER_VERSION_MAJOR: u8 = 2;
+const HEADER_VERSION_MINOR: u8 = 1;
 
 /// Width of the QR Code Area, in pixels.
 pub const QRCODE_WIDTH: u32 = 128;
 
 /// Height of the QR Code Area, in pixels.
 pub const QRCODE_HEIGHT: u32 = 128;
+
+fn optimized_slice_to_vec<T>(slice: &[T]) -> Vec<T> {
+    let mut vec = Vec::with_capacity(slice.len());
+
+    optimized_memcpy(vec.as_mut_ptr(), slice.as_ptr(), slice.len());
+
+    unsafe {
+        vec.set_len(slice.len());
+    }
+
+    vec
+}
 
 /// Our Error Type.
 #[derive(Debug, Error, PartialEq)]
@@ -49,18 +74,66 @@ pub enum FrameError {
     InvalidFrame,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase", tag = "hash_type", content = "hash_value")]
+pub enum HashVariant {
+    XxHash2(u64),
+    XxHash3(u64),
+}
+
+impl fmt::Display for HashVariant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::XxHash2(v) => f.write_fmt(format_args!("xxHash2 {v:#x}")),
+            Self::XxHash3(v) => f.write_fmt(format_args!("xxHash3 {v:#x}")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for HashVariant {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "lowercase", tag = "hash_type", content = "hash_value")]
+        enum EnumVariantHelper {
+            XxHash2(u64),
+            XxHash3(u64),
+        }
+
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum VariantHelper {
+            Variant1(EnumVariantHelper),
+            Variant0(u64),
+        }
+
+        Ok(match VariantHelper::deserialize(deserializer)? {
+            VariantHelper::Variant1(h) => match h {
+                EnumVariantHelper::XxHash2(v) => HashVariant::XxHash2(v),
+                EnumVariantHelper::XxHash3(v) => HashVariant::XxHash3(v),
+            },
+            VariantHelper::Variant0(v) => HashVariant::XxHash2(v),
+        })
+    }
+}
+
 /// Frame Metadata
 #[allow(dead_code)]
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Builder, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Metadata {
     /// Metadata Version. The first number is the major version, the second number the minor.
     /// Minors are meant to be backward compatible, majors are breaking changes.
+    #[builder(skip = (HEADER_VERSION_MAJOR, HEADER_VERSION_MINOR))]
     pub version: (u8, u8),
 
     /// Width of the QR Code area, in pixels.
+    #[builder(skip = QRCODE_WIDTH)]
     pub qrcode_width: u32,
 
     /// Height of the QR Code area, in pixels.
+    #[builder(skip = QRCODE_HEIGHT)]
     pub qrcode_height: u32,
 
     /// Frame Width, in pixels.
@@ -70,16 +143,108 @@ pub struct Metadata {
     pub height: u32,
 
     /// Frame xxHash with the QR Code area zeroed.
-    pub hash: u64,
+    pub hash: HashVariant,
 
     /// Frame index. Ever increasing.
     pub index: usize,
 }
 
+#[cfg(test)]
+mod metadata_tests {
+    use crate::{HEADER_VERSION_MAJOR, HashVariant, Metadata, QRCODE_HEIGHT, QRCODE_WIDTH};
+
+    #[test]
+    fn metadata_without_variant() {
+        let json = r#"
+        {
+            "version": [2, 0],
+            "qrcode_width": 128,
+            "qrcode_height": 128,
+            "width": 1280,
+            "height": 720,
+            "hash": 14833666787937248486,
+            "index": 2
+        }"#;
+
+        assert_eq!(
+            serde_json::from_str::<Metadata>(json).unwrap(),
+            Metadata {
+                version: (HEADER_VERSION_MAJOR, 0),
+                qrcode_width: QRCODE_WIDTH,
+                qrcode_height: QRCODE_HEIGHT,
+                width: 1280,
+                height: 720,
+                hash: HashVariant::XxHash2(0xcddbc559fb8264e6),
+                index: 2
+            }
+        );
+    }
+
+    #[test]
+    fn metadata_with_variant_xxhash2() {
+        let json = r#"
+        {
+            "version": [2, 1],
+            "qrcode_width": 128,
+            "qrcode_height": 128,
+            "width": 1280,
+            "height": 720,
+            "hash": {
+                "hash_type": "xxhash2",
+                "hash_value": 14833666787937248486
+            },
+            "index": 2
+        }"#;
+
+        assert_eq!(
+            serde_json::from_str::<Metadata>(json).unwrap(),
+            Metadata {
+                version: (HEADER_VERSION_MAJOR, 1),
+                qrcode_width: QRCODE_WIDTH,
+                qrcode_height: QRCODE_HEIGHT,
+                width: 1280,
+                height: 720,
+                hash: HashVariant::XxHash2(0xcddbc559fb8264e6),
+                index: 2
+            }
+        );
+    }
+
+    #[test]
+    fn metadata_with_variant_xxhash3() {
+        let json = r#"
+        {
+            "version": [2, 1],
+            "qrcode_width": 128,
+            "qrcode_height": 128,
+            "width": 1280,
+            "height": 720,
+            "hash": {
+                "hash_type": "xxhash3",
+                "hash_value": 14833666787937248486
+            },
+            "index": 2
+        }"#;
+
+        assert_eq!(
+            serde_json::from_str::<Metadata>(json).unwrap(),
+            Metadata {
+                version: (HEADER_VERSION_MAJOR, 1),
+                qrcode_width: QRCODE_WIDTH,
+                qrcode_height: QRCODE_HEIGHT,
+                width: 1280,
+                height: 720,
+                hash: HashVariant::XxHash3(0xcddbc559fb8264e6),
+                index: 2
+            }
+        );
+    }
+}
+
 impl fmt::Display for Metadata {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!(
-            "Metadata Version {}.{}, Frame Size {}x{}, QR Code Area {}x{}, index {}, hash {:#x}",
+            "Metadata Version {}.{}, Frame Size {}x{}, QR Code Area {}x{}, index {}, hash {}",
             self.version.0,
             self.version.1,
             self.width,
@@ -92,16 +257,152 @@ impl fmt::Display for Metadata {
     }
 }
 
+struct CustomRgb24Source {
+    luma: Box<[u8]>,
+    width: u32,
+    height: u32,
+}
+
+impl CustomRgb24Source {
+    fn new_with_region<P>(pixels: &FrameInner<P>, region: Region) -> Self
+    where
+        P: FramePixel + Pixel<Chan = Ch8>,
+    {
+        let luma = pixels
+            .0
+            .rows(region)
+            .flatten()
+            .map(|p| p.two().into())
+            .collect::<Vec<u8>>();
+
+        Self {
+            luma: luma.into_boxed_slice(),
+            height: region.height(),
+            width: region.width(),
+        }
+    }
+}
+
+impl LuminanceSource for CustomRgb24Source {
+    const SUPPORTS_CROP: bool = false;
+    const SUPPORTS_ROTATION: bool = false;
+
+    fn get_row(&self, y: usize) -> Option<Cow<'_, [u8]>> {
+        if y >= self.get_height() {
+            return None;
+        }
+
+        let width = self.get_width();
+        let offset = (y) * width;
+
+        Some(Cow::Borrowed(&self.luma[offset..offset + width]))
+    }
+
+    fn get_column(&self, _x: usize) -> Vec<u8> {
+        unimplemented!()
+    }
+
+    fn get_matrix(&self) -> Vec<u8> {
+        self.luma.to_vec()
+    }
+
+    fn get_width(&self) -> usize {
+        self.width
+            .try_into()
+            .expect("A u32 should always fit into a usize on a linux platform")
+    }
+
+    fn get_height(&self) -> usize {
+        self.height
+            .try_into()
+            .expect("A u32 should always fit into a usize on a linux platform")
+    }
+
+    fn invert(&mut self) {
+        unimplemented!()
+    }
+
+    fn get_luma8_point(&self, _x: usize, _y: usize) -> u8 {
+        unimplemented!()
+    }
+}
+
 #[doc(hidden)]
-pub trait FramePixel: Pixel<Chan = Ch8> {}
+pub trait FramePixel: Pixel<Chan = Ch8> {
+    fn from_raw_bytes(bytes: &[u8]) -> &[Self] {
+        let ptr = bytes.as_ptr();
+        let len = bytes.len();
+        assert_eq!(len % size_of::<Self>(), 0);
+
+        #[allow(unsafe_code)]
+        unsafe {
+            std::slice::from_raw_parts(ptr as *const Self, len / size_of::<Self>())
+        }
+    }
+}
+
+// The pixels are stored left to right, and the B, G, R color components are stored in the same
+// order. This format is called BGR24 by v4l2, RGB888 by DRM.
+const_assert_eq!(size_of::<Bgr8>(), 3);
+const_assert_eq!(align_of::<Bgr8>(), 1);
+impl FramePixel for Bgr8 {}
+
+#[cfg(test)]
+mod bgr8_framepixel_tests {
+    use pix::bgr::Bgr8;
+
+    use crate::FramePixel as _;
+
+    #[test]
+    fn transmute() {
+        assert_eq!(
+            Bgr8::from_raw_bytes(&[42, 21, 128, 84, 46, 72]),
+            &[Bgr8::new(42, 21, 128), Bgr8::new(84, 46, 72),]
+        )
+    }
+}
 
 // The pixels are stored left to right, and the R, G, B color components are stored in the same
 // order. This format is called RGB24 by v4l2, BGR888 by DRM.
+const_assert_eq!(size_of::<Rgb8>(), 3);
+const_assert_eq!(align_of::<Rgb8>(), 1);
 impl FramePixel for Rgb8 {}
+
+#[cfg(test)]
+mod rgb8_framepixel_tests {
+    use pix::rgb::Rgb8;
+
+    use crate::FramePixel as _;
+
+    #[test]
+    fn transmute() {
+        assert_eq!(
+            Rgb8::from_raw_bytes(&[42, 21, 128, 84, 46, 72]),
+            &[Rgb8::new(42, 21, 128), Rgb8::new(84, 46, 72),]
+        )
+    }
+}
 
 // The pixels are stored left to right, and the R, G, B, A components are stored in the same order.
 // This format is called ABGR32 by v4l2, and  ARGB8888 by KMS.
+const_assert_eq!(size_of::<Bgra8>(), 4);
+const_assert_eq!(align_of::<Bgra8>(), 1);
 impl FramePixel for Bgra8 {}
+
+#[cfg(test)]
+mod bgra8_framepixel_tests {
+    use pix::bgr::Bgra8;
+
+    use crate::FramePixel as _;
+
+    #[test]
+    fn transmute() {
+        assert_eq!(
+            Bgra8::from_raw_bytes(&[42, 21, 128, 63, 84, 46, 72, 124]),
+            &[Bgra8::new(42, 21, 128, 63), Bgra8::new(84, 46, 72, 124),]
+        )
+    }
+}
 
 /// A representation of a raw RGB Frame with 8 bits per components.
 #[doc(hidden)]
@@ -114,7 +415,11 @@ where
     P: FramePixel + Pixel<Chan = Ch8>,
 {
     fn from_raw_bytes(width: u32, height: u32, bytes: &[u8]) -> Self {
-        Self(Raster::<P>::with_u8_buffer(width, height, bytes.to_vec()))
+        Self(Raster::<P>::with_u8_buffer(
+            width,
+            height,
+            optimized_slice_to_vec(bytes),
+        ))
     }
 
     /// Returns the raw framebuffer content, as bytes.
@@ -126,7 +431,12 @@ where
     fn clear(&self, width: u32, height: u32) -> Self {
         let empty_pixel = Rgb8::new(0, 0, 0).convert();
 
-        let mut cleared = self.0.clone();
+        let mut cleared = Raster::<P>::with_pixels(
+            self.0.width(),
+            self.0.height(),
+            optimized_slice_to_vec(self.0.pixels()),
+        );
+
         let empty = Raster::<P>::with_color(width, height, empty_pixel);
         cleared.copy_raster(
             Region::new(0, 0, self.0.width(), self.0.height()),
@@ -135,15 +445,6 @@ where
         );
 
         FrameInner(cleared)
-    }
-
-    fn crop(&self, width: u32, height: u32) -> Self {
-        let region = Region::new(0, 0, QRCODE_WIDTH, QRCODE_HEIGHT);
-
-        let mut smaller = Raster::with_clear(width, height);
-        smaller.copy_raster((), &self.0, region);
-
-        Self(smaller)
     }
 
     /// Returns the pixel value located at the given coordinates
@@ -159,14 +460,17 @@ where
         )
     }
 
-    fn to_luma(&self) -> Raster<Gray8> {
-        Raster::with_raster(&self.0)
-    }
-
     /// Returns the height of the frame, in pixels
     #[must_use]
     pub fn height(&self) -> usize {
         self.0.height() as usize
+    }
+
+    fn to_pixel_format<D>(&self) -> FrameInner<D>
+    where
+        D: FramePixel + Pixel<Chan = Ch8>,
+    {
+        FrameInner(Raster::with_raster(&self.0))
     }
 
     /// Returns the width of the frame, in pixels
@@ -250,26 +554,39 @@ where
     /// IF the QR Code can't be decoded
     pub fn qrcode_content(&self) -> Result<String, FrameError> {
         trace_span!("QR Code Detection").in_scope(|| {
-            let cropped = self.0.crop(QRCODE_WIDTH, QRCODE_HEIGHT);
-            let luma = cropped.to_luma();
+            let mut reader = MultiFormatReader::default();
 
-            let results = rxing::helpers::detect_multiple_in_luma(
-                luma.as_u8_slice().to_vec(),
-                QRCODE_WIDTH,
-                QRCODE_HEIGHT,
-            )
-            .map_err(|_e| {
-                warn!("Couldn't detect a QR Code.");
-                FrameError::InvalidFrame
-            })?;
+            let results = reader
+                .decode_with_hints(
+                    &mut BinaryBitmap::new(GlobalHistogramBinarizer::new(
+                        CustomRgb24Source::new_with_region(
+                            &self.0,
+                            Region::new(0, 0, QRCODE_WIDTH, QRCODE_HEIGHT),
+                        ),
+                    )),
+                    &DecodeHints {
+                        PossibleFormats: Some(HashSet::from([BarcodeFormat::QR_CODE])),
+                        TryHarder: Some(true),
 
-            if results.len() != 1 {
-                debug!("Didn't find a QR Code");
-                return Err(FrameError::InvalidFrame);
-            }
+                        ..Default::default()
+                    },
+                )
+                .map_err(|_e| {
+                    warn!("Couldn't detect a QR Code.");
+                    FrameError::InvalidFrame
+                })?;
 
-            Ok(results[0].getText().to_owned())
+            Ok(results.getText().to_owned())
         })
+    }
+
+    /// Converts a [`QRCodeFrame`] pixel type to another
+    #[must_use]
+    pub fn to_pixel_format<D>(&self) -> QRCodeFrame<D>
+    where
+        D: FramePixel + Pixel<Chan = Ch8>,
+    {
+        QRCodeFrame(self.0.to_pixel_format())
     }
 
     /// Decodes and parses the [`Metadata`] found in a [`QRCodeFrame`]
@@ -308,9 +625,14 @@ impl QRCodeFrame<Rgb8> {
     /// Channels
     #[must_use]
     pub fn from_raw_bytes_with_swapped_channels(width: u32, height: u32, bytes: &[u8]) -> Self {
-        let bgr = Raster::<Bgr8>::with_u8_buffer(width, height, bytes.to_vec());
-
-        Self(FrameInner(Raster::with_raster(&bgr)))
+        Self(FrameInner(Raster::<Rgb8>::with_pixels(
+            width,
+            height,
+            Bgr8::from_raw_bytes(bytes)
+                .iter()
+                .map(|b| Rgb8::new(b.three(), b.two(), b.one()))
+                .collect::<Vec<_>>(),
+        )))
     }
 }
 
@@ -335,13 +657,13 @@ impl<P> ClearedFrame<P>
 where
     P: FramePixel,
 {
-    /// Converts a [`ClearedFrame`] pixel type to another
+    /// Converts a [`ClearedFrame`] pixel type to another.
     #[must_use]
-    pub fn convert<D>(self) -> ClearedFrame<D>
+    pub fn to_pixel_format<D>(&self) -> ClearedFrame<D>
     where
-        D: FramePixel,
+        D: FramePixel + Pixel<Chan = Ch8>,
     {
-        ClearedFrame(FrameInner(Raster::with_raster(&self.0.0)))
+        ClearedFrame(self.0.to_pixel_format())
     }
 
     /// Adds a QR Code to a [`ClearedFrame`] to create a [`QRCodeFrame`]
@@ -355,12 +677,16 @@ where
 }
 
 impl ClearedFrame<Rgb8> {
-    /// Computes the checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
+    /// Computes the XxHash2 checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
     #[must_use]
-    pub fn compute_checksum(&self) -> u64 {
-        let mut hasher = XxHash64::with_seed(0);
-        hasher.write(self.0.0.as_u8_slice());
-        hasher.finish()
+    pub fn compute_xxhash2_checksum(&self) -> HashVariant {
+        HashVariant::XxHash2(XxHash64::oneshot(0, self.0.0.as_u8_slice()))
+    }
+
+    /// Computes the XxHash3 checksum of [`QRCodeFrame`], without the QR Code area. Only relevant for RGB24.
+    #[must_use]
+    pub fn compute_xxhash3_checksum(&self) -> HashVariant {
+        HashVariant::XxHash3(XxHash3_64::oneshot_with_seed(0, self.0.0.as_u8_slice()))
     }
 }
 
@@ -385,11 +711,22 @@ impl Frame {
     pub fn clear(self) -> ClearedFrame<Rgb8> {
         ClearedFrame(self.0.clear(QRCODE_WIDTH, QRCODE_HEIGHT))
     }
-}
 
-impl From<Raster<Rgb8>> for Frame {
-    fn from(value: Raster<Rgb8>) -> Self {
-        Self(FrameInner(value))
+    /// Creates a [`Frame`] from an SVG, at the given frame size
+    ///
+    /// # Errors
+    ///
+    /// If the SVG parsing fails
+    pub fn from_svg_with_size(bytes: &[u8], width: u32, height: u32) -> io::Result<Self> {
+        Ok(Self(FrameInner(Raster::with_u8_buffer(
+            width,
+            height,
+            image::load_from_memory(bytes)
+                .map_err(|_e| io::Error::new(io::ErrorKind::InvalidData, "Invalid SVG"))?
+                .resize_exact(width, height, FilterType::Nearest)
+                .to_rgb8()
+                .to_vec(),
+        ))))
     }
 }
 
@@ -430,14 +767,14 @@ pub struct DecodeCheckArgs {
     /// Width of the frame, in pixels.
     pub height: u32,
 
-    /// Are the Red and Blue color channels inverted?
+    /// The frame is actually in the Bgr8 format, we need to swap red and blue channels.
     pub swap_channels: bool,
 
     /// Frame Dump options.
     pub dump: DecodeCheckArgsDump,
 }
 
-/// Decodes a raw frame buffer and checks whether the frame is valid or not.
+/// Decodes a raw RGB8 frame buffer and checks whether the frame is valid or not.
 ///
 /// To consider a frame valid, the frame needs to:
 /// - Have a QR Code that can be decoded and parsed into [`Metadata`]
@@ -455,16 +792,12 @@ pub struct DecodeCheckArgs {
 pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Metadata, FrameError> {
     let last_frame_index = args.previous_frame_idx;
 
-    let image = trace_span!("Framebuffer Importation").in_scope(|| {
-        if args.swap_channels {
-            Arc::new(QRCodeFrame::from_raw_bytes_with_swapped_channels(
-                args.width,
-                args.height,
-                data,
-            ))
+    let image: Arc<QRCodeFrame<Rgb8>> = trace_span!("Framebuffer Importation").in_scope(|| {
+        Arc::new(if args.swap_channels {
+            QRCodeFrame::<Rgb8>::from_raw_bytes_with_swapped_channels(args.width, args.height, data)
         } else {
-            Arc::new(QRCodeFrame::from_raw_bytes(args.width, args.height, data))
-        }
+            QRCodeFrame::<Rgb8>::from_raw_bytes(args.width, args.height, data)
+        })
     });
 
     if let DecodeCheckArgsDump::Always(pool) = &args.dump {
@@ -507,12 +840,16 @@ pub fn decode_and_check_frame(data: &[u8], args: DecodeCheckArgs) -> Result<Meta
     }
 
     let cleared = image.cleared_frame_with_metadata(&metadata);
-    let hash = trace_span!("Checksum Computation").in_scope(|| cleared.compute_checksum());
+
+    let hash = trace_span!("Checksum Computation").in_scope(|| match metadata.hash {
+        HashVariant::XxHash2(_) => cleared.compute_xxhash2_checksum(),
+        HashVariant::XxHash3(_) => cleared.compute_xxhash3_checksum(),
+    });
 
     if hash != metadata.hash {
         warn!(
-            "Frame {}: Hash mismatch: {:#x} vs expected {:#x}",
-            metadata.index, hash, metadata.hash
+            "Frame {}: Hash mismatch: {hash} vs expected {}",
+            metadata.index, metadata.hash
         );
 
         if let DecodeCheckArgsDump::Corrupted(pool) = &args.dump {
