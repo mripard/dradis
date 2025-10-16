@@ -26,7 +26,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 8459380,
             "range": "± 9153",
             "unit": "ns/iter"
@@ -56,7 +56,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 853738,
             "range": "± 8699",
             "unit": "ns/iter"
@@ -86,7 +86,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 1775181,
             "range": "± 16006",
             "unit": "ns/iter"
@@ -116,7 +116,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 489497,
             "range": "± 2195",
             "unit": "ns/iter"
@@ -146,7 +146,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 492471,
             "range": "± 4155",
             "unit": "ns/iter"
@@ -176,7 +176,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 490399,
             "range": "± 1635",
             "unit": "ns/iter"
@@ -206,7 +206,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 501844,
             "range": "± 4836",
             "unit": "ns/iter"
@@ -236,7 +236,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 482838,
             "range": "± 1448",
             "unit": "ns/iter"
@@ -266,7 +266,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 520527,
             "range": "± 1658",
             "unit": "ns/iter"
@@ -296,7 +296,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 490906,
             "range": "± 2019",
             "unit": "ns/iter"
@@ -326,7 +326,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 491528,
             "range": "± 2222",
             "unit": "ns/iter"
@@ -356,7 +356,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 499695,
             "range": "± 2062",
             "unit": "ns/iter"
@@ -386,7 +386,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 486103,
             "range": "± 5360",
             "unit": "ns/iter"
@@ -416,7 +416,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 483711,
             "range": "± 1611",
             "unit": "ns/iter"
@@ -446,7 +446,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 496103,
             "range": "± 4230",
             "unit": "ns/iter"
@@ -476,7 +476,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 473598,
             "range": "± 1400",
             "unit": "ns/iter"
@@ -506,7 +506,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 488605,
             "range": "± 2886",
             "unit": "ns/iter"
@@ -536,7 +536,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 482871,
             "range": "± 923",
             "unit": "ns/iter"
@@ -566,7 +566,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 486556,
             "range": "± 2822",
             "unit": "ns/iter"
@@ -596,7 +596,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 481712,
             "range": "± 1815",
             "unit": "ns/iter"
@@ -626,7 +626,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 477703,
             "range": "± 1704",
             "unit": "ns/iter"
@@ -656,7 +656,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 491293,
             "range": "± 3868",
             "unit": "ns/iter"
@@ -686,7 +686,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 488841,
             "range": "± 3128",
             "unit": "ns/iter"
@@ -716,7 +716,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 485921,
             "range": "± 3414",
             "unit": "ns/iter"
@@ -746,7 +746,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 484953,
             "range": "± 3347",
             "unit": "ns/iter"
@@ -776,7 +776,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 479272,
             "range": "± 1666",
             "unit": "ns/iter"
@@ -806,7 +806,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 488417,
             "range": "± 3720",
             "unit": "ns/iter"
@@ -836,7 +836,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 484338,
             "range": "± 18584",
             "unit": "ns/iter"
@@ -866,7 +866,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 478937,
             "range": "± 1265",
             "unit": "ns/iter"
@@ -896,7 +896,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 484293,
             "range": "± 2264",
             "unit": "ns/iter"
@@ -926,7 +926,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 491047,
             "range": "± 3225",
             "unit": "ns/iter"
@@ -956,7 +956,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 494743,
             "range": "± 3877",
             "unit": "ns/iter"
@@ -986,7 +986,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 482919,
             "range": "± 1635",
             "unit": "ns/iter"
@@ -1016,7 +1016,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 481901,
             "range": "± 2321",
             "unit": "ns/iter"
@@ -1046,7 +1046,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 481794,
             "range": "± 2156",
             "unit": "ns/iter"
@@ -1076,7 +1076,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 488708,
             "range": "± 13008",
             "unit": "ns/iter"
@@ -1106,7 +1106,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 480710,
             "range": "± 2026",
             "unit": "ns/iter"
@@ -1136,7 +1136,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 492638,
             "range": "± 3390",
             "unit": "ns/iter"
@@ -1166,7 +1166,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 482447,
             "range": "± 1281",
             "unit": "ns/iter"
@@ -1196,7 +1196,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 480798,
             "range": "± 1865",
             "unit": "ns/iter"
@@ -1226,7 +1226,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 491445,
             "range": "± 2281",
             "unit": "ns/iter"
@@ -1256,7 +1256,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 485605,
             "range": "± 2266",
             "unit": "ns/iter"
@@ -1286,7 +1286,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 487269,
             "range": "± 2775",
             "unit": "ns/iter"
@@ -1316,7 +1316,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 479550,
             "range": "± 1656",
             "unit": "ns/iter"
@@ -1346,7 +1346,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 486160,
             "range": "± 2547",
             "unit": "ns/iter"
@@ -1376,7 +1376,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 503293,
             "range": "± 2380",
             "unit": "ns/iter"
@@ -1406,7 +1406,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 499968,
             "range": "± 2601",
             "unit": "ns/iter"
@@ -1436,7 +1436,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 497489,
             "range": "± 4213",
             "unit": "ns/iter"
@@ -1466,7 +1466,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 490406,
             "range": "± 6629",
             "unit": "ns/iter"
@@ -1496,7 +1496,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 489469,
             "range": "± 2272",
             "unit": "ns/iter"
@@ -1526,7 +1526,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 491283,
             "range": "± 2420",
             "unit": "ns/iter"
@@ -1556,7 +1556,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 487595,
             "range": "± 2656",
             "unit": "ns/iter"
@@ -1586,7 +1586,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 492664,
             "range": "± 2756",
             "unit": "ns/iter"
@@ -1616,7 +1616,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 496396,
             "range": "± 3138",
             "unit": "ns/iter"
@@ -1646,7 +1646,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 488470,
             "range": "± 2182",
             "unit": "ns/iter"
@@ -1676,7 +1676,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 493335,
             "range": "± 3044",
             "unit": "ns/iter"
@@ -1706,7 +1706,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 493143,
             "range": "± 3663",
             "unit": "ns/iter"
@@ -1736,7 +1736,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 487627,
             "range": "± 2273",
             "unit": "ns/iter"
@@ -1766,7 +1766,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 487912,
             "range": "± 2532",
             "unit": "ns/iter"
@@ -1796,7 +1796,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 492962,
             "range": "± 2993",
             "unit": "ns/iter"
@@ -1826,7 +1826,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 482130,
             "range": "± 1239",
             "unit": "ns/iter"
@@ -1856,7 +1856,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 477664,
             "range": "± 1945",
             "unit": "ns/iter"
@@ -1886,7 +1886,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 487089,
             "range": "± 1992",
             "unit": "ns/iter"
@@ -1916,7 +1916,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 496298,
             "range": "± 3240",
             "unit": "ns/iter"
@@ -1946,7 +1946,7 @@ window.BENCHMARK_DATA = {
         "tool": "cargo",
         "benches": [
           {
-            "name": "frame processing/whole",
+            "name": "decode_and_check_frame/xxhash2/valid",
             "value": 499385,
             "range": "± 2712",
             "unit": "ns/iter"
