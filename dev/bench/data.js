@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1760621883163,
+  "lastUpdate": 1761207512238,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -1985,6 +1985,42 @@ window.BENCHMARK_DATA = {
             "name": "decode_and_check_frame/xxhash2/swapped",
             "value": 1229628,
             "range": "± 4776",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e6a999e1027d841518340a8af57585410a9e97d2",
+          "message": "Merge pull request #261 from JoseExposito/add-device-info\n\ndevice-info: Add device information",
+          "timestamp": "2025-10-23T10:13:52+02:00",
+          "tree_id": "5a229edca52272af13cb1e01c7585ad462ca19ac",
+          "url": "https://github.com/mripard/dradis/commit/e6a999e1027d841518340a8af57585410a9e97d2"
+        },
+        "date": 1761207511619,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "decode_and_check_frame/xxhash2/valid",
+            "value": 477233,
+            "range": "± 1183",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decode_and_check_frame/xxhash2/swapped",
+            "value": 1213285,
+            "range": "± 3073",
             "unit": "ns/iter"
           }
         ]
