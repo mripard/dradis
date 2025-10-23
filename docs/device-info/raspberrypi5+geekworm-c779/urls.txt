@@ -1,0 +1,5 @@
+General information about the GeekWorn C779 bridge:
+https://wiki.geekworm.com/C779
+
+Manual configuration for the bridge on the Raspberry Pi 5:
+https://wiki.geekworm.com/CSI_Manual_on_Pi_5
