@@ -744,7 +744,7 @@ checksum = "d9ef2a239b2c58af88164cc3e84063577d3359c97d6389d0e258188c71b89112"
 dependencies = [
  "proc-macro2",
  "quote",
- "unsynn",
+ "unsynn 0.1.1",
 ]
 
 [[package]]
@@ -774,7 +774,7 @@ version = "0.4.4"
 source = "git+https://github.com/mripard/dradis.git?rev=fc77962a54f3f4a422e1e4acdfe8b6c41bdd07f5#fc77962a54f3f4a422e1e4acdfe8b6c41bdd07f5"
 dependencies = [
  "facet-derive-parse",
- "unsynn",
+ "unsynn 0.1.1",
 ]
 
 [[package]]
@@ -782,7 +782,7 @@ name = "facet-enum-repr-derive"
 version = "0.5.2"
 dependencies = [
  "facet-macros-parse 0.31.3",
- "unsynn",
+ "unsynn 0.2.1",
 ]
 
 [[package]]
@@ -833,7 +833,7 @@ checksum = "e5e81c2f638023b13c3ab6e73b29be6fec44bdced5e418839c215a4b81afc6e2"
 dependencies = [
  "proc-macro2",
  "quote",
- "unsynn",
+ "unsynn 0.1.1",
 ]
 
 [[package]]
@@ -844,7 +844,7 @@ checksum = "85c198c8252d559dff4ef2846662b8ac63496ec4cbe734651a5ffedeefaa8652"
 dependencies = [
  "proc-macro2",
  "quote",
- "unsynn",
+ "unsynn 0.1.1",
 ]
 
 [[package]]
@@ -2357,6 +2357,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7940603a9e25cf11211cc43b81f4fcad2b8ab4df291ca855f32c40e1ac22d5bc"
 dependencies = [
  "fxhash",
+ "mutants",
+ "proc-macro2",
+ "shadow_counted",
+]
+
+[[package]]
+name = "unsynn"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd574186a61b234717745ee569f9323def8ac863c2e4b512a25d3b0ec39322fc"
+dependencies = [
  "mutants",
  "proc-macro2",
  "shadow_counted",
