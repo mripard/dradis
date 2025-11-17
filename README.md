@@ -36,37 +36,3 @@ The DUT and test runner need to be connected by an HDMI, going from the DUT HDMI
 Then, `dradis` and `boomer` need to be started on the runner and DUT, respectively. `boomer` needs to be started after `dradis` has started.
 
 The integration into the CI platform is left as an exercise for the reader. An example of such an integration can be found [here](https://github.com/mripard/pegasus-debian), which build a system image based on Debian/Raspberry Pi OS to register and act as a Github runner.
-
-## Components
-
-There's several components involved:
-
-- [Boomer](boomer/README.md), a Linux KMS application that outputs a test pattern and a QR-Code
-- [Dradis](dradis/README.md), a Linux Video4Linux2 application that captures the frames sent over HDMI, and will make sure they match what `boomer` expected.
-
-In addition to these two main components, a number of libraries are there to support `boomer` and `dradis`:
-
-- [dradis-frame-check](dradis-frame-check/README.md), a crate implementing the frame decoding, metadata parsing and integrity checks.
-- [dradis-threads-pool](dradis-threads-pool/README.md), a crate to spawn new threads to execute closures, with a pre-defined maximum limit on the number of threads to spawn.
-- [facet-enum-repr](facet-enum-repr/README.md), a crate to implement Rust `TryFrom`/`Into` traits for an enum discriminant type.
-- [facet-enum-repr-derive](facet-enum-repr-derive/README.md), Rust derive macro implementation for `facet-enum-repr]`
-- [linux-mc](linux-mc/README.md), a crate to support Linux [media-controller API](https://docs.kernel.org/userspace-api/media/mediactl/media-controller.html).
-- [linux-raw](linux-raw/README.md), a crate to deal with various low-level structures and mechanisms.
-- [v4l2-raw](v4l2-raw/README.md), a crate supporting the Linux [Video4Linux2 API](https://docs.kernel.org/userspace-api/media/v4l/v4l2.html)
-- [v4lise](v4lise/README.md), a historical crate to support `v4l2`. Mostly some sugar-coating around `v4l2-raw` now, and likely to be removed soon.
-
-## Future Plans
-
-- [ ] We want to evaluate the Rockchip RK3588 System-on-Chip that features an HDMI receiver directly into the SoC. There's a driver for it in Linux since 6.15, and it's said to be capable of handling 2160p/60fps.
-
-- [ ] Implement tests for hotplugging. This includes various scenarios, like:
-  - [ ] Testing that if the same display is disconnected and reconnected, the signal will be emitted again with the same timings.
-  - [ ] Testing that, if a display is disconnected and another one is reconnected:
-	- [ ] If the KMS application handles hotplug signals, the timings emitted should match the new one.
-	- [ ] If the KMS application doesn't handle hotplug signals, the timings emitted should match the old one.
-  - [ ] This means that we also need to implement a system to pass data from `dradis` to `boomer` to tell it if it should ignore hotplugging or not. Putting some metadata in the vendor-specific parts of the EDIDs sounds like the most plausible candidate.
-
-- [ ] Test infoframes
-- [ ] Test Audio output
-- [ ] Test CEC
-- [ ] Expand the tests to something other than HDMI. DisplayPort, and MIPI-DSI seem like obvious candidates.
