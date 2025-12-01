@@ -90,7 +90,7 @@ test-log = { version = "0.2.16", default-features = false, features = [
 thiserror = { version = "2.0.17", default-features = false }
 threads_pool = { package = "dradis-threads-pool", path = "./dradis-threads-pool" }
 tracelimit = { git = "https://github.com/microsoft/openvmm.git", default-features = false }
-tracing = { version = "0.1.41", default-features = false, features = [
+tracing = { version = "0.1.43", default-features = false, features = [
     "attributes",
 ] }
 tracing-subscriber = { version = "0.3.20", default-features = false, features = [
