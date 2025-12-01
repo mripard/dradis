@@ -36,7 +36,7 @@ anyhow = { version = "1.0.100", default-features = false }
 bindgen = { version = "0.72.1", default-features = false }
 bitflags = { version = "2.10.0", default-features = false }
 built = { version = "0.8.0", default-features = false, features = ["git2"] }
-bytemuck = { version = "1.23.2", default-features = false }
+bytemuck = { version = "1.24.0", default-features = false }
 clap = { version = "4.5.46", default-features = false, features = [
     "cargo",
     "derive",
