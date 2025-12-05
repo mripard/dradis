@@ -48,8 +48,6 @@ In addition to these two main components, a number of libraries are there to sup
 
 - [dradis-frame-check](dradis-frame-check/README.md), a crate implementing the frame decoding, metadata parsing and integrity checks.
 - [dradis-threads-pool](dradis-threads-pool/README.md), a crate to spawn new threads to execute closures, with a pre-defined maximum limit on the number of threads to spawn.
-- [facet-enum-repr](facet-enum-repr/README.md), a crate to implement Rust `TryFrom`/`Into` traits for an enum discriminant type.
-- [facet-enum-repr-derive](facet-enum-repr-derive/README.md), Rust derive macro implementation for `facet-enum-repr]`
 - [linux-mc](linux-mc/README.md), a crate to support Linux [media-controller API](https://docs.kernel.org/userspace-api/media/mediactl/media-controller.html).
 - [linux-raw](linux-raw/README.md), a crate to deal with various low-level structures and mechanisms.
 - [v4l2-raw](v4l2-raw/README.md), a crate supporting the Linux [Video4Linux2 API](https://docs.kernel.org/userspace-api/media/v4l/v4l2.html)
