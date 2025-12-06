@@ -771,10 +771,11 @@ dependencies = [
 
 [[package]]
 name = "facet-enum-repr"
-version = "0.5.3"
+version = "0.5.4"
+source = "git+https://github.com/mripard/facet-enum-repr.git?rev=facet-enum-repr-v0.5.4#34d41a4b7b0c83231a8ac15199c7635d59f3c1f4"
 dependencies = [
  "facet 0.31.8",
- "facet-enum-repr-derive 0.5.3",
+ "facet-enum-repr-derive 0.5.4",
  "facet-reflect 0.31.8",
  "thiserror",
 ]
@@ -790,7 +791,8 @@ dependencies = [
 
 [[package]]
 name = "facet-enum-repr-derive"
-version = "0.5.3"
+version = "0.5.4"
+source = "git+https://github.com/mripard/facet-enum-repr.git?rev=facet-enum-repr-v0.5.4#34d41a4b7b0c83231a8ac15199c7635d59f3c1f4"
 dependencies = [
  "facet-macros-parse 0.31.8",
  "unsynn 0.3.0",
@@ -1283,7 +1285,7 @@ dependencies = [
  "bytemuck",
  "clap",
  "facet 0.31.8",
- "facet-enum-repr 0.5.3",
+ "facet-enum-repr 0.5.4",
  "linux-raw",
  "rstest",
  "rustix",
@@ -2422,7 +2424,7 @@ version = "0.5.2"
 dependencies = [
  "bindgen",
  "facet 0.31.8",
- "facet-enum-repr 0.5.3",
+ "facet-enum-repr 0.5.4",
  "facet-reflect 0.31.8",
  "linux-raw",
  "rustix",
