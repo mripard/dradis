@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1761207512238,
+  "lastUpdate": 1767629460949,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -2021,6 +2021,42 @@ window.BENCHMARK_DATA = {
             "name": "decode_and_check_frame/xxhash2/swapped",
             "value": 1213285,
             "range": "± 3073",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "94d7cd3174363f600356439c7fb937d5280105ce",
+          "message": "Merge pull request #298 from mripard/dependabot/cargo/facet-b283e82f85\n\nbuild(deps): bump the facet group with 2 updates",
+          "timestamp": "2026-01-05T17:06:32+01:00",
+          "tree_id": "c6a4bce9dd9e02b6db36521f325a73cb16e55986",
+          "url": "https://github.com/mripard/dradis/commit/94d7cd3174363f600356439c7fb937d5280105ce"
+        },
+        "date": 1767629460426,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "decode_and_check_frame/xxhash2/valid",
+            "value": 500446,
+            "range": "± 1913",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decode_and_check_frame/xxhash2/swapped",
+            "value": 1275611,
+            "range": "± 4585",
             "unit": "ns/iter"
           }
         ]
