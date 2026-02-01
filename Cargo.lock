@@ -325,6 +325,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "const-fnv1a-hash"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32b13ea120a812beba79e34316b3942a857c86ec1593cb34f27bb28272ce2cca"
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -692,8 +698,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f00d2cc18d1078029c4f94a382875815e28b66f012215b54ef4fa0936e80f6dc"
 dependencies = [
  "autocfg",
- "facet-core",
- "facet-macros",
+ "facet-core 0.41.0",
+ "facet-macros 0.41.0",
+]
+
+[[package]]
+name = "facet"
+version = "0.43.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e338357cf598728b41e45744d024bdc063338214992361766928a1421bd7541d"
+dependencies = [
+ "autocfg",
+ "facet-core 0.43.2",
+ "facet-macros 0.43.2",
 ]
 
 [[package]]
@@ -707,14 +724,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "facet-core"
+version = "0.43.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a63e0ade4c53b40220614b8fc2a0a0ce21975941b553081521a195c848b2e9c2"
+dependencies = [
+ "autocfg",
+ "const-fnv1a-hash",
+ "impls",
+]
+
+[[package]]
+name = "facet-enum-repr"
+version = "0.5.4"
+source = "git+https://github.com/mripard/facet-enum-repr.git?rev=5639d64571647848d1516e3144789b7878478df7#5639d64571647848d1516e3144789b7878478df7"
+dependencies = [
+ "facet 0.43.2",
+ "facet-enum-repr-derive 0.5.4 (git+https://github.com/mripard/facet-enum-repr.git?rev=5639d64571647848d1516e3144789b7878478df7)",
+ "facet-reflect 0.43.2",
+ "thiserror",
+]
+
+[[package]]
 name = "facet-enum-repr"
 version = "0.5.4"
 source = "git+https://github.com/mripard/facet-enum-repr.git?rev=6219a3c395e8ee0a6234e7a43f68f10ac840eb18#6219a3c395e8ee0a6234e7a43f68f10ac840eb18"
 dependencies = [
- "facet",
- "facet-enum-repr-derive",
- "facet-reflect",
+ "facet 0.41.0",
+ "facet-enum-repr-derive 0.5.4 (git+https://github.com/mripard/facet-enum-repr.git?rev=6219a3c395e8ee0a6234e7a43f68f10ac840eb18)",
+ "facet-reflect 0.41.0",
  "thiserror",
+]
+
+[[package]]
+name = "facet-enum-repr-derive"
+version = "0.5.4"
+source = "git+https://github.com/mripard/facet-enum-repr.git?rev=5639d64571647848d1516e3144789b7878478df7#5639d64571647848d1516e3144789b7878478df7"
+dependencies = [
+ "facet-macro-parse 0.43.2",
+ "unsynn",
 ]
 
 [[package]]
@@ -722,7 +770,7 @@ name = "facet-enum-repr-derive"
 version = "0.5.4"
 source = "git+https://github.com/mripard/facet-enum-repr.git?rev=6219a3c395e8ee0a6234e7a43f68f10ac840eb18#6219a3c395e8ee0a6234e7a43f68f10ac840eb18"
 dependencies = [
- "facet-macro-parse",
+ "facet-macro-parse 0.41.0",
  "unsynn",
 ]
 
@@ -732,7 +780,18 @@ version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b2e7965c0671048597607938de32c7f39727832048311258d7b988d1bfd5971"
 dependencies = [
- "facet-macro-types",
+ "facet-macro-types 0.41.0",
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
+name = "facet-macro-parse"
+version = "0.43.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83ea29147986d0e184600cec533c41d6065c3c3d4b5b5745a8403494ca216b09"
+dependencies = [
+ "facet-macro-types 0.43.2",
  "proc-macro2",
  "quote",
 ]
@@ -749,12 +808,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "facet-macro-types"
+version = "0.43.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31b0035cf41c0d4eeee82effc9161512d216d1378dd89c4d8721258429e38597"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unsynn",
+]
+
+[[package]]
 name = "facet-macros"
 version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac47f0b6eb4fa50f8417ddc62c8d389283bee86d827261bab98f824fb315e8f6"
 dependencies = [
- "facet-macros-impl",
+ "facet-macros-impl 0.41.0",
+]
+
+[[package]]
+name = "facet-macros"
+version = "0.43.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77a784f2fa36d3165b95639af790249dee0d8efdef7d53f9417cace91697e2e3"
+dependencies = [
+ "facet-macros-impl 0.43.2",
 ]
 
 [[package]]
@@ -763,8 +842,21 @@ version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2875e4a39494af823f83bfc2aacf4eb84afa31a93c520d4f2897cc580a944ea"
 dependencies = [
- "facet-macro-parse",
- "facet-macro-types",
+ "facet-macro-parse 0.41.0",
+ "facet-macro-types 0.41.0",
+ "proc-macro2",
+ "quote",
+ "unsynn",
+]
+
+[[package]]
+name = "facet-macros-impl"
+version = "0.43.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf8f45c6380398bf74e59b97a20012de571502c609e580d84579d1140e491c1c"
+dependencies = [
+ "facet-macro-parse 0.43.2",
+ "facet-macro-types 0.43.2",
  "proc-macro2",
  "quote",
  "unsynn",
@@ -776,7 +868,16 @@ version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a7c41c01b33cef5c84065ada3a39e15e95a95beaaf6472abcdd3082d679a7df"
 dependencies = [
- "facet-core",
+ "facet-core 0.41.0",
+]
+
+[[package]]
+name = "facet-reflect"
+version = "0.43.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4418c9fceaac9adcd055cc3732954d79b5d67ef04fb855dd219f2b314ba26cff"
+dependencies = [
+ "facet-core 0.43.2",
 ]
 
 [[package]]
@@ -1173,8 +1274,8 @@ dependencies = [
  "bitflags",
  "bytemuck",
  "clap",
- "facet",
- "facet-enum-repr",
+ "facet 0.43.2",
+ "facet-enum-repr 0.5.4 (git+https://github.com/mripard/facet-enum-repr.git?rev=5639d64571647848d1516e3144789b7878478df7)",
  "linux-raw",
  "rstest",
  "rustix",
@@ -1346,9 +1447,9 @@ source = "git+https://github.com/mripard/nucleid.git?rev=239edb00c4424b3d11b9e93
 dependencies = [
  "bindgen",
  "bytemuck",
- "facet",
- "facet-enum-repr",
- "facet-macros",
+ "facet 0.41.0",
+ "facet-enum-repr 0.5.4 (git+https://github.com/mripard/facet-enum-repr.git?rev=6219a3c395e8ee0a6234e7a43f68f10ac840eb18)",
+ "facet-macros 0.41.0",
  "fixed",
  "memmap2",
  "rustix",
@@ -2287,9 +2388,9 @@ name = "v4l2-raw"
 version = "0.5.2"
 dependencies = [
  "bindgen",
- "facet",
- "facet-enum-repr",
- "facet-reflect",
+ "facet 0.43.2",
+ "facet-enum-repr 0.5.4 (git+https://github.com/mripard/facet-enum-repr.git?rev=5639d64571647848d1516e3144789b7878478df7)",
+ "facet-reflect 0.43.2",
  "linux-raw",
  "rustix",
  "tracing",
