@@ -55,7 +55,7 @@ image = { version = "0.25.7", default-features = false, features = ["png"] }
 linux-mc = { path = "./linux-mc" }
 linux-raw = { path = "./linux-raw" }
 linux-uevent = { path = "./linux-uevent" }
-neli = { version = "0.7.1", default-features = false }
+neli = { version = "0.7.4", default-features = false }
 nucleid = { git = "https://github.com/mripard/nucleid.git", rev = "239edb00c4424b3d11b9e93ab93a01a4d3d60d3b" }
 num-traits = { version = "0.2.19", default-features = false }
 pix = { version = "0.14.0", default-features = false }
