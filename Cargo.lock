@@ -882,9 +882,9 @@ dependencies = [
 
 [[package]]
 name = "fancy-regex"
-version = "0.16.2"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "998b056554fbe42e03ae0e152895cd1a7e1002aec800fdc6635d20270260c46f"
+checksum = "72cf461f865c862bb7dc573f643dd6a2b6842f7c30b07882b56bd148cc2761b8"
 dependencies = [
  "bit-set",
  "regex-automata",
@@ -1890,14 +1890,13 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rxing"
-version = "0.8.3"
+version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff2e93e7068f9894c5c8f90ea377015d26cc73f7053e99ffc12453821ffa74d1"
+checksum = "5d4fcbbc6ac324d7018be17d2c94c6c4690ca2f95b9345ffbc001fe8e459ebeb"
 dependencies = [
  "chrono",
  "chrono-tz",
  "codepage-437",
- "encoding",
  "fancy-regex",
  "multimap",
  "num",
