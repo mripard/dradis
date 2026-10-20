@@ -65,7 +65,6 @@ redid = { git = "https://github.com/mripard/redid.git" }
 rxing = { version = "0.9.3", default-features = false, features = [
     "decoders",
     "encoding_rs",
-    "multi_barcode_readers",
     "qrcode",
 ] }
 rustix = { version = "1.1.5", default-features = false, features = [
