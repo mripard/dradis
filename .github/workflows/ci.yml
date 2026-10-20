@@ -67,12 +67,12 @@ jobs:
 
   tests:
     name: Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Install Dependencies
         run: |
-          sudo apt-get install libclang-dev linux-modules-extra-$(uname -r)
+          sudo apt-get install libclang-dev
 
       - name: Load Required Kernel Modules
         run: |
