@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792562798097,
+  "lastUpdate": 1792574488357,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -2129,6 +2129,42 @@ window.BENCHMARK_DATA = {
             "name": "decode_and_check_frame/xxhash2/swapped",
             "value": 1523178,
             "range": "± 5435",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "837bbdfdc93cf9aa8d65efceb7e3ef1d01db5c71",
+          "message": "Merge pull request #314 from mripard/trixie-build\n\nci: Build Debian packages for bookworm and trixie",
+          "timestamp": "2026-10-21T11:17:44+02:00",
+          "tree_id": "2d4d522a354deadcbe1d4a6c4e143d789b4df382",
+          "url": "https://github.com/mripard/dradis/commit/837bbdfdc93cf9aa8d65efceb7e3ef1d01db5c71"
+        },
+        "date": 1792574487976,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "decode_and_check_frame/xxhash2/valid",
+            "value": 814236,
+            "range": "± 4230",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decode_and_check_frame/xxhash2/swapped",
+            "value": 1544508,
+            "range": "± 8265",
             "unit": "ns/iter"
           }
         ]
