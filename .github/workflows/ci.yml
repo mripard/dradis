@@ -128,8 +128,11 @@ jobs:
     needs: [ build, tests ]
     uses: ./.github/workflows/deb_pkg.yml
     if: github.event_name == 'pull_request'
+    strategy:
+      matrix:
+        distribution-version: [ bookworm, trixie ]
     with:
-      distribution-version: bookworm
+      distribution-version: ${{ matrix.distribution-version }}
       package-revision: ${{ github.event.pull_request.number || 0 }}
 
   dependabot:
