@@ -253,22 +253,18 @@ where
             let cropped = self.0.crop(QRCODE_WIDTH, QRCODE_HEIGHT);
             let luma = cropped.to_luma();
 
-            let results = rxing::helpers::detect_multiple_in_luma(
+            let result = rxing::helpers::detect_in_luma(
                 luma.as_u8_slice().to_vec(),
                 QRCODE_WIDTH,
                 QRCODE_HEIGHT,
+                Some(rxing::BarcodeFormat::QR_CODE),
             )
             .map_err(|_e| {
                 warn!("Couldn't detect a QR Code.");
                 FrameError::InvalidFrame
             })?;
 
-            if results.len() != 1 {
-                debug!("Didn't find a QR Code");
-                return Err(FrameError::InvalidFrame);
-            }
-
-            Ok(results[0].getText().to_owned())
+            Ok(result.getText().to_owned())
         })
     }
 

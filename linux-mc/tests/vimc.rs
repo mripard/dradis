@@ -78,7 +78,10 @@ fn info(#[from(get_vimc_device_path)] vimc: PathBuf) {
     assert_eq!(info.driver(), "vimc");
     assert_eq!(info.model(), VIMC_MODEL_NAME);
     assert_eq!(info.serial(), "");
-    assert_eq!(info.bus_info(), "platform:vimc");
+    // Since Linux 6.18 and commit 0125d9e1b3a2 ("media: vimc: Don't explicitly set bus_info"),
+    // bus_info is filled by the media core from the platform device name, which includes the
+    // device ID.
+    assert_eq!(info.bus_info(), "platform:vimc.0");
     assert_eq!(info.hardware_revision(), 0);
 
     let current_version = KernelVersion::current();
