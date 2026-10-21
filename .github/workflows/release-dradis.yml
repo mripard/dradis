@@ -12,8 +12,11 @@ jobs:
   build_deb_pkg_release:
     name: Build Release Debian Package
     uses: ./.github/workflows/deb_pkg.yml
+    strategy:
+      matrix:
+        distribution-version: [ bookworm, trixie ]
     with:
-      distribution-version: bookworm
+      distribution-version: ${{ matrix.distribution-version }}
 
   release:
     name: Create Release
@@ -21,12 +24,13 @@ jobs:
     needs: [ build_deb_pkg_release ]
 
     steps:
-      - name: Download Debian Packet Artifact
+      - name: Download Debian Package Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build_deb_pkg_release.outputs.artifact_name }}
+          pattern: dradis*.deb
+          merge-multiple: true
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: ${{ needs.build_deb_pkg_release.outputs.artifact_name }}
+          artifacts: dradis*.deb
           generateReleaseNotes: true
