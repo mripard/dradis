@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1770721948739,
+  "lastUpdate": 1792562798097,
   "repoUrl": "https://github.com/mripard/dradis",
   "entries": {
     "Dradis Benchmark": [
@@ -2093,6 +2093,42 @@ window.BENCHMARK_DATA = {
             "name": "decode_and_check_frame/xxhash2/swapped",
             "value": 2739681,
             "range": "± 7420",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mripard@kernel.org",
+            "name": "Maxime Ripard",
+            "username": "mripard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c41d9f426895938dab3489a8c5fa7013ed1861b8",
+          "message": "Merge pull request #313 from mripard/update-crates\n\nUpdate crates",
+          "timestamp": "2026-10-21T08:02:39+02:00",
+          "tree_id": "64c1d5db7295d064fb718c4799d2e334931c9457",
+          "url": "https://github.com/mripard/dradis/commit/c41d9f426895938dab3489a8c5fa7013ed1861b8"
+        },
+        "date": 1792562797604,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "decode_and_check_frame/xxhash2/valid",
+            "value": 815110,
+            "range": "± 3566",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decode_and_check_frame/xxhash2/swapped",
+            "value": 1523178,
+            "range": "± 5435",
             "unit": "ns/iter"
           }
         ]
